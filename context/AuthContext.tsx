@@ -1,23 +1,40 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 
+type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 type AuthContextValue = {
   isAuthenticated: boolean;
-  login: () => void;
+  token: string | null;
+  user: AuthUser | null;
+  login: (token: string, user: AuthUser) => void;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   const value = useMemo(
     () => ({
-      isAuthenticated,
-      login: () => setIsAuthenticated(true),
-      logout: () => setIsAuthenticated(false),
+      isAuthenticated: token !== null,
+      token,
+      user,
+      login: (newToken: string, newUser: AuthUser) => {
+        setToken(newToken);
+        setUser(newUser);
+      },
+      logout: () => {
+        setToken(null);
+        setUser(null);
+      },
     }),
-    [isAuthenticated],
+    [token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
