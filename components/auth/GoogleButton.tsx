@@ -4,6 +4,7 @@ import * as WebBrowser from "expo-web-browser";
 import React, { useEffect } from "react";
 import {
   ActivityIndicator,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,14 +22,57 @@ interface GoogleButtonProps {
   onError?: (message: string) => void;
 }
 
+const androidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
+const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+
+// useAuthRequest throws synchronously if the client id for the current
+// platform is missing, and hooks can't be called conditionally. So instead
+// of branching inside one component, we decide here which component to
+// mount: the real hook-using button only ever mounts once its platform's
+// client id exists, so the hook is never invoked with a missing id.
+const isConfigured = Boolean(
+  Platform.OS === "android"
+    ? androidClientId
+    : Platform.OS === "ios"
+      ? iosClientId
+      : webClientId,
+);
+
 export default function GoogleButton({ onError }: GoogleButtonProps) {
+  if (!isConfigured) {
+    return (
+      <TouchableOpacity
+        style={[styles.button, styles.disabled]}
+        activeOpacity={0.8}
+        onPress={() =>
+          onError?.(
+            "Google sign-in isn't configured for this platform yet.",
+          )
+        }
+      >
+        <Ionicons
+          name="logo-google"
+          size={20}
+          color={COLORS.google}
+          style={styles.icon}
+        />
+        <Text style={styles.text}>Continue with Google</Text>
+      </TouchableOpacity>
+    );
+  }
+
+  return <GoogleAuthButton onError={onError} />;
+}
+
+function GoogleAuthButton({ onError }: GoogleButtonProps) {
   const { login } = useAuth();
   const [loading, setLoading] = React.useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId,
+    androidClientId,
+    webClientId,
   });
 
   useEffect(() => {

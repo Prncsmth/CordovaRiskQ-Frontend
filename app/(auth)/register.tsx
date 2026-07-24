@@ -1,17 +1,19 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AuthFooter from "@/components/auth/AuthFooter";
 import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import PrimaryButton from "@/components/auth/PrimaryButton";
+import BackButton from "@/components/common/BackButton";
 import { useAuth } from "@/context/AuthContext";
 import { registerUser } from "@/services/auth.service";
 import { COLORS, SPACING } from "@/theme";
@@ -19,22 +21,17 @@ import { COLORS, SPACING } from "@/theme";
 export default function RegisterScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleRegister() {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !password) {
       setError("Please fill in all fields.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
       return;
     }
 
@@ -43,15 +40,14 @@ export default function RegisterScreen() {
 
     try {
       const response = await registerUser(name, email, password);
-      login(response.token, response.user);
-      router.replace("/home");
+      await login(response.token, response.user);
+      router.push("/phone-number");
     } catch (err) {
       const message =
         err instanceof Error
           ? err.message
           : "Registration failed. Please try again.";
       setError(message);
-      console.log("Registration error:", err); // remove once debugged
     } finally {
       setLoading(false);
     }
@@ -63,24 +59,26 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          { paddingTop: insets.top + SPACING.md },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
-        <AuthHeader
-          title="Create account"
-          subtitle="Sign up to get started with CordovaRiskQ"
-        />
+        <BackButton onPress={() => router.push("/login")} style={styles.back} />
+
+        <AuthHeader title="Sign up" subtitle="Create an account to continue" />
 
         <AuthInput
-          icon="person-outline"
-          placeholder="Full name"
+          label="Full Name"
+          placeholder="Enter your full name"
           value={name}
           onChangeText={setName}
         />
 
         <AuthInput
-          icon="mail-outline"
-          placeholder="Email"
+          label="Email"
+          placeholder="Enter your email"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -88,32 +86,25 @@ export default function RegisterScreen() {
         />
 
         <AuthInput
-          icon="lock-closed-outline"
-          placeholder="Password"
+          label="Set Password"
+          placeholder="Enter your password"
           secureTextEntry
+          secureToggle
           value={password}
           onChangeText={setPassword}
-        />
-
-        <AuthInput
-          icon="lock-closed-outline"
-          placeholder="Confirm password"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <PrimaryButton
-          title="Sign Up"
+          title="Register"
           loading={loading}
           onPress={handleRegister}
         />
 
         <AuthFooter
           promptText="Already have an account?"
-          actionText="Log In"
+          actionText="Login"
           onPress={() => router.push("/login")}
         />
       </ScrollView>
@@ -129,8 +120,13 @@ const styles = StyleSheet.create({
 
   container: {
     flexGrow: 1,
-    justifyContent: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xl,
+  },
+
+  back: {
+    marginBottom: SPACING.lg,
   },
 
   error: {

@@ -1,3 +1,12 @@
+import AuthFooter from "@/components/auth/AuthFooter";
+import AuthHeader from "@/components/auth/AuthHeader";
+import AuthInput from "@/components/auth/AuthInput";
+import GoogleButton from "@/components/auth/GoogleButton";
+import PrimaryButton from "@/components/auth/PrimaryButton";
+import BackButton from "@/components/common/BackButton";
+import { useAuth } from "@/context/AuthContext";
+import { loginUser } from "@/services/auth.service";
+import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -6,20 +15,12 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  View,
 } from "react-native";
-
-import AuthFooter from "@/components/auth/AuthFooter";
-import AuthHeader from "@/components/auth/AuthHeader";
-import AuthInput from "@/components/auth/AuthInput";
-import PrimaryButton from "@/components/auth/PrimaryButton";
-import { useAuth } from "@/context/AuthContext";
-import { loginUser } from "@/services/auth.service";
-import { COLORS, SPACING } from "@/theme";
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,14 +31,12 @@ export default function LoginScreen() {
       setError("Please enter your email and password.");
       return;
     }
-
     setError(null);
     setLoading(true);
-
     try {
       const response = await loginUser(email, password);
       await login(response.token, response.user);
-      router.replace("/home");
+      router.push("/phone-number"); // TODO: confirm this vs. router.replace("/home")
     } catch (err) {
       setError("Login failed. Please check your credentials and try again.");
     } finally {
@@ -54,14 +53,19 @@ export default function LoginScreen() {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
+        <BackButton
+          onPress={() => router.push("/register")}
+          style={styles.back}
+        />
+
         <AuthHeader
-          title="Welcome back"
-          subtitle="Log in to continue to CordovaRiskQ"
+          title={"Sign in to your\nAccount"}
+          subtitle="Enter your email and password to log in"
         />
 
         <AuthInput
-          icon="mail-outline"
-          placeholder="Email"
+          label="Email"
+          placeholder="Enter your email"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
@@ -69,9 +73,11 @@ export default function LoginScreen() {
         />
 
         <AuthInput
-          icon="lock-closed-outline"
-          placeholder="Password"
+          label="Password"
+          placeholder="Enter your password"
           secureTextEntry
+          rightLabel="Forgot Password?"
+          onRightLabelPress={() => router.push("/forgot-password")}
           value={password}
           onChangeText={setPassword}
         />
@@ -79,6 +85,14 @@ export default function LoginScreen() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <PrimaryButton title="Log In" loading={loading} onPress={handleLogin} />
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <GoogleButton onError={setError} />
 
         <AuthFooter
           promptText="Don't have an account?"
@@ -95,13 +109,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-
   container: {
     flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: SPACING.lg,
   },
-
+  back: {
+    marginBottom: SPACING.lg,
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: SPACING.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
+  dividerText: {
+    marginHorizontal: SPACING.sm,
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.gray,
+  },
   error: {
     color: COLORS.danger,
     marginBottom: SPACING.sm,

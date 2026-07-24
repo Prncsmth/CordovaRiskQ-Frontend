@@ -1,46 +1,104 @@
-import React from "react";
-import {
-  View,
-  TextInput,
-  StyleSheet,
-  TextInputProps,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-
+import React, { useState } from "react";
 import {
-  COLORS,
-  SPACING,
-  RADIUS,
-  SHADOW,
-} from "../../theme";
+  StyleSheet,
+  Text,
+  TextInput,
+  TextInputProps,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "../../theme";
 
 interface AuthInputProps extends TextInputProps {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
+  label?: string;
+  rightLabel?: string;
+  onRightLabelPress?: () => void;
+  secureToggle?: boolean;
 }
 
 export default function AuthInput({
   icon,
+  label,
+  rightLabel,
+  onRightLabelPress,
+  secureToggle = false,
+  secureTextEntry,
   ...props
 }: AuthInputProps) {
-  return (
-    <View style={styles.container}>
-      <Ionicons
-        name={icon}
-        size={22}
-        color={COLORS.gray}
-        style={styles.icon}
-      />
+  const [hidden, setHidden] = useState(!!secureTextEntry);
 
-      <TextInput
-        placeholderTextColor={COLORS.gray}
-        style={styles.input}
-        {...props}
-      />
+  return (
+    <View style={styles.wrapper}>
+      {label || rightLabel ? (
+        <View style={styles.labelRow}>
+          {label ? <Text style={styles.label}>{label}</Text> : <View />}
+          {rightLabel ? (
+            <TouchableOpacity onPress={onRightLabelPress} hitSlop={8}>
+              <Text style={styles.rightLabel}>{rightLabel}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View style={[styles.container, label ? styles.containerFlat : null]}>
+        {icon ? (
+          <Ionicons
+            name={icon}
+            size={22}
+            color={COLORS.gray}
+            style={styles.icon}
+          />
+        ) : null}
+
+        <TextInput
+          placeholderTextColor={COLORS.gray}
+          style={styles.input}
+          secureTextEntry={secureToggle ? hidden : secureTextEntry}
+          {...props}
+        />
+
+        {secureToggle ? (
+          <TouchableOpacity onPress={() => setHidden((h) => !h)} hitSlop={8}>
+            <Ionicons
+              name={hidden ? "eye-outline" : "eye-off-outline"}
+              size={20}
+              color={COLORS.gray}
+            />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    width: "100%",
+    marginBottom: SPACING.md,
+  },
+
+  label: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "600",
+    color: COLORS.text,
+  },
+
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: SPACING.xs,
+  },
+
+  rightLabel: {
+    fontSize: TYPOGRAPHY.caption,
+    fontWeight: "600",
+    color: COLORS.primary,
+  },
+
   container: {
     flexDirection: "row",
     alignItems: "center",
@@ -57,9 +115,14 @@ const styles = StyleSheet.create({
 
     paddingHorizontal: SPACING.md,
 
-    marginBottom: SPACING.md,
-
     ...SHADOW,
+  },
+
+  containerFlat: {
+    backgroundColor: COLORS.inputBg,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
   },
 
   icon: {
@@ -68,9 +131,7 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
-
     fontSize: 16,
-
     color: COLORS.text,
   },
 });
