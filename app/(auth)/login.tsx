@@ -1,18 +1,17 @@
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
+  Text,
 } from "react-native";
-import { useRouter } from "expo-router";
 
+import AuthFooter from "@/components/auth/AuthFooter";
 import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import PrimaryButton from "@/components/auth/PrimaryButton";
-import AuthFooter from "@/components/auth/AuthFooter";
 import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/services/auth.service";
 import { COLORS, SPACING } from "@/theme";
@@ -37,7 +36,7 @@ export default function LoginScreen() {
 
     try {
       const response = await loginUser(email, password);
-      login(response.token, response.user);
+      await login(response.token, response.user);
       router.replace("/home");
     } catch (err) {
       setError("Login failed. Please check your credentials and try again.");
@@ -79,11 +78,7 @@ export default function LoginScreen() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <PrimaryButton
-          title="Log In"
-          loading={loading}
-          onPress={handleLogin}
-        />
+        <PrimaryButton title="Log In" loading={loading} onPress={handleLogin} />
 
         <AuthFooter
           promptText="Don't have an account?"

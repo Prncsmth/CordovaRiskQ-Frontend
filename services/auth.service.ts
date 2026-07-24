@@ -36,3 +36,18 @@ export async function registerUser(
     password,
   });
 }
+
+export type GoogleAuthResponse = {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+};
+
+export async function googleAuth(
+  idToken: string,
+): Promise<GoogleAuthResponse> {
+  return apiPost<GoogleAuthResponse>("/api/auth/google", { idToken });
+}
