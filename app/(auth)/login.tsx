@@ -36,7 +36,7 @@ export default function LoginScreen() {
     try {
       const response = await loginUser(email, password);
       await login(response.token, response.user);
-      router.push("/phone-number"); // TODO: confirm this vs. router.replace("/home")
+      router.push("/phone-number");
     } catch (err) {
       setError("Login failed. Please check your credentials and try again.");
     } finally {
