@@ -42,6 +42,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   if (stage !== "idle") return null;
 
   const activeName = state.routes[state.index].name;
+  const fabFocused = activeName === "report";
 
   function renderTab(tab: TabConfig) {
     const focused = activeName === tab.name;
@@ -78,6 +79,15 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         >
           <Ionicons name="document-text" size={26} color={COLORS.white} />
         </TouchableOpacity>
+        <Text
+          style={[
+            styles.label,
+            styles.fabLabel,
+            { color: fabFocused ? COLORS.primary : COLORS.textTertiary },
+          ]}
+        >
+          Report
+        </Text>
       </View>
 
       {RIGHT_TABS.map(renderTab)}
@@ -118,10 +128,14 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.primary,
-    marginTop: -30,
+    marginTop: -40, // was -30, now moves it up further
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 5,
     borderColor: COLORS.background,
+  },
+
+  fabLabel: {
+    marginTop: 2,
   },
 });

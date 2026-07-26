@@ -3,7 +3,6 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import GoogleButton from "@/components/auth/GoogleButton";
 import PrimaryButton from "@/components/auth/PrimaryButton";
-import BackButton from "@/components/common/BackButton";
 import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/services/auth.service";
 import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
@@ -53,11 +52,6 @@ export default function LoginScreen() {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <BackButton
-          onPress={() => router.push("/register")}
-          style={styles.back}
-        />
-
         <AuthHeader
           title={"Sign in to your\nAccount"}
           subtitle="Enter your email and password to log in"
@@ -113,9 +107,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: SPACING.lg,
-  },
-  back: {
-    marginBottom: SPACING.lg,
   },
   dividerRow: {
     flexDirection: "row",
