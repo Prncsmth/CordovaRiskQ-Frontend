@@ -1,68 +1,20 @@
 import { Tabs } from "expo-router";
 import React from "react";
 
-import { HapticTab } from "../../components/haptic-tab";
-import { IconSymbol } from "../../components/ui/icon-symbol";
-import { Colors } from "../../constants/theme";
-import { useColorScheme } from "../../hooks/use-color-scheme";
+import TabBar from "@/components/tabs/TabBar";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       initialRouteName="home"
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}
+      tabBar={(props) => <TabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: "Map",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="map.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Reports",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="doc.text.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: "Alerts",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="bell.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="home" options={{ title: "Home" }} />
+      <Tabs.Screen name="map" options={{ title: "Map" }} />
+      <Tabs.Screen name="report" options={{ title: "Report" }} />
+      <Tabs.Screen name="report-history" options={{ title: "Report History" }} />
+      <Tabs.Screen name="profile" options={{ title: "Profile" }} />
     </Tabs>
   );
 }
