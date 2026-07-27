@@ -1,6 +1,6 @@
-import { View, Text } from "react-native";
+import { Text, View } from "react-native";
 
-export default function NotificationsScreen() {
+export default function ReportScreen() {
   return (
     <View
       style={{

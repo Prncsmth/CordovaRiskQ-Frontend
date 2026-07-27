@@ -48,7 +48,8 @@ export default function PhoneNumberScreen() {
 
       <Text style={styles.title}>Your phone number</Text>
       <Text style={styles.subtitle}>
-        It's helpful to provide a good reason why the phone number is required.
+        It&apos;s helpful to provide a good reason why the phone number is
+        required.
       </Text>
 
       <View style={styles.displayWrap}>

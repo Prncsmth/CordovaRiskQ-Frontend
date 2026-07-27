@@ -86,7 +86,6 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
             { color: fabFocused ? COLORS.primary : COLORS.textTertiary },
           ]}
         >
-          {" "}
           Report
         </Text>
       </View>
@@ -129,13 +128,14 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.primary,
-    marginTop: -30,
+    marginTop: -40, // was -30, now moves it up further
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 5,
     borderColor: COLORS.background,
   },
+
   fabLabel: {
-    marginTop: 4,
+    marginTop: 2,
   },
 });
