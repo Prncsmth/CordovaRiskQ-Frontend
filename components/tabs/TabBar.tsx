@@ -39,7 +39,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { stage } = useSos();
 
-  if (stage !== "idle") return null;
+  if (stage === "active") return null;
 
   const activeName = state.routes[state.index].name;
   const fabFocused = activeName === "report";

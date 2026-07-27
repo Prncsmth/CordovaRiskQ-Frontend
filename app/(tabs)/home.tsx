@@ -30,15 +30,19 @@ export default function HomeScreen() {
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
 
   useEffect(() => {
-    getNotifications().then((notifications) => setHasUnread(notifications.length > 0));
+    getNotifications()
+      .then((notifications) => setHasUnread(notifications.length > 0))
+      .catch(() => {});
 
-    getEvacuationCenters().then((centers) => {
-      if (centers.length === 0) return;
-      const nearest = centers.reduce((closest, center) =>
-        center.distanceKm < closest.distanceKm ? center : closest,
-      );
-      setNearestCenter(nearest);
-    });
+    getEvacuationCenters()
+      .then((centers) => {
+        if (centers.length === 0) return;
+        const nearest = centers.reduce((closest, center) =>
+          center.distanceKm < closest.distanceKm ? center : closest,
+        );
+        setNearestCenter(nearest);
+      })
+      .catch(() => {});
   }, []);
 
   return (
