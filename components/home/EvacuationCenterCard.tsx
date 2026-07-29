@@ -11,7 +11,9 @@ type EvacuationCenterCardProps = {
   center: EvacuationCenter;
 };
 
-export default function EvacuationCenterCard({ center }: EvacuationCenterCardProps) {
+export default function EvacuationCenterCard({
+  center,
+}: EvacuationCenterCardProps) {
   const router = useRouter();
 
   return (
@@ -24,7 +26,8 @@ export default function EvacuationCenterCard({ center }: EvacuationCenterCardPro
       <View style={styles.textCol}>
         <Text style={styles.name}>{center.name}</Text>
         <Text style={styles.meta}>
-          {center.distanceKm} km away · {center.status === "open" ? "Open" : "Full"}
+          {center.distanceKm} km away ·{" "}
+          {center.status === "open" ? "Open" : "Full"}
         </Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={COLORS.textFaint} />

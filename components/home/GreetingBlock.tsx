@@ -22,14 +22,22 @@ export default function GreetingBlock({
       <View style={styles.left}>
         <Text style={styles.greeting}>Hello, {name}!</Text>
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} />
+          <Ionicons
+            name="location-outline"
+            size={12}
+            color={COLORS.textSecondary}
+          />
           <Text style={styles.location}>{location}</Text>
         </View>
       </View>
 
       <View style={styles.right}>
         <View style={styles.tempRow}>
-          <Ionicons name="partly-sunny-outline" size={14} color={COLORS.textSecondary} />
+          <Ionicons
+            name="partly-sunny-outline"
+            size={14}
+            color={COLORS.textSecondary}
+          />
           <Text style={styles.temp}>{temperatureC}°C</Text>
         </View>
         <Text style={styles.weatherDesc}>{weatherDescription}</Text>

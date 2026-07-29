@@ -32,7 +32,11 @@ export default function SafetyTipsList() {
         {TIPS.map((tip) => (
           <View key={tip.title} style={styles.card}>
             <View style={styles.iconCircle}>
-              <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.primary} />
+              <Ionicons
+                name="shield-checkmark-outline"
+                size={14}
+                color={COLORS.primary}
+              />
             </View>
             <View style={styles.textCol}>
               <Text style={styles.title}>{tip.title}</Text>

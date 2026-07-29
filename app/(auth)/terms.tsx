@@ -77,7 +77,10 @@ export default function TermsScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[styles.cta, scrolledToBottom ? styles.ctaActive : styles.ctaInactive]}
+          style={[
+            styles.cta,
+            scrolledToBottom ? styles.ctaActive : styles.ctaInactive,
+          ]}
           disabled={!scrolledToBottom}
           onPress={() => router.replace("/home")}
           activeOpacity={0.8}
