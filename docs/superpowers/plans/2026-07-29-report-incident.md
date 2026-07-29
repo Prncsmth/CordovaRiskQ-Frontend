@@ -42,8 +42,6 @@
 ```ts
 import { Ionicons } from "@expo/vector-icons";
 
-import { COLORS } from "@/theme";
-
 export type CategoryId = "flood" | "fire" | "medical" | "road-accident" | "other";
 
 export type Category = {
@@ -53,12 +51,14 @@ export type Category = {
   color: string;
 };
 
+// Standalone hex values, deliberately not COLORS.* tokens: a category's
+// identity color must not shift if an unrelated theme color is retuned later.
 export const CATEGORIES: Category[] = [
   { id: "flood", label: "Flood", icon: "water", color: "#2F6FED" },
-  { id: "fire", label: "Fire", icon: "flame", color: COLORS.secondary },
-  { id: "medical", label: "Medical Emergency", icon: "medical", color: COLORS.danger },
-  { id: "road-accident", label: "Road Accident", icon: "warning", color: COLORS.warning },
-  { id: "other", label: "Other", icon: "ellipsis-horizontal", color: COLORS.gray },
+  { id: "fire", label: "Fire", icon: "flame", color: "#FF6B35" },
+  { id: "medical", label: "Medical Emergency", icon: "medical", color: "#DC2626" },
+  { id: "road-accident", label: "Road Accident", icon: "warning", color: "#B45309" },
+  { id: "other", label: "Other", icon: "ellipsis-horizontal", color: "#9CA3AF" },
 ];
 
 export function getCategory(id: CategoryId): Category {
