@@ -44,3 +44,8 @@ app-example
 
 # superpowers brainstorming companion
 .superpowers/
+
+# personal Claude Code settings overrides
+.claude/settings.local.json
+
+.claude/worktrees/

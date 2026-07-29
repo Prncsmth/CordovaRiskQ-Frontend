@@ -1,18 +1,18 @@
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { SosProvider } from "@/context/SosContext";
+import { ThemeProvider as AppThemeProvider } from "@/context/ThemeContext";
+import { UserProvider } from "@/context/UserContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider as NavigationThemeProvider,
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { View, ActivityIndicator } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
-import { SosProvider } from "@/context/SosContext";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { UserProvider } from "@/context/UserContext";
-import { ThemeProvider as AppThemeProvider } from "@/context/ThemeContext";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -63,7 +63,7 @@ export default function RootLayout() {
     <AuthProvider>
       <UserProvider>
         <AppThemeProvider>
-           <NavigationThemeProvider
+          <NavigationThemeProvider
             value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
           >
             <SosProvider>

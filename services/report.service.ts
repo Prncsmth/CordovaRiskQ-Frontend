@@ -1,6 +1,10 @@
 // services/report.service.ts
 export async function createReport(payload: Record<string, unknown>) {
-  return { success: true, payload, ref: `RQ-${Math.floor(20000 + Math.random() * 900)}` };
+  return {
+    success: true,
+    payload,
+    ref: `RQ-${Math.floor(20000 + Math.random() * 900)}`,
+  };
 }
 
 export type ReportHistoryItem = {
