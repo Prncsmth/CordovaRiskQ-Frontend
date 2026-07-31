@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, RADIUS } from "@/theme";
+import { COLORS, RADIUS, TYPOGRAPHY } from "@/theme";
 
 function getInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -21,8 +21,8 @@ export function Avatar({ name }: { name: string }) {
 
 const styles = StyleSheet.create({
   avatar: {
-    width: 40,
-    height: 40,
+    width: 56,
+    height: 56,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.primary,
     justifyContent: "center",
@@ -31,5 +31,6 @@ const styles = StyleSheet.create({
   text: {
     color: COLORS.white,
     fontWeight: "700",
+    fontSize: TYPOGRAPHY.subtitle,
   },
 });

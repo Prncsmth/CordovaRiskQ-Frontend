@@ -39,11 +39,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcome: {
-    fontSize: TYPOGRAPHY.small,
+    fontSize: TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
   },
   name: {
-    fontSize: TYPOGRAPHY.body,
+    fontSize: TYPOGRAPHY.subtitle,
     fontWeight: "800",
     color: COLORS.text,
   },
