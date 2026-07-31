@@ -41,7 +41,10 @@ export default function ReportHistoryScreen() {
       />
 
       {loaded && reports.length === 0 ? (
-        <EmptyState message="You haven't submitted any reports yet." />
+        <EmptyState
+          message="No reports yet."
+          subtitle="Your submitted reports will appear here."
+        />
       ) : (
         <View style={styles.list}>
           {reports.map((item) => (
