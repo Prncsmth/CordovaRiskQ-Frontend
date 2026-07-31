@@ -1,12 +1,28 @@
-import PrimaryButton from "@/components/auth/PrimaryButton";
-import { useAuth } from "@/context/AuthContext";
-import { COLORS, SPACING } from "@/theme";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ContactSupportCard from "@/components/profile/ContactSupportCard";
+import MenuRow from "@/components/profile/MenuRow";
+import ProfileHeader from "@/components/profile/ProfileHeader";
+import { useAuth } from "@/context/AuthContext";
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+
+type MenuItem = {
+  key: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress?: () => void;
+  right?: React.ReactNode;
+};
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
   const router = useRouter();
+  const [notificationsOn, setNotificationsOn] = useState(true);
 
   function handleLogout() {
     Alert.alert("Log out", "Are you sure you want to log out?", [
@@ -22,31 +38,101 @@ export default function ProfileScreen() {
     ]);
   }
 
+  const menuItems: MenuItem[] = [
+    {
+      key: "user-profile",
+      icon: "person-outline",
+      label: "User Profile",
+      onPress: () => router.push("/user-profile"),
+    },
+    {
+      key: "change-password",
+      icon: "lock-closed-outline",
+      label: "Change Password",
+      onPress: () => router.push("/change-password"),
+    },
+    {
+      key: "emergency-contacts",
+      icon: "call-outline",
+      label: "Emergency Contacts",
+      onPress: () => router.push("/contacts"),
+    },
+    {
+      key: "faqs",
+      icon: "help-circle-outline",
+      label: "FAQs",
+      onPress: () => router.push("/faqs"),
+    },
+    {
+      key: "push-notification",
+      icon: "notifications-outline",
+      label: "Push Notification",
+      right: (
+        <Switch
+          value={notificationsOn}
+          onValueChange={setNotificationsOn}
+          trackColor={{ true: COLORS.primary }}
+          thumbColor={COLORS.white}
+        />
+      ),
+    },
+  ];
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.name}>{user?.name ?? "User"}</Text>
-      <Text style={styles.email}>{user?.email}</Text>
-      <PrimaryButton title="Log Out" onPress={handleLogout} />
-    </View>
+    <ScrollView
+      style={styles.flex}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
+      ]}
+    >
+      <Text style={styles.title}>Profile</Text>
+
+      <ProfileHeader name={user?.name ?? "User"} onLogout={handleLogout} />
+
+      <View style={styles.menuCard}>
+        {menuItems.map((item, index) => (
+          <View
+            key={item.key}
+            style={index < menuItems.length - 1 ? styles.menuRowDivider : undefined}
+          >
+            <MenuRow
+              icon={item.icon}
+              label={item.label}
+              onPress={item.onPress}
+              right={item.right}
+            />
+          </View>
+        ))}
+      </View>
+
+      <ContactSupportCard />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  flex: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: SPACING.lg,
     backgroundColor: COLORS.background,
   },
-  name: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
+  content: {
+    paddingHorizontal: SPACING.md,
+    gap: SPACING.md,
   },
-  email: {
-    color: COLORS.gray,
-    marginBottom: SPACING.lg,
+  title: {
+    fontSize: TYPOGRAPHY.heading,
+    fontWeight: "800",
+    color: COLORS.text,
+  },
+  menuCard: {
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+  },
+  menuRowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderMuted,
   },
 });
