@@ -32,7 +32,7 @@ export default function ReportHistoryScreen() {
     >
       <View style={styles.section}>
         <Text style={styles.title}>Report History</Text>
-        <Text style={styles.subtitle}>Track the status of what you've reported</Text>
+        <Text style={styles.subtitle}>{"Track the status of what you've reported"}</Text>
       </View>
 
       <PrimaryButton
