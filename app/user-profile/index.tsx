@@ -1,6 +1,13 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
@@ -40,13 +47,17 @@ export default function UserProfileScreen() {
   }
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.flex}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
-      ]}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={styles.backButton} />
         <Text style={styles.headerTitle}>User Profile</Text>
@@ -81,7 +92,8 @@ export default function UserProfileScreen() {
       </View>
 
       <PrimaryButton title="SAVE" onPress={handleSave} />
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
