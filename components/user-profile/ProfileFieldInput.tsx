@@ -10,10 +10,13 @@ import {
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 type ProfileFieldInputProps = {
-  label: string;
+  label?: string;
   value: string;
   onChangeText: (text: string) => void;
-} & Pick<TextInputProps, "keyboardType" | "autoCapitalize">;
+} & Pick<
+  TextInputProps,
+  "keyboardType" | "autoCapitalize" | "secureTextEntry" | "placeholder"
+>;
 
 export default function ProfileFieldInput({
   label,
@@ -21,16 +24,20 @@ export default function ProfileFieldInput({
   onChangeText,
   keyboardType,
   autoCapitalize,
+  secureTextEntry,
+  placeholder,
 }: ProfileFieldInputProps) {
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
+        secureTextEntry={secureTextEntry}
+        placeholder={placeholder}
         placeholderTextColor={COLORS.textTertiary}
       />
     </View>
