@@ -124,6 +124,7 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.title,
     fontWeight: "800",
     color: COLORS.text,
+    marginBottom: SPACING.sm,
   },
   menuRowDivider: {
     borderBottomWidth: 1,
