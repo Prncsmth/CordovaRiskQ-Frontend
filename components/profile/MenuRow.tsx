@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.md,
   },
   iconCircle: {
     width: 36,
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   label: {
     flex: 1,
     fontSize: TYPOGRAPHY.body,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.text,
   },
 });
