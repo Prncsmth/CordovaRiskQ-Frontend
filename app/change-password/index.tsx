@@ -29,7 +29,7 @@ export default function ChangePasswordScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <PasswordSheet onClose={handleClose}>
         <Text style={styles.title}>Change Password</Text>

@@ -54,10 +54,10 @@ function RootLayoutNav() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
-        name="change-password"
+        name="change-password/index"
         options={{
           presentation: "transparentModal",
-          animation: "slide_from_bottom",
+          animation: "fade",
         }}
       />
     </Stack>

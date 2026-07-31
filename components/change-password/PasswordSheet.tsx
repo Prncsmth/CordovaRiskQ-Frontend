@@ -6,12 +6,14 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { COLORS, RADIUS, SPACING } from "@/theme";
 
 const DISMISS_THRESHOLD = 100;
+const DISMISS_DISTANCE = 600;
 
 type PasswordSheetProps = {
   children: React.ReactNode;
@@ -26,12 +28,17 @@ export default function PasswordSheet({
   const translateY = useSharedValue(0);
 
   const pan = Gesture.Pan()
+    .activeOffsetY([-10, 10])
     .onUpdate((event) => {
       translateY.value = Math.max(0, event.translationY);
     })
     .onEnd((event) => {
       if (event.translationY > DISMISS_THRESHOLD) {
-        runOnJS(onClose)();
+        translateY.value = withTiming(DISMISS_DISTANCE, { duration: 200 }, (finished) => {
+          if (finished) {
+            runOnJS(onClose)();
+          }
+        });
       } else {
         translateY.value = withSpring(0);
       }
