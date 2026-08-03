@@ -1,6 +1,8 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -15,11 +17,10 @@ import BackButton from "@/components/common/BackButton";
 import ProfileAvatarEdit from "@/components/user-profile/ProfileAvatarEdit";
 import ProfileFieldInput from "@/components/user-profile/ProfileFieldInput";
 import { useAuth } from "@/context/AuthContext";
+import { getProfile, updateProfile } from "@/services/user.service";
 import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
 
-const MOCK_MOBILE = "+63 917 555 0142";
-
-function splitName(name: string | undefined): {
+function splitName(name: string | null | undefined): {
   firstName: string;
   lastName: string;
 } {
@@ -34,16 +35,56 @@ function splitName(name: string | undefined): {
 export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
-  const initial = splitName(user?.name);
+  const { token, updateUser } = useAuth();
 
-  const [firstName, setFirstName] = useState(initial.firstName);
-  const [lastName, setLastName] = useState(initial.lastName);
-  const [email, setEmail] = useState(user?.email ?? "");
-  const [mobile, setMobile] = useState(MOCK_MOBILE);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
 
-  function handleSave() {
-    router.back();
+  useEffect(() => {
+    if (!token) return;
+
+    getProfile(token)
+      .then((profile) => {
+        const split = splitName(profile.name);
+        setFirstName(split.firstName);
+        setLastName(split.lastName);
+        setEmail(profile.email);
+        setMobile(profile.mobile ?? "");
+      })
+      .catch((err) => {
+        Alert.alert(
+          "Couldn't load profile",
+          err instanceof Error ? err.message : "Please try again.",
+        );
+      })
+      .finally(() => setIsLoading(false));
+  }, [token]);
+
+  async function handleSave() {
+    if (!token) return;
+
+    setIsSaving(true);
+    try {
+      const name = `${firstName} ${lastName}`.trim();
+      const profile = await updateProfile(token, { name, email, mobile });
+      await updateUser({
+        id: profile.id,
+        name: profile.name ?? "",
+        email: profile.email,
+      });
+      router.back();
+    } catch (err) {
+      Alert.alert(
+        "Update failed",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -63,35 +104,41 @@ export default function UserProfileScreen() {
         <Text style={styles.headerTitle}>User Profile</Text>
       </View>
 
-      <ProfileAvatarEdit />
+      {isLoading ? (
+        <ActivityIndicator color={COLORS.primary} style={styles.loading} />
+      ) : (
+        <>
+          <ProfileAvatarEdit />
 
-      <View style={styles.fields}>
-        <ProfileFieldInput
-          label="First Name"
-          value={firstName}
-          onChangeText={setFirstName}
-        />
-        <ProfileFieldInput
-          label="Last Name"
-          value={lastName}
-          onChangeText={setLastName}
-        />
-        <ProfileFieldInput
-          label="E-Mail"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <ProfileFieldInput
-          label="Mobile"
-          value={mobile}
-          onChangeText={setMobile}
-          keyboardType="phone-pad"
-        />
-      </View>
+          <View style={styles.fields}>
+            <ProfileFieldInput
+              label="First Name"
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+            <ProfileFieldInput
+              label="Last Name"
+              value={lastName}
+              onChangeText={setLastName}
+            />
+            <ProfileFieldInput
+              label="E-Mail"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <ProfileFieldInput
+              label="Mobile"
+              value={mobile}
+              onChangeText={setMobile}
+              keyboardType="phone-pad"
+            />
+          </View>
 
-      <PrimaryButton title="SAVE" onPress={handleSave} />
+          <PrimaryButton title="SAVE" onPress={handleSave} disabled={isSaving} />
+        </>
+      )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -122,5 +169,8 @@ const styles = StyleSheet.create({
   },
   fields: {
     gap: SPACING.md,
+  },
+  loading: {
+    marginTop: SPACING.xl,
   },
 });
