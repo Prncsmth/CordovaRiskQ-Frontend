@@ -19,11 +19,30 @@ function resolveApiBaseUrl(): string {
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
-export async function apiGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`);
+function authHeaders(token?: string): Record<string, string> {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function extractErrorMessage(response: Response): Promise<string> {
+  const text = await response.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(text) as { message?: string };
+    if (typeof parsed.message === "string" && parsed.message.length > 0) {
+      return parsed.message;
+    }
+  } catch {
+    // Response body wasn't JSON — fall through to a generic message.
+  }
+  return `Request failed with status ${response.status}`;
+}
+
+export async function apiGet<T>(path: string, token?: string): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: authHeaders(token),
+  });
 
   if (!response.ok) {
-    throw new Error(`GET ${path} failed with status ${response.status}`);
+    throw new Error(await extractErrorMessage(response));
   }
 
   return response.json() as Promise<T>;
@@ -32,20 +51,40 @@ export async function apiGet<T>(path: string): Promise<T> {
 export async function apiPost<T>(
   path: string,
   body: Record<string, unknown>,
+  token?: string,
 ): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(token),
     },
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new Error(
-      `POST ${path} failed with status ${response.status}: ${errorText}`,
-    );
+    throw new Error(await extractErrorMessage(response));
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export async function apiPut<T>(
+  path: string,
+  body: Record<string, unknown>,
+  token?: string,
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response));
   }
 
   return response.json() as Promise<T>;
