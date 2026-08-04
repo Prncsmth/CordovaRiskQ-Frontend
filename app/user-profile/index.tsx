@@ -38,6 +38,7 @@ export default function UserProfileScreen() {
   const { token, updateUser } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -56,6 +57,7 @@ export default function UserProfileScreen() {
         setMobile(profile.mobile ?? "");
       })
       .catch((err) => {
+        setLoadError(true);
         Alert.alert(
           "Couldn't load profile",
           err instanceof Error ? err.message : "Please try again.",
@@ -106,6 +108,10 @@ export default function UserProfileScreen() {
 
       {isLoading ? (
         <ActivityIndicator color={COLORS.primary} style={styles.loading} />
+      ) : loadError ? (
+        <Text style={styles.errorText}>
+          We could not load your profile. Please go back and try again.
+        </Text>
       ) : (
         <>
           <ProfileAvatarEdit />
@@ -172,5 +178,11 @@ const styles = StyleSheet.create({
   },
   loading: {
     marginTop: SPACING.xl,
+  },
+  errorText: {
+    marginTop: SPACING.xl,
+    textAlign: "center",
+    fontSize: TYPOGRAPHY.body,
+    color: COLORS.textSecondary,
   },
 });
