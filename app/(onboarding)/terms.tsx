@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -41,6 +41,7 @@ export default function TermsScreen() {
   const router = useRouter();
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [contentHeight, setContentHeight] = useState(0);
 
   function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
@@ -53,11 +54,23 @@ export default function TermsScreen() {
     setViewportHeight(e.nativeEvent.layout.height);
   }
 
-  function handleContentSizeChange(_w: number, contentHeight: number) {
-    setScrolledToBottom(
-      (prev) => prev || (viewportHeight > 0 && contentHeight <= viewportHeight + 12),
-    );
+  function handleContentSizeChange(_w: number, height: number) {
+    setContentHeight(height);
   }
+
+  // Content may fully fit within the viewport (nothing to scroll), in which
+  // case onScroll never fires. This re-evaluates whenever either the
+  // viewport or content height becomes known, regardless of which of
+  // onLayout / onContentSizeChange fires first.
+  useEffect(() => {
+    if (
+      viewportHeight > 0 &&
+      contentHeight > 0 &&
+      contentHeight <= viewportHeight + 12
+    ) {
+      setScrolledToBottom(true);
+    }
+  }, [viewportHeight, contentHeight]);
 
   return (
     <View style={styles.container}>
