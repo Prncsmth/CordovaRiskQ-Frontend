@@ -66,9 +66,9 @@ Expo Router group folders don't appear in the URL, so `router.push("/phone-numbe
 ### Frontend screens
 
 `app/(onboarding)/phone-number.tsx`:
-- Reads `token` and `user.email` from `useAuth()`.
+- Reads `token` and `user` from `useAuth()`. Guards `if (!token || !user) return;` in the Continue handler before touching `user.email`, matching the `if (!token) return;` guard pattern already used in `user-profile/index.tsx` and `change-password/index.tsx` — `user` is typed `AuthUser | null`, and this screen only ever renders once both are set, but the guard keeps the null-check explicit rather than asserting.
 - Adds `isSaving` state. "Continue" is disabled while `phone.length < 10` or while `isSaving`.
-- On Continue: `await updateProfile(token, { email: user.email, mobile: formatPhone(phone) })` — saves the formatted display string (e.g. `"(555) 123-4567"`), matching the free-text format the User Profile screen already round-trips.
+- On Continue: `await updateProfile(token, { email: user.email, mobile: formatPhone(phone) })` — saves the formatted display string (e.g. `"(555) 123-4567"`), matching the free-text format the User Profile screen already round-trips. `name` is deliberately omitted from this payload (not sent as `undefined` or `""`): `updateProfile`'s `name` parameter is optional, and an absent key in the JSON body means Prisma's `update` skips that field entirely rather than clearing it — this is existing, already-relied-upon behavior from the User Profile backend spec, not new to this feature.
 - On success: `router.push("/terms")` (unchanged).
 - On failure: `Alert.alert("Couldn't save phone number", error.message)`, stays on the screen, `isSaving` cleared in `finally` — blocks with retry rather than silently advancing.
 
