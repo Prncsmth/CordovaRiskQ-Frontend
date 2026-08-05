@@ -1,4 +1,4 @@
-import * as SecureStore from "expo-secure-store";
+import * as authStorage from "./authStorage";
 import React, {
     createContext,
     useContext,
@@ -37,13 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function loadSession() {
       try {
-        const savedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-        const savedUser = await SecureStore.getItemAsync(USER_KEY);
+        const savedToken = await authStorage.getItem(TOKEN_KEY);
+        const savedUser = await authStorage.getItem(USER_KEY);
 
         if (savedToken && savedUser) {
           setToken(savedToken);
           setUser(JSON.parse(savedUser));
         }
+      } catch {
+        // No valid saved session -- fall through to the logged-out state.
       } finally {
         setIsLoading(false);
       }
@@ -59,19 +61,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token,
       user,
       login: async (newToken: string, newUser: AuthUser) => {
-        await SecureStore.setItemAsync(TOKEN_KEY, newToken);
-        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(newUser));
+        await authStorage.setItem(TOKEN_KEY, newToken);
+        await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
         setToken(newToken);
         setUser(newUser);
       },
       logout: async () => {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-        await SecureStore.deleteItemAsync(USER_KEY);
+        await authStorage.deleteItem(TOKEN_KEY);
+        await authStorage.deleteItem(USER_KEY);
         setToken(null);
         setUser(null);
       },
       updateUser: async (newUser: AuthUser) => {
-        await SecureStore.setItemAsync(USER_KEY, JSON.stringify(newUser));
+        await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
         setUser(newUser);
       },
     }),
