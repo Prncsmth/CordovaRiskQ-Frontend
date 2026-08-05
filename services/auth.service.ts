@@ -44,6 +44,7 @@ export type GoogleAuthResponse = {
     name: string;
     email: string;
   };
+  isNewUser: boolean;
 };
 
 export async function googleAuth(
