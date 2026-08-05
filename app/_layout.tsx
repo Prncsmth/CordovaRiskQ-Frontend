@@ -32,16 +32,24 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboardingGroup = segments[0] === "(onboarding)";
 
-    if (!isAuthenticated && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup && !inOnboardingGroup) {
       // No saved session -> force to login
       router.replace("/(auth)/login");
     } else if (isAuthenticated && inAuthGroup) {
       // Already logged in but sitting on an auth screen -> skip to app
       router.replace("/(tabs)/home");
     }
-    // Authenticated + sitting in (onboarding) (phone-number/terms, reached
-    // via a push right after registration or a new Google sign-up) is left
-    // alone here -- those screens navigate onward themselves once done.
+    // (onboarding) is exempt from BOTH rules above, not just the second one.
+    // useSegments() reads router state via useSyncExternalStore, so a
+    // router.push() re-renders synchronously, while the setToken/setUser that
+    // login() just performed are ordinary deferred React state updates. That
+    // means there is always a window right after register/Google-signup where
+    // segments already say "(onboarding)" but isAuthenticated is still false.
+    // Without the !inOnboardingGroup guard the first rule fires during that
+    // window and bounces to /login, and the auth update then bounces on to
+    // /home -- so onboarding never appears. Onboarding is only ever reached
+    // by an explicit push immediately after a successful login, and
+    // phone-number.tsx still guards its save on a real token.
   }, [isAuthenticated, isLoading, segments]);
 
   if (isLoading) {
