@@ -16,6 +16,31 @@ type AuthUser = {
   email: string;
 };
 
+// token, user, and needsOnboarding are kept in a single state object so that
+// "these flip together" is guaranteed by the data model (one setState call
+// commits all three at once), not by there happening to be no `await`
+// between separate setters. This exact class of bug -- a caller-visible
+// state that's supposed to update atomically with isAuthenticated, but
+// actually only does so incidentally -- is what caused the onboarding
+// redirect race this fix addresses, so it must not be reintroduced here.
+//
+// needsOnboarding is intentionally NOT persisted to authStorage. If the app
+// is killed mid-onboarding and relaunched, the restored session will NOT
+// resume onboarding -- it lands on Home instead. This is an accepted scope
+// decision: onboarding only needs to show once immediately after a fresh
+// registration or new Google sign-up, not survive an app restart.
+type AuthState = {
+  token: string | null;
+  user: AuthUser | null;
+  needsOnboarding: boolean;
+};
+
+const INITIAL_AUTH_STATE: AuthState = {
+  token: null,
+  user: null,
+  needsOnboarding: false,
+};
+
 type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -25,7 +50,7 @@ type AuthContextValue = {
   login: (
     token: string,
     user: AuthUser,
-    needsOnboarding?: boolean,
+    needsOnboardingFlag?: boolean,
   ) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: AuthUser) => Promise<void>;
@@ -35,10 +60,8 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
   const [isLoading, setIsLoading] = useState(true);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   // On app start, try to restore a previously saved session.
   useEffect(() => {
@@ -48,8 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const savedUser = await authStorage.getItem(USER_KEY);
 
         if (savedToken && savedUser) {
-          setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          setAuthState({
+            token: savedToken,
+            user: JSON.parse(savedUser),
+            needsOnboarding: false,
+          });
         }
       } catch {
         // No valid saved session -- fall through to the logged-out state.
@@ -63,11 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({
-      isAuthenticated: token !== null,
+      isAuthenticated: authState.token !== null,
       isLoading,
-      needsOnboarding,
-      token,
-      user,
+      needsOnboarding: authState.needsOnboarding,
+      token: authState.token,
+      user: authState.user,
       login: async (
         newToken: string,
         newUser: AuthUser,
@@ -75,26 +101,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ) => {
         await authStorage.setItem(TOKEN_KEY, newToken);
         await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
-        setToken(newToken);
-        setUser(newUser);
-        setNeedsOnboarding(needsOnboardingFlag);
+        setAuthState({
+          token: newToken,
+          user: newUser,
+          needsOnboarding: needsOnboardingFlag,
+        });
       },
       logout: async () => {
         await authStorage.deleteItem(TOKEN_KEY);
         await authStorage.deleteItem(USER_KEY);
-        setToken(null);
-        setUser(null);
-        setNeedsOnboarding(false);
+        setAuthState(INITIAL_AUTH_STATE);
       },
       updateUser: async (newUser: AuthUser) => {
         await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
-        setUser(newUser);
+        setAuthState((prev) => ({ ...prev, user: newUser }));
       },
       completeOnboarding: () => {
-        setNeedsOnboarding(false);
+        setAuthState((prev) => ({ ...prev, needsOnboarding: false }));
       },
     }),
-    [token, user, isLoading, needsOnboarding],
+    [authState, isLoading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

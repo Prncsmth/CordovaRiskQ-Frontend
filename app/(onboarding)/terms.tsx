@@ -108,7 +108,6 @@ export default function TermsScreen() {
           disabled={!scrolledToBottom}
           onPress={() => {
             completeOnboarding();
-            router.replace("/home");
           }}
           activeOpacity={0.8}
         >
