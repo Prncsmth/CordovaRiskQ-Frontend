@@ -102,9 +102,16 @@ export default function PhoneNumberScreen() {
         activeOpacity={0.8}
       >
         {isSaving ? (
-          <ActivityIndicator color={COLORS.white} />
+          <ActivityIndicator color={COLORS.primary} />
         ) : (
-          <Text style={styles.continueText}>Continue</Text>
+          <Text
+            style={[
+              styles.continueText,
+              !canContinue && styles.continueTextDisabled,
+            ]}
+          >
+            Continue
+          </Text>
         )}
       </TouchableOpacity>
 
@@ -195,6 +202,10 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  continueTextDisabled: {
+    color: COLORS.textTertiary,
   },
 
   keypad: {

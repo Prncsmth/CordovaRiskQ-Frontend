@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -39,6 +40,7 @@ const SECTIONS: { heading: string; body: string }[] = [
 export default function TermsScreen() {
   const router = useRouter();
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(0);
 
   function handleScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
@@ -47,8 +49,14 @@ export default function TermsScreen() {
     }
   }
 
+  function handleLayout(e: LayoutChangeEvent) {
+    setViewportHeight(e.nativeEvent.layout.height);
+  }
+
   function handleContentSizeChange(_w: number, contentHeight: number) {
-    setScrolledToBottom((prev) => prev || contentHeight <= 0);
+    setScrolledToBottom(
+      (prev) => prev || (viewportHeight > 0 && contentHeight <= viewportHeight + 12),
+    );
   }
 
   return (
@@ -63,6 +71,7 @@ export default function TermsScreen() {
       <ScrollView
         style={styles.body}
         contentContainerStyle={styles.bodyContent}
+        onLayout={handleLayout}
         onScroll={handleScroll}
         onContentSizeChange={handleContentSizeChange}
         scrollEventThrottle={16}
