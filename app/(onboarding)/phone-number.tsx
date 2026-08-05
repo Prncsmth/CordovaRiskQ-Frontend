@@ -1,9 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 import BackButton from "@/components/common/BackButton";
+import { useAuth } from "@/context/AuthContext";
+import { updateProfile } from "@/services/user.service";
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 const KEYS: { digit: string; letters: string }[] = [
@@ -32,7 +41,9 @@ function formatPhone(digits: string): string {
 
 export default function PhoneNumberScreen() {
   const router = useRouter();
+  const { token, user } = useAuth();
   const [phone, setPhone] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   function appendDigit(d: string) {
     setPhone((p) => (p + d).slice(0, 10));
@@ -41,6 +52,28 @@ export default function PhoneNumberScreen() {
   function backspace() {
     setPhone((p) => p.slice(0, -1));
   }
+
+  async function handleContinue() {
+    if (!token || !user) return;
+
+    setIsSaving(true);
+    try {
+      await updateProfile(token, {
+        email: user.email,
+        mobile: formatPhone(phone),
+      });
+      router.push("/terms");
+    } catch (err) {
+      Alert.alert(
+        "Couldn't save phone number",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const canContinue = phone.length === 10 && !isSaving;
 
   return (
     <View style={styles.container}>
@@ -60,11 +93,19 @@ export default function PhoneNumberScreen() {
       </View>
 
       <TouchableOpacity
-        style={styles.continueButton}
-        onPress={() => router.push("/terms")}
+        style={[
+          styles.continueButton,
+          !canContinue && styles.continueButtonDisabled,
+        ]}
+        onPress={handleContinue}
+        disabled={!canContinue}
         activeOpacity={0.8}
       >
-        <Text style={styles.continueText}>Continue</Text>
+        {isSaving ? (
+          <ActivityIndicator color={COLORS.white} />
+        ) : (
+          <Text style={styles.continueText}>Continue</Text>
+        )}
       </TouchableOpacity>
 
       <View style={styles.keypad}>
@@ -144,6 +185,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  continueButtonDisabled: {
+    backgroundColor: COLORS.borderMuted,
   },
 
   continueText: {
