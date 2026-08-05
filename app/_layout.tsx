@@ -30,6 +30,7 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === "(auth)";
+    const inOnboardingGroup = segments[0] === "(onboarding)";
 
     if (!isAuthenticated && !inAuthGroup) {
       // No saved session -> force to login
@@ -38,6 +39,9 @@ function RootLayoutNav() {
       // Already logged in but sitting on an auth screen -> skip to app
       router.replace("/(tabs)/home");
     }
+    // Authenticated + sitting in (onboarding) (phone-number/terms, reached
+    // via a push right after registration or a new Google sign-up) is left
+    // alone here -- those screens navigate onward themselves once done.
   }, [isAuthenticated, isLoading, segments]);
 
   if (isLoading) {
@@ -52,6 +56,7 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
+      <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="change-password/index"
