@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import BackButton from "@/components/common/BackButton";
+import { useAuth } from "@/context/AuthContext";
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 const SECTIONS: { heading: string; body: string }[] = [
@@ -39,6 +40,7 @@ const SECTIONS: { heading: string; body: string }[] = [
 
 export default function TermsScreen() {
   const router = useRouter();
+  const { completeOnboarding } = useAuth();
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
@@ -104,7 +106,10 @@ export default function TermsScreen() {
             scrolledToBottom ? styles.ctaActive : styles.ctaInactive,
           ]}
           disabled={!scrolledToBottom}
-          onPress={() => router.replace("/home")}
+          onPress={() => {
+            completeOnboarding();
+            router.replace("/home");
+          }}
           activeOpacity={0.8}
         >
           <Text

@@ -40,8 +40,7 @@ export default function RegisterScreen() {
 
     try {
       const response = await registerUser(name, email, password);
-      await login(response.token, response.user);
-      router.push("/phone-number");
+      await login(response.token, response.user, true);
     } catch (err) {
       const message =
         err instanceof Error

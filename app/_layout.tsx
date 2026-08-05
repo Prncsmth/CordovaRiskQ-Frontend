@@ -22,7 +22,7 @@ export const unstable_settings = {
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, needsOnboarding } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
@@ -32,25 +32,33 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboardingGroup = segments[0] === "(onboarding)";
 
-    if (!isAuthenticated && !inAuthGroup && !inOnboardingGroup) {
-      // No saved session -> force to login
-      router.replace("/(auth)/login");
-    } else if (isAuthenticated && inAuthGroup) {
-      // Already logged in but sitting on an auth screen -> skip to app
+    if (!isAuthenticated) {
+      // No saved session -> force to login, from anywhere (including
+      // onboarding -- a deep link, cold start, or logout while mid-flow).
+      if (!inAuthGroup) {
+        router.replace("/(auth)/login");
+      }
+      return;
+    }
+
+    if (needsOnboarding) {
+      // Authenticated but hasn't finished onboarding -> send there and
+      // nowhere else, until terms.tsx calls completeOnboarding(). This flag
+      // flips atomically with isAuthenticated inside AuthContext.login(),
+      // so this redirect can't race the router's own internal navigation
+      // queue the way a caller-side router.push() used to.
+      if (!inOnboardingGroup) {
+        router.replace("/(onboarding)/phone-number");
+      }
+      return;
+    }
+
+    if (inAuthGroup || inOnboardingGroup) {
+      // Authenticated and onboarded but sitting on an auth or onboarding
+      // screen -> skip to the app.
       router.replace("/(tabs)/home");
     }
-    // (onboarding) is exempt from BOTH rules above, not just the second one.
-    // useSegments() reads router state via useSyncExternalStore, so a
-    // router.push() re-renders synchronously, while the setToken/setUser that
-    // login() just performed are ordinary deferred React state updates. That
-    // means there is always a window right after register/Google-signup where
-    // segments already say "(onboarding)" but isAuthenticated is still false.
-    // Without the !inOnboardingGroup guard the first rule fires during that
-    // window and bounces to /login, and the auth update then bounces on to
-    // /home -- so onboarding never appears. Onboarding is only ever reached
-    // by an explicit push immediately after a successful login, and
-    // phone-number.tsx still guards its save on a real token.
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, needsOnboarding, segments]);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session

@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect } from "react";
@@ -68,7 +67,6 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
 
 function GoogleAuthButton({ onError }: GoogleButtonProps) {
   const { login } = useAuth();
-  const router = useRouter();
   const [loading, setLoading] = React.useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -91,10 +89,7 @@ function GoogleAuthButton({ onError }: GoogleButtonProps) {
       setLoading(true);
       try {
         const result = await googleAuth(idToken);
-        await login(result.token, result.user);
-        if (result.isNewUser) {
-          router.push("/phone-number");
-        }
+        await login(result.token, result.user, result.isNewUser);
       } catch (err) {
         onError?.("Google sign-in failed. Please try again.");
       } finally {

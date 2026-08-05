@@ -19,11 +19,17 @@ type AuthUser = {
 type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
+  needsOnboarding: boolean;
   token: string | null;
   user: AuthUser | null;
-  login: (token: string, user: AuthUser) => Promise<void>;
+  login: (
+    token: string,
+    user: AuthUser,
+    needsOnboarding?: boolean,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: AuthUser) => Promise<void>;
+  completeOnboarding: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -32,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   // On app start, try to restore a previously saved session.
   useEffect(() => {
@@ -58,26 +65,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       isAuthenticated: token !== null,
       isLoading,
+      needsOnboarding,
       token,
       user,
-      login: async (newToken: string, newUser: AuthUser) => {
+      login: async (
+        newToken: string,
+        newUser: AuthUser,
+        needsOnboardingFlag = false,
+      ) => {
         await authStorage.setItem(TOKEN_KEY, newToken);
         await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
         setToken(newToken);
         setUser(newUser);
+        setNeedsOnboarding(needsOnboardingFlag);
       },
       logout: async () => {
         await authStorage.deleteItem(TOKEN_KEY);
         await authStorage.deleteItem(USER_KEY);
         setToken(null);
         setUser(null);
+        setNeedsOnboarding(false);
       },
       updateUser: async (newUser: AuthUser) => {
         await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
         setUser(newUser);
       },
+      completeOnboarding: () => {
+        setNeedsOnboarding(false);
+      },
     }),
-    [token, user, isLoading],
+    [token, user, isLoading, needsOnboarding],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
