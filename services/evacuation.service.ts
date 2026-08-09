@@ -7,8 +7,12 @@ export type EvacuationCenter = {
   capacity: { current: number; max: number };
   status: "open" | "full";
   facilities: string[];
+  latitude: number;
+  longitude: number;
 };
 
+// Coordinates are approximate points around Cordova, Cebu (same approach as
+// services/mockIncidents.ts) until these centers are backed by a real API.
 const CENTERS: EvacuationCenter[] = [
   {
     id: "kagawasan-elementary",
@@ -18,6 +22,8 @@ const CENTERS: EvacuationCenter[] = [
     capacity: { current: 300, max: 450 },
     status: "open",
     facilities: ["Water", "Medical Aid", "Restrooms", "Power"],
+    latitude: 10.2531,
+    longitude: 123.9497,
   },
   {
     id: "cordova-municipal-gym",
@@ -27,6 +33,8 @@ const CENTERS: EvacuationCenter[] = [
     capacity: { current: 180, max: 500 },
     status: "open",
     facilities: ["Water", "Medical Aid", "Restrooms", "Power"],
+    latitude: 10.2489,
+    longitude: 123.9506,
   },
   {
     id: "barangay-day-care",
@@ -36,6 +44,8 @@ const CENTERS: EvacuationCenter[] = [
     capacity: { current: 120, max: 120 },
     status: "full",
     facilities: ["Water", "Restrooms"],
+    latitude: 10.2478,
+    longitude: 123.972,
   },
 ];
 
