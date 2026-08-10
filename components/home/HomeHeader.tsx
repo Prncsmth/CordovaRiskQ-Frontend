@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SPACING } from "@/theme";
 
 type HomeHeaderProps = {
   hasUnread: boolean;
@@ -15,13 +15,11 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
   return (
     <View style={styles.row}>
       <View style={styles.brand}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>C</Text>
-        </View>
-        <View>
-          <Text style={styles.brandName}>CORDOVA</Text>
-          <Text style={styles.brandSub}>RISKQ</Text>
-        </View>
+        <Image
+          source={require("@/assets/images/cordova-logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </View>
 
       <TouchableOpacity
@@ -49,28 +47,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   logo: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.sm,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoText: {
-    color: COLORS.white,
-    fontWeight: "800",
-    fontSize: TYPOGRAPHY.subtitle,
-  },
-  brandName: {
-    color: COLORS.primary,
-    fontWeight: "800",
-    fontSize: TYPOGRAPHY.caption,
-    lineHeight: TYPOGRAPHY.caption,
-  },
-  brandSub: {
-    color: COLORS.textTertiary,
-    fontSize: 9,
-    letterSpacing: 1,
+    width: 36,
+    height: 36,
   },
   bell: {
     width: 36,
