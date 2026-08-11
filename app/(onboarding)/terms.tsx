@@ -48,7 +48,7 @@ const SECTIONS: { heading: string; body: string }[] = [
 
 export default function TermsScreen() {
   const router = useRouter();
-  const { completeOnboarding } = useAuth();
+  const { completeOnboarding, isAuthenticated, user } = useAuth();
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
@@ -129,7 +129,16 @@ export default function TermsScreen() {
           title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
           onPress={() => {
+            if (!isAuthenticated) {
+              router.replace("/(auth)/login");
+              return;
+            }
+
             completeOnboarding();
+
+            const homeRoute =
+              user?.role === "responder" ? "/responder" : "/(tabs)/home";
+            router.replace(homeRoute);
           }}
         />
       </View>

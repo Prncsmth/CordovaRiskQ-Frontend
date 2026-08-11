@@ -49,15 +49,24 @@ export default function PhoneNumberScreen() {
   }
 
   async function handleContinue() {
-    if (!token || !user) return;
+    if (phone.trim().length === 0) {
+      Alert.alert(
+        "Phone number required",
+        "Enter a valid mobile number first.",
+      );
+      return;
+    }
 
     setIsSaving(true);
     try {
-      await updateProfile(token, {
-        email: user.email,
-        mobile: formatPhone(phone),
-      });
-      router.push("/terms");
+      if (token && user) {
+        await updateProfile(token, {
+          email: user.email,
+          mobile: formatPhone(phone),
+        });
+      }
+
+      router.push("/(onboarding)/terms");
     } catch (err) {
       Alert.alert(
         "Couldn't save phone number",
@@ -90,7 +99,7 @@ export default function PhoneNumberScreen() {
       <PrimaryButton
         title="Continue"
         loading={isSaving}
-        disabled={phone.length !== 10}
+        disabled={phone.length === 0 || isSaving}
         onPress={handleContinue}
       />
 

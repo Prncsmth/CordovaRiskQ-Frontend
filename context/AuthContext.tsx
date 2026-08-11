@@ -1,4 +1,3 @@
-import * as authStorage from "./authStorage";
 import React, {
     createContext,
     useContext,
@@ -6,6 +5,7 @@ import React, {
     useMemo,
     useState,
 } from "react";
+import * as authStorage from "./authStorage";
 
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";

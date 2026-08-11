@@ -15,7 +15,7 @@ export default function WelcomeScreen() {
 
       <View style={styles.hero}>
         <Image
-          source={require("@/assets/images/cordova-logo.png")}
+          source={require("@/assets/images/riskq.png")}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -29,7 +29,7 @@ export default function WelcomeScreen() {
 
       <PrimaryButton
         title="Get started"
-        onPress={() => router.push("/phone-number")}
+        onPress={() => router.push("/(onboarding)/phone-number")}
       />
     </View>
   );

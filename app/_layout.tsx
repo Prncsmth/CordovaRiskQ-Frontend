@@ -4,9 +4,9 @@ import { ThemeProvider as AppThemeProvider } from "@/context/ThemeContext";
 import { UserProvider } from "@/context/UserContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
-    DarkTheme,
-    DefaultTheme,
-    ThemeProvider as NavigationThemeProvider,
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -34,10 +34,12 @@ function RootLayoutNav() {
     const inResponderGroup = segments[0] === "responder";
 
     if (!isAuthenticated) {
-      // No saved session -> force to login, from anywhere (including
-      // onboarding -- a deep link, cold start, or logout while mid-flow).
-      if (!inAuthGroup) {
-        router.replace("/(auth)/login");
+      // Cold launch should land on the public onboarding welcome screen so the
+      // first screen in Expo Go is the welcome flow instead of the auth form.
+      // Logged-out deep links or a stale route outside the auth group are still
+      // normalized back to the first onboarding state.
+      if (!inAuthGroup && !inOnboardingGroup) {
+        router.replace("/(onboarding)/welcome");
       }
       return;
     }
