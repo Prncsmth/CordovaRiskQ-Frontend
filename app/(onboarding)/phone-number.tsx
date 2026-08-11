@@ -1,19 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import StepIndicator from "@/components/onboarding/StepIndicator";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile } from "@/services/user.service";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
 
 const KEYS: { digit: string; letters: string }[] = [
   { digit: "1", letters: "" },
@@ -73,16 +68,16 @@ export default function PhoneNumberScreen() {
     }
   }
 
-  const canContinue = phone.length === 10 && !isSaving;
-
   return (
     <View style={styles.container}>
-      <BackButton onPress={() => router.back()} />
+      <View style={styles.header}>
+        <BackButton onPress={() => router.back()} />
+        <StepIndicator step={1} style={styles.stepIndicator} />
+      </View>
 
-      <Text style={styles.title}>Your phone number</Text>
+      <Text style={styles.title}>What&apos;s your number?</Text>
       <Text style={styles.subtitle}>
-        It&apos;s helpful to provide a good reason why the phone number is
-        required.
+        We&apos;ll use this to send emergency and incident alerts.
       </Text>
 
       <View style={styles.displayWrap}>
@@ -92,28 +87,12 @@ export default function PhoneNumberScreen() {
         <View style={styles.divider} />
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.continueButton,
-          !canContinue && styles.continueButtonDisabled,
-        ]}
+      <PrimaryButton
+        title="Continue"
+        loading={isSaving}
+        disabled={phone.length !== 10}
         onPress={handleContinue}
-        disabled={!canContinue}
-        activeOpacity={0.8}
-      >
-        {isSaving ? (
-          <ActivityIndicator color={COLORS.primary} />
-        ) : (
-          <Text
-            style={[
-              styles.continueText,
-              !canContinue && styles.continueTextDisabled,
-            ]}
-          >
-            Continue
-          </Text>
-        )}
-      </TouchableOpacity>
+      />
 
       <View style={styles.keypad}>
         {KEYS.map((k) => (
@@ -145,6 +124,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     paddingTop: 62,
     paddingHorizontal: SPACING.lg,
+  },
+
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+  },
+
+  stepIndicator: {
+    flex: 1,
   },
 
   title: {
@@ -183,29 +172,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.borderMuted,
     width: "100%",
     marginTop: SPACING.md,
-  },
-
-  continueButton: {
-    marginTop: SPACING.md,
-    height: 54,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  continueButtonDisabled: {
-    backgroundColor: COLORS.borderMuted,
-  },
-
-  continueText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  continueTextDisabled: {
-    color: COLORS.textTertiary,
   },
 
   keypad: {

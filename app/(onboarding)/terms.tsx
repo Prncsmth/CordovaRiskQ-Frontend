@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -7,13 +8,20 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 
+import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import StepIndicator from "@/components/onboarding/StepIndicator";
 import { useAuth } from "@/context/AuthContext";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+
+const SUMMARY: string[] = [
+  "We use your location during active reports and SOS alerts.",
+  "You'll be notified of nearby incidents and evacuation notices.",
+  "We never sell your data.",
+];
 
 const SECTIONS: { heading: string; body: string }[] = [
   {
@@ -77,10 +85,27 @@ export default function TermsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} />
+        <View style={styles.headerRow}>
+          <BackButton onPress={() => router.back()} />
+          <StepIndicator step={2} style={styles.stepIndicator} />
+        </View>
         <Text style={styles.eyebrow}>Agreement</Text>
-        <Text style={styles.title}>Terms of Service</Text>
+        <Text style={styles.title}>Last step</Text>
         <Text style={styles.updated}>Last updated on 7/24/2026</Text>
+
+        <View style={styles.summary}>
+          {SUMMARY.map((line) => (
+            <View key={line} style={styles.summaryRow}>
+              <Ionicons
+                name="checkmark-circle"
+                size={16}
+                color={COLORS.primary}
+                style={styles.summaryIcon}
+              />
+              <Text style={styles.summaryText}>{line}</Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       <ScrollView
@@ -100,26 +125,13 @@ export default function TermsScreen() {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={[
-            styles.cta,
-            scrolledToBottom ? styles.ctaActive : styles.ctaInactive,
-          ]}
+        <PrimaryButton
+          title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
           onPress={() => {
             completeOnboarding();
           }}
-          activeOpacity={0.8}
-        >
-          <Text
-            style={[
-              styles.ctaText,
-              scrolledToBottom ? styles.ctaTextActive : styles.ctaTextInactive,
-            ]}
-          >
-            {scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
     </View>
   );
@@ -134,6 +146,16 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 62,
     paddingHorizontal: SPACING.lg,
+  },
+
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.md,
+  },
+
+  stepIndicator: {
+    flex: 1,
   },
 
   eyebrow: {
@@ -156,6 +178,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.textTertiary,
     marginTop: SPACING.xs,
+  },
+
+  summary: {
+    marginTop: SPACING.md,
+    gap: SPACING.xs,
+  },
+
+  summaryRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+
+  summaryIcon: {
+    marginTop: 2,
+    marginRight: SPACING.xs,
+  },
+
+  summaryText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    lineHeight: 20,
   },
 
   body: {
@@ -189,33 +233,5 @@ const styles = StyleSheet.create({
 
   footer: {
     padding: SPACING.lg,
-  },
-
-  cta: {
-    height: 54,
-    borderRadius: RADIUS.lg,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  ctaActive: {
-    backgroundColor: COLORS.primary,
-  },
-
-  ctaInactive: {
-    backgroundColor: COLORS.borderMuted,
-  },
-
-  ctaText: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-
-  ctaTextActive: {
-    color: COLORS.white,
-  },
-
-  ctaTextInactive: {
-    color: COLORS.textTertiary,
   },
 });

@@ -16,7 +16,7 @@ import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
 
 const MOCK_NAME = "Carl";
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
-const MOCK_TEMPERATURE_C = 29;
+const MOCK_TEMPERATURE_C = 29;  
 const MOCK_WEATHER_DESCRIPTION = "Partly Cloudy";
 const MOCK_TIDE = {
   level: "normal",

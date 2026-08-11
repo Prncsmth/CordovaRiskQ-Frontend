@@ -49,7 +49,7 @@ function RootLayoutNav() {
       // so this redirect can't race the router's own internal navigation
       // queue the way a caller-side router.push() used to.
       if (!inOnboardingGroup) {
-        router.replace("/(onboarding)/phone-number");
+        router.replace("/(onboarding)/welcome");
       }
       return;
     }
