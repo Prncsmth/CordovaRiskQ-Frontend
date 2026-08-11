@@ -16,7 +16,7 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
     <View style={styles.row}>
       <View style={styles.brand}>
         <Image
-          source={require("@/assets/images/cordova-logo.png")}
+          source={require("@/assets/images/riskq.png")}
           style={styles.logo}
           resizeMode="contain"
         />
