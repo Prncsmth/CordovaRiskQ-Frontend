@@ -8,6 +8,7 @@ import {
   DefaultTheme,
   ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
+import Mapbox from "@rnmapbox/maps";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
@@ -18,6 +19,8 @@ import "react-native-reanimated";
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+Mapbox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "");
 
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.

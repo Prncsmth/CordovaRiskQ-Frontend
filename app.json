@@ -47,7 +47,8 @@
         {
           "locationWhenInUsePermission": "Allow Cordova RiskQ to use your location to show nearby evacuation centers on the map."
         }
-      ]
+      ],
+      "@rnmapbox/maps"
     ],
     "experiments": {
       "typedRoutes": true,
