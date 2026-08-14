@@ -8,7 +8,7 @@ import BackButton from "@/components/common/BackButton";
 import StepIndicator from "@/components/onboarding/StepIndicator";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile } from "@/services/user.service";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
 
 const KEYS: { digit: string; letters: string }[] = [
   { digit: "1", letters: "" },
@@ -27,16 +27,15 @@ function formatPhone(digits: string): string {
   const a = digits.slice(0, 3);
   const b = digits.slice(3, 6);
   const c = digits.slice(6, 10);
-  let out = a.length ? `(${a}` : "";
-  if (a.length === 3) out += ") ";
-  if (b) out += b;
-  if (c) out += "-" + c;
+  let out = a;
+  if (b) out += " " + b;
+  if (c) out += " " + c;
   return out;
 }
 
 export default function PhoneNumberScreen() {
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token, user, isAuthenticated, completeOnboarding } = useAuth();
   const [phone, setPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -62,11 +61,20 @@ export default function PhoneNumberScreen() {
       if (token && user) {
         await updateProfile(token, {
           email: user.email,
-          mobile: formatPhone(phone),
+          mobile: `+63 ${formatPhone(phone)}`,
         });
       }
 
-      router.push("/(onboarding)/terms");
+      if (!isAuthenticated) {
+        router.replace("/(auth)/login");
+        return;
+      }
+
+      completeOnboarding();
+
+      const homeRoute =
+        user?.role === "responder" ? "/responder" : "/(tabs)/home";
+      router.replace(homeRoute);
     } catch (err) {
       Alert.alert(
         "Couldn't save phone number",
@@ -81,7 +89,7 @@ export default function PhoneNumberScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
-        <StepIndicator step={1} style={styles.stepIndicator} />
+        <StepIndicator step={2} style={styles.stepIndicator} />
       </View>
 
       <Text style={styles.title}>What&apos;s your number?</Text>
@@ -90,9 +98,12 @@ export default function PhoneNumberScreen() {
       </Text>
 
       <View style={styles.displayWrap}>
-        <Text style={phone ? styles.digits : styles.digitsPlaceholder}>
-          {phone ? formatPhone(phone) : "(555) 123-4567"}
-        </Text>
+        <View style={styles.numberRow}>
+          <Text style={styles.prefix}>+63</Text>
+          <Text style={phone ? styles.digits : styles.digitsPlaceholder}>
+            {phone ? formatPhone(phone) : "912 345 6789"}
+          </Text>
+        </View>
         <View style={styles.divider} />
       </View>
 
@@ -146,8 +157,8 @@ const styles = StyleSheet.create({
   },
 
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: 26,
-    fontWeight: "700",
     color: COLORS.text,
     marginTop: SPACING.md,
   },
@@ -162,6 +173,18 @@ const styles = StyleSheet.create({
   displayWrap: {
     marginTop: SPACING.xl,
     alignItems: "center",
+  },
+
+  numberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+
+  prefix: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
   },
 
   digits: {
@@ -206,7 +229,7 @@ const styles = StyleSheet.create({
   },
 
   keyLetters: {
-    fontSize: 9,
+    fontSize: 10,
     letterSpacing: 1.2,
     color: COLORS.textTertiary,
     marginTop: 2,

@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   },
   captainText: {
     color: COLORS.white,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
   },
   statusRow: {

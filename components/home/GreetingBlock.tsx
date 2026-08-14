@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import RippleRings from "@/components/common/RippleRings";
+import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
 
 type GreetingBlockProps = {
   name: string;
@@ -19,6 +20,13 @@ export default function GreetingBlock({
 }: GreetingBlockProps) {
   return (
     <View style={styles.row}>
+      <RippleRings
+        size={140}
+        ringCount={3}
+        color="rgba(14, 123, 134, 0.06)"
+        style={styles.watermark}
+      />
+
       <View style={styles.left}>
         <Text style={styles.greeting}>Hello, {name}!</Text>
         <View style={styles.locationRow}>
@@ -52,12 +60,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
   },
+  watermark: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+  },
   left: {
     flexShrink: 1,
   },
   greeting: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
   },
   locationRow: {

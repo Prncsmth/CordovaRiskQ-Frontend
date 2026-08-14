@@ -4,7 +4,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import { getCategory, type CategoryId } from "@/components/report/categories";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 type ReportConfirmationProps = {
   categoryId: CategoryId;
@@ -68,8 +68,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   heading: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },

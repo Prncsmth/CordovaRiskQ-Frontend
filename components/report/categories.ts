@@ -14,9 +14,9 @@ export type Category = {
 export const CATEGORIES: Category[] = [
   { id: "flood", label: "Flood", icon: "water", color: "#2F6FED" },
   { id: "fire", label: "Fire", icon: "flame", color: "#FF6B35" },
-  { id: "medical", label: "Medical Emergency", icon: "medical", color: "#DC2626" },
-  { id: "road-accident", label: "Road Accident", icon: "warning", color: "#B45309" },
-  { id: "other", label: "Other", icon: "ellipsis-horizontal", color: "#9CA3AF" },
+  { id: "medical", label: "Medical Emergency", icon: "medkit", color: "#DC2626" },
+  { id: "road-accident", label: "Road Accident", icon: "car-sport", color: "#B45309" },
+  { id: "other", label: "Other", icon: "ellipsis-horizontal-circle", color: "#6B7280" },
 ];
 
 export function getCategory(id: CategoryId): Category {

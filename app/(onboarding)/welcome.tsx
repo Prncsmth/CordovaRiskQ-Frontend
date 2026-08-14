@@ -3,8 +3,9 @@ import React from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
+import RippleRings from "@/components/common/RippleRings";
 import StepIndicator from "@/components/onboarding/StepIndicator";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -14,6 +15,13 @@ export default function WelcomeScreen() {
       <StepIndicator step={0} />
 
       <View style={styles.hero}>
+        <RippleRings
+          size={260}
+          ringCount={3}
+          color="rgba(14, 123, 134, 0.05)"
+          style={styles.watermark}
+        />
+
         <Image
           source={require("@/assets/images/riskq.png")}
           style={styles.logo}
@@ -29,7 +37,7 @@ export default function WelcomeScreen() {
 
       <PrimaryButton
         title="Get started"
-        onPress={() => router.push("/(onboarding)/phone-number")}
+        onPress={() => router.push("/(onboarding)/terms")}
       />
     </View>
   );
@@ -50,6 +58,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  watermark: {
+    position: "absolute",
+    top: "50%",
+    marginTop: -130,
+  },
+
   logo: {
     width: 88,
     height: 88,
@@ -57,8 +71,8 @@ const styles = StyleSheet.create({
   },
 
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.title,
-    fontWeight: "700",
     color: COLORS.text,
     textAlign: "center",
   },

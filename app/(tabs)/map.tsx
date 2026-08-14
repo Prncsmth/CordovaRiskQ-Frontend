@@ -22,9 +22,12 @@ import {
   getEvacuationCenters,
   type EvacuationCenter,
 } from "@/services/evacuation.service";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 type ExpoLocationModule = typeof import("expo-location");
+
+const MIN_ZOOM = 12;
+const MAX_ZOOM = 18;
 
 const STYLE_OPTIONS = [
   { label: "Map", url: "mapbox://styles/mapbox/streets-v11" },
@@ -61,6 +64,7 @@ export default function MapScreen() {
   const [mapError, setMapError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLocating, setIsLocating] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(14);
 
   const barangayResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -205,6 +209,18 @@ export default function MapScreen() {
     }
   };
 
+  const handleZoomIn = () => {
+    const next = Math.min(zoomLevel + 1, MAX_ZOOM);
+    cameraRef.current?.zoomTo(next, 300);
+    setZoomLevel(next);
+  };
+
+  const handleZoomOut = () => {
+    const next = Math.max(zoomLevel - 1, MIN_ZOOM);
+    cameraRef.current?.zoomTo(next, 300);
+    setZoomLevel(next);
+  };
+
   if (mapError) {
     return (
       <View style={styles.screen}>
@@ -247,7 +263,17 @@ export default function MapScreen() {
       </View>
 
       <View style={styles.mapContainer}>
-        <MapView style={styles.map} styleURL={styleUrl} logoEnabled={false}>
+        <MapView
+          style={styles.map}
+          styleURL={styleUrl}
+          logoEnabled={false}
+          onRegionDidChange={(feature: any) => {
+            const nextZoom = feature?.properties?.zoomLevel;
+            if (typeof nextZoom === "number") {
+              setZoomLevel(nextZoom);
+            }
+          }}
+        >
           <Camera
             ref={cameraRef}
             defaultSettings={{
@@ -258,7 +284,8 @@ export default function MapScreen() {
               zoomLevel: 14,
             }}
             maxBounds={CORDOVA_BOUNDS}
-            minZoomLevel={12}
+            minZoomLevel={MIN_ZOOM}
+            maxZoomLevel={MAX_ZOOM}
           />
 
           <UserLocation
@@ -332,6 +359,39 @@ export default function MapScreen() {
           )}
         </View>
 
+        <View
+          style={[
+            styles.zoomControls,
+            { bottom: insets.bottom + SPACING.lg + 44 + SPACING.sm },
+          ]}
+        >
+          <Pressable
+            onPress={handleZoomIn}
+            disabled={zoomLevel >= MAX_ZOOM}
+            style={styles.zoomButton}
+            accessibilityLabel="Zoom in"
+          >
+            <Ionicons
+              name="add"
+              size={20}
+              color={zoomLevel >= MAX_ZOOM ? COLORS.textTertiary : COLORS.text}
+            />
+          </Pressable>
+          <View style={styles.zoomDivider} />
+          <Pressable
+            onPress={handleZoomOut}
+            disabled={zoomLevel <= MIN_ZOOM}
+            style={styles.zoomButton}
+            accessibilityLabel="Zoom out"
+          >
+            <Ionicons
+              name="remove"
+              size={20}
+              color={zoomLevel <= MIN_ZOOM ? COLORS.textTertiary : COLORS.text}
+            />
+          </Pressable>
+        </View>
+
         <Pressable
           onPress={handleLocateMe}
           disabled={isLocating}
@@ -384,8 +444,8 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.sm,
   },
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
   },
   subtitle: {
@@ -402,7 +462,7 @@ const styles = StyleSheet.create({
   pin: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
@@ -424,14 +484,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: SPACING.sm,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.md,
     height: 44,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    ...SHADOW,
   },
   searchInput: {
     flex: 1,
@@ -442,13 +498,9 @@ const styles = StyleSheet.create({
   searchResults: {
     marginTop: SPACING.xs,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     paddingVertical: SPACING.xs,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    ...SHADOW,
   },
   searchResultRow: {
     flexDirection: "row",
@@ -461,39 +513,49 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.body,
     color: COLORS.text,
   },
+  zoomControls: {
+    position: "absolute",
+    right: SPACING.md,
+    width: 44,
+    borderRadius: RADIUS.md,
+    overflow: "hidden",
+    backgroundColor: COLORS.white,
+    ...SHADOW,
+  },
+  zoomButton: {
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  zoomDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
   locateButton: {
     position: "absolute",
     right: SPACING.md,
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: COLORS.white,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    ...SHADOW,
   },
   styleSwitcher: {
     position: "absolute",
     right: SPACING.md,
     flexDirection: "row",
     backgroundColor: COLORS.white,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     padding: 4,
     gap: 4,
-    shadowColor: COLORS.black,
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    ...SHADOW,
   },
   styleButton: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: RADIUS.sm - 2,
   },
   styleButtonActive: {
     backgroundColor: COLORS.primary,

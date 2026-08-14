@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-import { COLORS, SPACING, TYPOGRAPHY } from "../../theme";
+import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "../../theme";
 
 interface AuthHeaderProps {
   title: string;
@@ -24,8 +24,8 @@ const styles = StyleSheet.create({
   },
 
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.title,
-    fontWeight: "700",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },

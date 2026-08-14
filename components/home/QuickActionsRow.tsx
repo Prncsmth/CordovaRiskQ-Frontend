@@ -1,9 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 export default function QuickActionsRow() {
   const router = useRouter();
@@ -37,19 +42,45 @@ export default function QuickActionsRow() {
   return (
     <View style={styles.row}>
       {actions.map((action) => (
-        <TouchableOpacity
-          key={action.key}
-          style={styles.card}
-          onPress={action.onPress}
-          activeOpacity={0.7}
-        >
-          <View style={styles.iconCircle}>
-            <Ionicons name={action.icon} size={16} color={COLORS.primary} />
-          </View>
-          <Text style={styles.label}>{action.label}</Text>
-        </TouchableOpacity>
+        <QuickActionCard key={action.key} action={action} />
       ))}
     </View>
+  );
+}
+
+function QuickActionCard({
+  action,
+}: {
+  action: {
+    key: string;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    onPress: () => void;
+  };
+}) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.card, animatedStyle]}>
+      <Pressable
+        style={styles.cardPressable}
+        onPress={action.onPress}
+        onPressIn={() => {
+          scale.value = withTiming(0.97, { duration: 100 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 100 });
+        }}
+      >
+        <View style={styles.iconCircle}>
+          <Ionicons name={action.icon} size={16} color={COLORS.primary} />
+        </View>
+        <Text style={styles.label}>{action.label}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -61,9 +92,10 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
     borderRadius: RADIUS.md,
+    ...SHADOW,
+  },
+  cardPressable: {
     paddingVertical: SPACING.sm + 2,
     alignItems: "center",
   },

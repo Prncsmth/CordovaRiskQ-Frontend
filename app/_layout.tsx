@@ -1,3 +1,9 @@
+import {
+  Sora_600SemiBold,
+  Sora_700Bold,
+  useFonts,
+} from "@expo-google-fonts/sora";
+import SosOverlay from "@/components/sos/SosOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SosProvider } from "@/context/SosContext";
 import { ThemeProvider as AppThemeProvider } from "@/context/ThemeContext";
@@ -108,6 +114,18 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    Sora_600SemiBold,
+    Sora_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -119,6 +137,7 @@ export default function RootLayout() {
             >
               <SosProvider>
                 <RootLayoutNav />
+                <SosOverlay />
                 <StatusBar style="auto" />
               </SosProvider>
             </NavigationThemeProvider>

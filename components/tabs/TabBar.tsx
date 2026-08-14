@@ -6,7 +6,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSos } from "@/context/SosContext";
-import { COLORS, RADIUS } from "@/theme";
+import { COLORS, RADIUS, SHADOW_LG, SPACING } from "@/theme";
 
 type TabConfig = {
   name: string;
@@ -67,43 +67,49 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View
-      style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}
+      style={[styles.outer, { marginBottom: Math.max(insets.bottom, 16) }]}
     >
-      {LEFT_TABS.map(renderTab)}
+      <View style={styles.container}>
+        {LEFT_TABS.map(renderTab)}
 
-      <View style={styles.fabSlot}>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => navigation.navigate("report")}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="document-text" size={26} color={COLORS.white} />
-        </TouchableOpacity>
-        <Text
-          style={[
-            styles.label,
-            styles.fabLabel,
-            { color: fabFocused ? COLORS.primary : COLORS.textTertiary },
-          ]}
-        >
-          Report
-        </Text>
+        <View style={styles.fabSlot}>
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => navigation.navigate("report")}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="document-text" size={26} color={COLORS.white} />
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.label,
+              styles.fabLabel,
+              { color: fabFocused ? COLORS.primary : COLORS.textTertiary },
+            ]}
+          >
+            Report
+          </Text>
+        </View>
+
+        {RIGHT_TABS.map(renderTab)}
       </View>
-
-      {RIGHT_TABS.map(renderTab)}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outer: {
+    marginHorizontal: SPACING.md,
+  },
   container: {
     flexDirection: "row",
     alignItems: "flex-end",
-    paddingTop: 8,
+    paddingTop: 10,
+    paddingBottom: 8,
     paddingHorizontal: 8,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderMuted,
+    borderRadius: RADIUS.xl,
     backgroundColor: COLORS.background,
+    ...SHADOW_LG,
   },
 
   tab: {
@@ -114,7 +120,7 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
   },
 

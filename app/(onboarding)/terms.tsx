@@ -14,8 +14,7 @@ import {
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import StepIndicator from "@/components/onboarding/StepIndicator";
-import { useAuth } from "@/context/AuthContext";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 const SUMMARY: string[] = [
   "We use your location during active reports and SOS alerts.",
@@ -48,7 +47,6 @@ const SECTIONS: { heading: string; body: string }[] = [
 
 export default function TermsScreen() {
   const router = useRouter();
-  const { completeOnboarding, isAuthenticated, user } = useAuth();
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
@@ -87,13 +85,14 @@ export default function TermsScreen() {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <BackButton onPress={() => router.back()} />
-          <StepIndicator step={2} style={styles.stepIndicator} />
+          <StepIndicator step={1} style={styles.stepIndicator} />
         </View>
-        <Text style={styles.eyebrow}>Agreement</Text>
-        <Text style={styles.title}>Last step</Text>
-        <Text style={styles.updated}>Last updated on 7/24/2026</Text>
+        <Text style={styles.title}>Terms & Conditions</Text>
+        <Text style={styles.subtitle}>
+          Please review before we get your number.
+        </Text>
 
-        <View style={styles.summary}>
+        <View style={styles.summaryCard}>
           {SUMMARY.map((line) => (
             <View key={line} style={styles.summaryRow}>
               <Ionicons
@@ -128,18 +127,7 @@ export default function TermsScreen() {
         <PrimaryButton
           title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
-          onPress={() => {
-            if (!isAuthenticated) {
-              router.replace("/(auth)/login");
-              return;
-            }
-
-            completeOnboarding();
-
-            const homeRoute =
-              user?.role === "responder" ? "/responder" : "/(tabs)/home";
-            router.replace(homeRoute);
-          }}
+          onPress={() => router.push("/(onboarding)/phone-number")}
         />
       </View>
     </View>
@@ -167,31 +155,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  eyebrow: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 1,
-    color: COLORS.primary,
-    textTransform: "uppercase",
-    marginTop: SPACING.md,
-  },
-
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: 24,
-    fontWeight: "700",
     color: COLORS.text,
-    marginTop: SPACING.xs,
-  },
-
-  updated: {
-    fontSize: 12,
-    color: COLORS.textTertiary,
-    marginTop: SPACING.xs,
-  },
-
-  summary: {
     marginTop: SPACING.md,
-    gap: SPACING.xs,
+  },
+
+  subtitle: {
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.xs,
+  },
+
+  summaryCard: {
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.primaryTint,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    gap: SPACING.sm,
   },
 
   summaryRow: {
@@ -213,9 +195,7 @@ const styles = StyleSheet.create({
 
   body: {
     flex: 1,
-    marginTop: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderMuted,
+    marginTop: SPACING.md,
   },
 
   bodyContent: {

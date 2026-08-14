@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import { Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING } from "@/theme";
+import { COLORS, RADIUS, SHADOW, SPACING } from "@/theme";
 
 type HomeHeaderProps = {
   hasUnread: boolean;
@@ -54,9 +54,10 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
+    ...SHADOW,
   },
   dot: {
     position: "absolute",

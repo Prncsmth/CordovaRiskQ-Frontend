@@ -13,7 +13,7 @@ import RButton from "@/components/responder/RButton";
 import TeamMemberRow from "@/components/responder/TeamMemberRow";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { getIncidentById } from "@/services/mockIncidents";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 import type { Incident, IncidentStatus } from "@/types/responder";
 
 type Phase = Exclude<IncidentStatus, "completed" | "cancelled">;
@@ -318,8 +318,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   headerTitle: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.subtitle,
-    fontWeight: "800",
     color: COLORS.text,
   },
   notFound: {
@@ -352,8 +352,8 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   incidentType: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
     textAlign: "center",
   },
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   sosText: {
     color: COLORS.white,
     fontWeight: "800",
-    fontSize: 10,
+    fontSize: 11,
   },
   summaryTitle: {
     fontSize: TYPOGRAPHY.body,
@@ -468,8 +468,8 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   arrivedText: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.subtitle,
-    fontWeight: "800",
     color: COLORS.text,
     textAlign: "center",
     marginBottom: SPACING.lg,

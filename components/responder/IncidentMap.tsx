@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 import type { Coordinates } from "@/types/responder";
 
 // Lightweight route preview -- avoids pulling in a live MapView (and the
@@ -45,12 +45,11 @@ export default function IncidentMap({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     padding: SPACING.lg,
     marginVertical: SPACING.md,
+    ...SHADOW,
   },
   etaPill: {
     flexDirection: "row",

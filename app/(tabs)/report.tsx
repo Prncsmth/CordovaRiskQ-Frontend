@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -10,10 +11,12 @@ import CategoryGrid from "@/components/report/CategoryGrid";
 import DetailsInput from "@/components/report/DetailsInput";
 import PhotoPicker from "@/components/report/PhotoPicker";
 import PinnedLocationCard from "@/components/report/PinnedLocationCard";
+import { CORDOVA_BARANGAYS } from "@/constants/cordovaBarangays";
 import { createReport } from "@/services/report.service";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
+const MOCK_COORDS = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
 
 export default function ReportScreen() {
   const insets = useSafeAreaInsets();
@@ -56,20 +59,47 @@ export default function ReportScreen() {
       </View>
 
       <View style={styles.section}>
+        <View style={styles.sectionHeadingRow}>
+          <View style={styles.sectionIcon}>
+            <Ionicons name="grid" size={13} color={COLORS.primary} />
+          </View>
+          <Text style={styles.sectionHeading}>Category</Text>
+        </View>
         <CategoryGrid selected={category} onSelect={setCategory} />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Pinned Location</Text>
-        <PinnedLocationCard address={MOCK_LOCATION} />
+        <View style={styles.sectionHeadingRow}>
+          <View style={styles.sectionIcon}>
+            <Ionicons name="location" size={13} color={COLORS.primary} />
+          </View>
+          <Text style={styles.sectionHeading}>Pinned Location</Text>
+        </View>
+        <PinnedLocationCard
+          address={MOCK_LOCATION}
+          latitude={MOCK_COORDS.latitude}
+          longitude={MOCK_COORDS.longitude}
+        />
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeading}>Details</Text>
+        <View style={styles.sectionHeadingRow}>
+          <View style={styles.sectionIcon}>
+            <Ionicons name="create" size={13} color={COLORS.primary} />
+          </View>
+          <Text style={styles.sectionHeading}>Details</Text>
+        </View>
         <DetailsInput value={details} onChangeText={setDetails} />
       </View>
 
       <View style={styles.section}>
+        <View style={styles.sectionHeadingRow}>
+          <View style={styles.sectionIcon}>
+            <Ionicons name="camera" size={13} color={COLORS.primary} />
+          </View>
+          <Text style={styles.sectionHeading}>Photo</Text>
+          <Text style={styles.optionalTag}>Optional</Text>
+        </View>
         <PhotoPicker
           attached={photoAttached}
           onToggle={() => setPhotoAttached((v) => !v)}
@@ -92,23 +122,40 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: SPACING.md,
-    gap: SPACING.md,
+    gap: SPACING.lg,
   },
   section: {
-    gap: SPACING.xs,
+    gap: SPACING.sm,
   },
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
   },
   subtitle: {
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
   },
+  sectionHeadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+  },
+  sectionIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primaryTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sectionHeading: {
+    fontFamily: FONT_FAMILY.displaySemibold,
     fontSize: TYPOGRAPHY.caption,
-    fontWeight: "800",
     color: COLORS.text,
+  },
+  optionalTag: {
+    fontSize: TYPOGRAPHY.small,
+    color: COLORS.textTertiary,
   },
 });

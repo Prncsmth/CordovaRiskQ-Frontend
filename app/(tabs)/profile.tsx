@@ -8,7 +8,7 @@ import ContactSupportCard from "@/components/profile/ContactSupportCard";
 import MenuRow from "@/components/profile/MenuRow";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import { useAuth } from "@/context/AuthContext";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 type MenuItem = {
   key: string;
@@ -90,7 +90,7 @@ export default function ProfileScreen() {
 
       <ProfileHeader name={user?.name ?? "User"} onLogout={handleLogout} />
 
-      <View>
+      <View style={styles.menuCard}>
         {menuItems.map((item, index) => (
           <View
             key={item.key}
@@ -121,10 +121,16 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.title,
-    fontWeight: "800",
     color: COLORS.text,
     marginBottom: SPACING.sm,
+  },
+  menuCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    ...SHADOW,
   },
   menuRowDivider: {
     borderBottomWidth: 1,

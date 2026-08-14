@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { useAuth } from "@/context/AuthContext";
 import { mockIncidents } from "@/services/mockIncidents";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 import type { Incident } from "@/types/responder";
 
 type DutyStatus = "online" | "offline";
@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   headerTitle: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
   },
   headerSubtitle: {
@@ -186,11 +186,10 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     alignItems: "center",
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     paddingVertical: SPACING.sm,
+    ...SHADOW,
   },
   statValue: {
     fontSize: TYPOGRAPHY.heading,
@@ -224,12 +223,11 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     padding: SPACING.md,
     gap: SPACING.sm,
+    ...SHADOW,
   },
   sosBadge: {
     width: 40,
@@ -242,7 +240,7 @@ const styles = StyleSheet.create({
   sosText: {
     color: COLORS.white,
     fontWeight: "800",
-    fontSize: 10,
+    fontSize: 11,
   },
   cardBody: {
     flex: 1,
