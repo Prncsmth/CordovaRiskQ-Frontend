@@ -1,10 +1,15 @@
 {
-  "worktree": {
-    "baseRef": "head"
-  },
   "permissions": {
     "allow": [
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(adb devices *)",
+      "Bash(where adb *)",
+      "Bash(tasklist /FI \"PID eq 20628\")",
+      "Bash(curl -s http://localhost:8081/status)",
+      "WebSearch"
     ]
+  },
+  "worktree": {
+    "baseRef": "head"
   }
 }
