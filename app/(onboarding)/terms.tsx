@@ -85,11 +85,11 @@ export default function TermsScreen() {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <BackButton onPress={() => router.back()} />
-          <StepIndicator step={1} style={styles.stepIndicator} />
+          <StepIndicator step={1} totalSteps={2} style={styles.stepIndicator} />
         </View>
         <Text style={styles.title}>Terms & Conditions</Text>
         <Text style={styles.subtitle}>
-          Please review before we get your number.
+          Please review before you sign in.
         </Text>
 
         <View style={styles.summaryCard}>
@@ -127,7 +127,7 @@ export default function TermsScreen() {
         <PrimaryButton
           title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
-          onPress={() => router.push("/(onboarding)/phone-number")}
+          onPress={() => router.replace("/(auth)/login")}
         />
       </View>
     </View>

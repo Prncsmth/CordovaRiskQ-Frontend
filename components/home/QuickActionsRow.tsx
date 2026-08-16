@@ -22,19 +22,19 @@ export default function QuickActionsRow() {
     {
       key: "report",
       label: "Report Incident",
-      icon: "warning-outline",
+      icon: "warning",
       onPress: () => router.push("/(tabs)/report"),
     },
     {
       key: "evacuation",
       label: "Evacuation Center",
-      icon: "home-outline",
+      icon: "home",
       onPress: () => router.push("/(tabs)/map"),
     },
     {
       key: "contacts",
       label: "Emergency Contacts",
-      icon: "call-outline",
+      icon: "call",
       onPress: () => router.push("/contacts"),
     },
   ];
@@ -76,7 +76,7 @@ function QuickActionCard({
         }}
       >
         <View style={styles.iconCircle}>
-          <Ionicons name={action.icon} size={16} color={COLORS.primary} />
+          <Ionicons name={action.icon} size={18} color="#A70707" />
         </View>
         <Text style={styles.label}>{action.label}</Text>
       </Pressable>
@@ -91,27 +91,38 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.md,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#F4E6E6",
     ...SHADOW,
   },
   cardPressable: {
     paddingVertical: SPACING.sm + 2,
     alignItems: "center",
+    justifyContent: "center",
   },
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#FDE8E7",
+    borderWidth: 1,
+    borderColor: "#F8D7D0",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.xs,
+    shadowColor: "#A70707",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   label: {
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
     color: COLORS.text,
     textAlign: "center",
+    lineHeight: 18,
   },
 });

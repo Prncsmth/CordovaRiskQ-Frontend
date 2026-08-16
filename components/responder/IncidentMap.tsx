@@ -1,42 +1,151 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
+import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 import type { Coordinates } from "@/types/responder";
 
-// Lightweight route preview -- avoids pulling in a live MapView (and the
-// API key / native config that requires) until the responder flow is
-// wired to real routing.
+type MapboxModule = {
+  default: { setAccessToken: (token: string) => void };
+  MapView: React.ComponentType<any>;
+  Camera: React.ComponentType<any>;
+  MarkerView: React.ComponentType<any>;
+  ShapeSource: React.ComponentType<any>;
+  LineLayer: React.ComponentType<any>;
+};
+
+const MAP_HEIGHT = 220;
+
+// Live Mapbox preview of the responder's route to the incident. The line
+// drawn is the straight-line path between the two points (no turn-by-turn
+// Directions API call) -- good enough to orient a responder at a glance
+// without wiring up a routing backend.
 export default function IncidentMap({
+  responderCoords,
+  incidentCoords,
   etaMinutes,
 }: {
   responderCoords: Coordinates;
   incidentCoords: Coordinates;
   etaMinutes: number;
 }) {
+  const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    try {
+      const module = require("@rnmapbox/maps");
+      const mapboxModule = (module as any).default
+        ? (module as any).default
+        : module;
+      const setAccessTokenFn =
+        mapboxModule.setAccessToken ??
+        (mapboxModule.default?.setAccessToken as unknown);
+
+      if (typeof setAccessTokenFn === "function") {
+        setAccessTokenFn(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "");
+      }
+
+      if (mounted) setMapbox(mapboxModule as unknown as MapboxModule);
+    } catch (error) {
+      console.warn("Failed to load Mapbox module", error);
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const routeShape = {
+    type: "Feature" as const,
+    properties: {},
+    geometry: {
+      type: "LineString" as const,
+      coordinates: [
+        [responderCoords.longitude, responderCoords.latitude],
+        [incidentCoords.longitude, incidentCoords.latitude],
+      ],
+    },
+  };
+
+  const lats = [responderCoords.latitude, incidentCoords.latitude];
+  const lons = [responderCoords.longitude, incidentCoords.longitude];
+  const bounds = {
+    ne: [Math.max(...lons), Math.max(...lats)] as [number, number],
+    sw: [Math.min(...lons), Math.min(...lats)] as [number, number],
+    paddingLeft: 50,
+    paddingRight: 50,
+    paddingTop: 70,
+    paddingBottom: 50,
+  };
+
   return (
     <View style={styles.card}>
-      <View style={styles.etaPill}>
-        <Ionicons name="time-outline" size={14} color={COLORS.white} />
-        <Text style={styles.etaText}>ETA {etaMinutes} mins</Text>
+      <View style={styles.mapBox}>
+        {mapbox ? (
+          <mapbox.MapView
+            style={styles.map}
+            styleURL="mapbox://styles/mapbox/streets-v11"
+            logoEnabled={false}
+            attributionEnabled={false}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+          >
+            <mapbox.Camera defaultSettings={{ bounds }} />
+
+            <mapbox.ShapeSource id="responderRouteSource" shape={routeShape}>
+              <mapbox.LineLayer
+                id="responderRouteLine"
+                style={{
+                  lineColor: COLORS.secondary,
+                  lineWidth: 3,
+                  lineDasharray: [1.4, 1.4],
+                  lineCap: "round",
+                }}
+              />
+            </mapbox.ShapeSource>
+
+            <mapbox.MarkerView
+              coordinate={[responderCoords.longitude, responderCoords.latitude]}
+            >
+              <View style={styles.responderDot}>
+                <Ionicons name="navigate" size={14} color={COLORS.white} />
+              </View>
+            </mapbox.MarkerView>
+
+            <mapbox.MarkerView
+              coordinate={[incidentCoords.longitude, incidentCoords.latitude]}
+            >
+              <View style={styles.incidentPin}>
+                <Ionicons name="location" size={16} color={COLORS.white} />
+              </View>
+            </mapbox.MarkerView>
+          </mapbox.MapView>
+        ) : (
+          <>
+            <PlaceholderThumb style={StyleSheet.absoluteFillObject} />
+            <ActivityIndicator color={COLORS.primary} />
+          </>
+        )}
+
+        <View style={styles.etaPill}>
+          <Ionicons name="time-outline" size={14} color={COLORS.white} />
+          <Text style={styles.etaText}>ETA {etaMinutes} mins</Text>
+        </View>
       </View>
 
-      <View style={styles.route}>
-        <View style={styles.stop}>
-          <View style={styles.responderDot}>
-            <Ionicons name="navigate" size={14} color={COLORS.white} />
-          </View>
-          <Text style={styles.stopLabel}>You</Text>
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: COLORS.secondary }]} />
+          <Text style={styles.legendText}>You</Text>
         </View>
-
-        <View style={styles.path} />
-
-        <View style={styles.stop}>
-          <View style={styles.incidentPin}>
-            <Ionicons name="location" size={16} color={COLORS.white} />
-          </View>
-          <Text style={styles.stopLabel}>Incident</Text>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} />
+          <Text style={styles.legendText}>Incident</Text>
         </View>
       </View>
     </View>
@@ -47,33 +156,20 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
+    padding: SPACING.sm,
     marginVertical: SPACING.md,
     ...SHADOW,
   },
-  etaPill: {
-    flexDirection: "row",
+  mapBox: {
+    height: MAP_HEIGHT,
+    borderRadius: RADIUS.md,
+    overflow: "hidden",
+    justifyContent: "center",
     alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    backgroundColor: COLORS.secondary,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginBottom: SPACING.lg,
+    backgroundColor: COLORS.surface,
   },
-  etaText: {
-    color: COLORS.white,
-    fontWeight: "700",
-    fontSize: TYPOGRAPHY.small,
-  },
-  route: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  stop: {
-    alignItems: "center",
-    gap: 4,
+  map: {
+    ...StyleSheet.absoluteFillObject,
   },
   responderDot: {
     width: 32,
@@ -82,6 +178,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
   incidentPin: {
     width: 34,
@@ -90,17 +188,44 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
-  path: {
-    flex: 1,
-    height: 2,
-    marginHorizontal: SPACING.sm,
+  etaPill: {
+    position: "absolute",
+    top: SPACING.sm,
+    left: SPACING.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: COLORS.secondary,
     borderRadius: RADIUS.full,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    borderColor: COLORS.gray,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    elevation: 3,
   },
-  stopLabel: {
+  etaText: {
+    color: COLORS.white,
+    fontWeight: "700",
+    fontSize: TYPOGRAPHY.small,
+  },
+  legend: {
+    flexDirection: "row",
+    gap: SPACING.md,
+    paddingTop: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: RADIUS.full,
+  },
+  legendText: {
     fontSize: TYPOGRAPHY.small,
     color: COLORS.textSecondary,
     fontWeight: "600",

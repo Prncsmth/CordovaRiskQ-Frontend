@@ -12,7 +12,7 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StepIndicator step={0} />
+      <StepIndicator step={0} totalSteps={2} />
 
       <View style={styles.hero}>
         <RippleRings

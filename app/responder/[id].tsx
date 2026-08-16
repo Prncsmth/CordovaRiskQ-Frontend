@@ -4,16 +4,28 @@
 // status field (from the backend) can replace this local state 1:1 later.
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import React, { useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import BackButton from "@/components/common/BackButton";
+import RippleRings from "@/components/common/RippleRings";
 import IncidentMap from "@/components/responder/IncidentMap";
+import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import RButton from "@/components/responder/RButton";
 import TeamMemberRow from "@/components/responder/TeamMemberRow";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { getIncidentById } from "@/services/mockIncidents";
-import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  COLORS,
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SHADOW_LG,
+  SPACING,
+  TYPOGRAPHY,
+} from "@/theme";
 import type { Incident, IncidentStatus } from "@/types/responder";
 
 type Phase = Exclude<IncidentStatus, "completed" | "cancelled">;
@@ -55,13 +67,11 @@ export default function IncidentDetailScreen() {
       <Stack.Screen options={{ headerShown: false }} />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>
           {phase === "pending" ? "New Incident" : `Incident #${incident.id}`}
         </Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: 36 }} />
       </View>
 
       {phase === "pending" && (
@@ -107,10 +117,21 @@ function PendingView({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const visual = getIncidentVisual(incident.type);
+
   return (
     <View style={styles.centeredBody}>
-      <View style={styles.sosCircle}>
-        <Text style={styles.sosCircleText}>SOS</Text>
+      <View style={styles.pulseWrap}>
+        <RippleRings
+          size={120}
+          ringCount={2}
+          animated
+          color={`${visual.color}33`}
+          style={styles.pulseRings}
+        />
+        <View style={[styles.sosCircle, { backgroundColor: visual.color }]}>
+          <Ionicons name={visual.icon} size={34} color={COLORS.white} />
+        </View>
       </View>
       <Text style={styles.incidentType}>{incident.type}</Text>
       <Text style={styles.incidentLocation}>{incident.location}</Text>
@@ -146,11 +167,22 @@ function LobbyView({
   onChangeTab: (t: LobbyTab) => void;
   onHeadOut: () => void;
 }) {
+  const visual = getIncidentVisual(incident.type);
+  const [rung, setRung] = useState(false);
+  const captain = incident.team.find((m) => m.isCaptain);
+
+  const handleRingTeam = () => {
+    if (rung) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setRung(true);
+    setTimeout(() => setRung(false), 2500);
+  };
+
   return (
     <View style={styles.body}>
       <View style={styles.summaryCard}>
-        <View style={styles.sosBadgeSmall}>
-          <Text style={styles.sosText}>SOS</Text>
+        <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
+          <Ionicons name={visual.icon} size={18} color={COLORS.white} />
         </View>
         <View>
           <Text style={styles.summaryTitle}>{incident.type}</Text>
@@ -196,7 +228,12 @@ function LobbyView({
         </ScrollView>
       )}
 
-      <RButton label="Chat with Team" variant="secondary" onPress={() => {}} />
+      <RButton
+        label={rung ? `${captain?.name ?? "Captain"} Alerted` : "Ring Team"}
+        variant={rung ? "success" : "secondary"}
+        icon={rung ? "checkmark-circle" : "notifications"}
+        onPress={handleRingTeam}
+      />
       <RButton label="Head Out" variant="primary" onPress={onHeadOut} />
     </View>
   );
@@ -219,11 +256,14 @@ function OnTheWayView({
   incident: Incident;
   onArrive: () => void;
 }) {
+  const router = useRouter();
+  const visual = getIncidentVisual(incident.type);
+
   return (
     <View style={styles.body}>
       <View style={styles.summaryCard}>
-        <View style={styles.sosBadgeSmall}>
-          <Text style={styles.sosText}>SOS</Text>
+        <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
+          <Ionicons name={visual.icon} size={18} color={COLORS.white} />
         </View>
         <View>
           <Text style={styles.summaryTitle}>{incident.type}</Text>
@@ -244,7 +284,15 @@ function OnTheWayView({
       <View style={{ flex: 1 }} />
 
       <View style={styles.etaActionRow}>
-        <RButton label="Navigate" variant="primary" onPress={() => {}} style={{ flex: 1 }} />
+        <RButton
+          label="Navigate"
+          icon="navigate"
+          variant="primary"
+          onPress={() =>
+            router.push({ pathname: "/responder/navigate", params: { id: incident.id } })
+          }
+          style={{ flex: 1 }}
+        />
       </View>
       <RButton label="Mark as Arrived" variant="success" onPress={onArrive} />
     </View>
@@ -337,19 +385,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.lg,
   },
-  sosCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
+  pulseWrap: {
+    width: 120,
+    height: 120,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.md,
   },
-  sosCircleText: {
-    color: COLORS.white,
-    fontWeight: "800",
-    fontSize: 20,
+  pulseRings: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+  },
+  sosCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: RADIUS.full,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOW_LG,
   },
   incidentType: {
     fontFamily: FONT_FAMILY.display,
@@ -388,24 +442,19 @@ const styles = StyleSheet.create({
   summaryCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: COLORS.primaryTint,
+    backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.md,
     gap: SPACING.sm,
+    ...SHADOW,
   },
-  sosBadgeSmall: {
-    width: 36,
-    height: 36,
+  summaryBadge: {
+    width: 40,
+    height: 40,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
-  },
-  sosText: {
-    color: COLORS.white,
-    fontWeight: "800",
-    fontSize: 11,
   },
   summaryTitle: {
     fontSize: TYPOGRAPHY.body,
@@ -482,6 +531,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.lg,
+    ...SHADOW_LG,
   },
   actionRow: {
     flexDirection: "row",

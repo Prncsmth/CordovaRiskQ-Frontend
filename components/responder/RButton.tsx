@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
   Pressable,
@@ -7,7 +8,7 @@ import {
   ViewStyle,
 } from "react-native";
 
-import { COLORS, RADIUS, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 type Variant = "primary" | "secondary" | "success" | "danger";
 
@@ -23,12 +24,14 @@ export default function RButton({
   onPress,
   variant = "primary",
   disabled,
+  icon,
   style,
 }: {
   label: string;
   onPress: () => void;
   variant?: Variant;
   disabled?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
   style?: StyleProp<ViewStyle>;
 }) {
   const { bg, text, border } = VARIANT_STYLES[variant];
@@ -48,6 +51,7 @@ export default function RButton({
         style,
       ]}
     >
+      {icon && <Ionicons name={icon} size={18} color={text} style={styles.icon} />}
       <Text style={[styles.label, { color: text }]}>{label}</Text>
     </Pressable>
   );
@@ -55,11 +59,15 @@ export default function RButton({
 
 const styles = StyleSheet.create({
   button: {
+    flexDirection: "row",
     paddingVertical: 14,
     borderRadius: RADIUS.md,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 12,
+  },
+  icon: {
+    marginRight: SPACING.xs,
   },
   label: {
     fontSize: TYPOGRAPHY.body,

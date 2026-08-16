@@ -7,12 +7,28 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Avatar } from "@/components/common/Avatar";
+import RippleRings from "@/components/common/RippleRings";
+import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { useAuth } from "@/context/AuthContext";
 import { mockIncidents } from "@/services/mockIncidents";
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  COLORS,
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SHADOW_LG,
+  SPACING,
+  TYPOGRAPHY,
+} from "@/theme";
 import type { Incident } from "@/types/responder";
 
 type DutyStatus = "online" | "offline";
@@ -20,10 +36,11 @@ type DutyStatus = "online" | "offline";
 export default function ResponderIncidentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [duty, setDuty] = useState<DutyStatus>("online");
 
   const highUrgencyCount = mockIncidents.filter((i) => i.urgency === "high").length;
+  const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
   const handleLogout = () => {
     Alert.alert("Log out?", "You'll stop receiving incident alerts.", [
@@ -35,42 +52,50 @@ export default function ResponderIncidentsScreen() {
   return (
     <View style={[styles.screen, { paddingTop: insets.top + SPACING.sm }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Dashboard</Text>
-          <Text style={styles.headerSubtitle}>
-            {mockIncidents.length} nearby incident{mockIncidents.length === 1 ? "" : "s"}
-          </Text>
+        <View style={styles.headerLeft}>
+          <Avatar name={user?.name ?? "Responder"} />
+          <View>
+            <Text style={styles.headerGreeting}>Hi, {firstName}</Text>
+            <Text style={styles.headerTitle}>Dashboard</Text>
+          </View>
         </View>
 
-        <View style={styles.headerActions}>
-          <Pressable
+        <Pressable onPress={handleLogout} hitSlop={12} style={styles.logoutButton}>
+          <Ionicons name="log-out-outline" size={20} color={COLORS.textSecondary} />
+        </Pressable>
+      </View>
+
+      <View style={styles.statusRow}>
+        <Pressable
+          style={[styles.dutyPill, duty === "offline" && styles.dutyPillOffline]}
+          onPress={() => setDuty((d) => (d === "online" ? "offline" : "online"))}
+        >
+          <View
             style={[
-              styles.dutyPill,
-              duty === "offline" && styles.dutyPillOffline,
+              styles.dutyDot,
+              { backgroundColor: duty === "online" ? COLORS.success : COLORS.gray },
             ]}
-            onPress={() => setDuty((d) => (d === "online" ? "offline" : "online"))}
-          >
-            <View
-              style={[
-                styles.dutyDot,
-                { backgroundColor: duty === "online" ? COLORS.success : COLORS.gray },
-              ]}
-            />
-            <Text style={styles.dutyText}>{duty === "online" ? "Online" : "Offline"}</Text>
-          </Pressable>
+          />
+          <Text style={styles.dutyText}>{duty === "online" ? "Online" : "Offline"}</Text>
+        </Pressable>
 
-          <Pressable onPress={handleLogout} hitSlop={12} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={22} color={COLORS.textSecondary} />
-          </Pressable>
-        </View>
+        <Text style={styles.headerSubtitle}>
+          {mockIncidents.length} nearby incident{mockIncidents.length === 1 ? "" : "s"}
+        </Text>
       </View>
 
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
+          <View style={[styles.statIcon, { backgroundColor: COLORS.tideTint }]}>
+            <Ionicons name="navigate" size={16} color={COLORS.tide} />
+          </View>
           <Text style={styles.statValue}>{mockIncidents.length}</Text>
           <Text style={styles.statLabel}>Nearby</Text>
         </View>
         <View style={styles.statCard}>
+          <View style={[styles.statIcon, { backgroundColor: COLORS.primaryTint }]}>
+            <Ionicons name="alert-circle" size={16} color={COLORS.primary} />
+          </View>
           <Text style={[styles.statValue, { color: COLORS.primary }]}>{highUrgencyCount}</Text>
           <Text style={styles.statLabel}>High Urgency</Text>
         </View>
@@ -78,6 +103,12 @@ export default function ResponderIncidentsScreen() {
 
       {duty === "offline" ? (
         <View style={styles.offlineState}>
+          <RippleRings
+            size={140}
+            ringCount={3}
+            color="rgba(107, 114, 128, 0.08)"
+            style={styles.offlineWatermark}
+          />
           <Ionicons name="moon-outline" size={32} color={COLORS.textTertiary} />
           <Text style={styles.offlineText}>
             You&apos;re offline — go online to receive incidents.
@@ -103,23 +134,46 @@ export default function ResponderIncidentsScreen() {
 }
 
 function IncidentCard({ incident, onPress }: { incident: Incident; onPress: () => void }) {
+  const visual = getIncidentVisual(incident.type);
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.sosBadge}>
-        <Text style={styles.sosText}>SOS</Text>
-      </View>
-
-      <View style={styles.cardBody}>
-        <Text style={styles.cardTitle}>{incident.type}</Text>
-        <Text style={styles.cardLocation}>{incident.location}</Text>
-        <View style={styles.cardMetaRow}>
-          <UrgencyBadge urgency={incident.urgency} />
-          <Text style={styles.cardDistance}>{incident.distanceKm} km away</Text>
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        style={styles.card}
+        onPress={onPress}
+        onPressIn={() => {
+          scale.value = withTiming(0.98, { duration: 100 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 100 });
+        }}
+      >
+        <View style={[styles.categoryBadge, { backgroundColor: `${visual.color}1A` }]}>
+          <Ionicons name={visual.icon} size={22} color={visual.color} />
         </View>
-      </View>
 
-      <Ionicons name="chevron-forward" size={20} color={COLORS.textTertiary} />
-    </Pressable>
+        <View style={styles.cardBody}>
+          <Text style={styles.cardTitle}>{incident.type}</Text>
+          <View style={styles.cardLocationRow}>
+            <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} />
+            <Text style={styles.cardLocation}>{incident.location}</Text>
+          </View>
+          <View style={styles.cardMetaRow}>
+            <UrgencyBadge urgency={incident.urgency} />
+            <Text style={styles.cardDistance}>
+              {incident.distanceKm} km
+              {incident.etaMinutes ? ` · ${incident.etaMinutes} min` : ""}
+            </Text>
+          </View>
+        </View>
+
+        <Ionicons name="chevron-forward" size={20} color={COLORS.textTertiary} />
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -130,10 +184,19 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: SPACING.md,
     marginBottom: SPACING.md,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  headerGreeting: {
+    fontSize: TYPOGRAPHY.small,
+    color: COLORS.textSecondary,
   },
   headerTitle: {
     fontFamily: FONT_FAMILY.display,
@@ -143,12 +206,22 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
-    marginTop: 2,
   },
-  headerActions: {
+  logoutButton: {
+    width: 40,
+    height: 40,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOW,
+  },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    justifyContent: "space-between",
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.md,
   },
   dutyPill: {
     flexDirection: "row",
@@ -174,9 +247,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.text,
   },
-  logoutButton: {
-    padding: 4,
-  },
   statsRow: {
     flexDirection: "row",
     gap: SPACING.sm,
@@ -188,12 +258,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
-    paddingVertical: SPACING.sm,
+    paddingVertical: SPACING.md,
     ...SHADOW,
   },
+  statIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.full,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.xs,
+  },
   statValue: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
   },
   statLabel: {
@@ -208,6 +286,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: SPACING.xl,
     gap: SPACING.sm,
+  },
+  offlineWatermark: {
+    position: "absolute",
   },
   offlineText: {
     fontSize: TYPOGRAPHY.body,
@@ -227,29 +308,28 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.lg,
     padding: SPACING.md,
     gap: SPACING.sm,
-    ...SHADOW,
+    ...SHADOW_LG,
   },
-  sosBadge: {
-    width: 40,
-    height: 40,
+  categoryBadge: {
+    width: 48,
+    height: 48,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
     alignItems: "center",
     justifyContent: "center",
   },
-  sosText: {
-    color: COLORS.white,
-    fontWeight: "800",
-    fontSize: 11,
-  },
   cardBody: {
     flex: 1,
-    gap: 4,
+    gap: 3,
   },
   cardTitle: {
     fontSize: TYPOGRAPHY.body,
     fontWeight: "700",
     color: COLORS.text,
+  },
+  cardLocationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
   },
   cardLocation: {
     fontSize: TYPOGRAPHY.caption,

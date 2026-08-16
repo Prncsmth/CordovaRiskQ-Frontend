@@ -5,6 +5,10 @@ export default function ResponderLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="[id]" />
+      <Stack.Screen
+        name="navigate"
+        options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+      />
     </Stack>
   );
 }

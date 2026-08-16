@@ -1,11 +1,15 @@
+// app/phone-number.tsx
+// Mandatory step shown right after a new account is created (register or
+// first-time Google sign-in) -- see the `needsOnboarding` redirect in
+// app/_layout.tsx. Not part of the (onboarding) welcome/terms walkthrough:
+// it needs a token to save against, so it can only run once the user
+// actually has an account.
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
-import BackButton from "@/components/common/BackButton";
-import StepIndicator from "@/components/onboarding/StepIndicator";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile } from "@/services/user.service";
 import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
@@ -35,7 +39,7 @@ function formatPhone(digits: string): string {
 
 export default function PhoneNumberScreen() {
   const router = useRouter();
-  const { token, user, isAuthenticated, completeOnboarding } = useAuth();
+  const { token, user, completeOnboarding } = useAuth();
   const [phone, setPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -65,16 +69,8 @@ export default function PhoneNumberScreen() {
         });
       }
 
-      if (!isAuthenticated) {
-        router.replace("/(auth)/login");
-        return;
-      }
-
       completeOnboarding();
-
-      const homeRoute =
-        user?.role === "responder" ? "/responder" : "/(tabs)/home";
-      router.replace(homeRoute);
+      router.replace("/getting-started/welcome");
     } catch (err) {
       Alert.alert(
         "Couldn't save phone number",
@@ -87,11 +83,7 @@ export default function PhoneNumberScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <BackButton onPress={() => router.back()} />
-        <StepIndicator step={2} style={styles.stepIndicator} />
-      </View>
-
+      <Text style={styles.eyebrow}>One last thing</Text>
       <Text style={styles.title}>What&apos;s your number?</Text>
       <Text style={styles.subtitle}>
         We&apos;ll use this to send emergency and incident alerts.
@@ -146,21 +138,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
 
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.md,
-  },
-
-  stepIndicator: {
-    flex: 1,
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    color: COLORS.primary,
+    textTransform: "uppercase",
   },
 
   title: {
     fontFamily: FONT_FAMILY.display,
     fontSize: 26,
     color: COLORS.text,
-    marginTop: SPACING.md,
+    marginTop: SPACING.xs,
   },
 
   subtitle: {

@@ -38,6 +38,7 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboardingGroup = segments[0] === "(onboarding)";
     const inResponderGroup = segments[0] === "responder";
+    const onPhoneNumber = segments[0] === "phone-number";
 
     if (!isAuthenticated) {
       // Cold launch should land on the public onboarding welcome screen so the
@@ -51,13 +52,17 @@ function RootLayoutNav() {
     }
 
     if (needsOnboarding) {
-      // Authenticated but hasn't finished onboarding -> send there and
-      // nowhere else, until terms.tsx calls completeOnboarding(). This flag
-      // flips atomically with isAuthenticated inside AuthContext.login(),
-      // so this redirect can't race the router's own internal navigation
-      // queue the way a caller-side router.push() used to.
-      if (!inOnboardingGroup) {
-        router.replace("/(onboarding)/welcome");
+      // Freshly registered (or first-time Google sign-in) -> the account
+      // exists but has no phone number yet. Send there and nowhere else,
+      // until phone-number.tsx calls completeOnboarding(). This flag flips
+      // atomically with isAuthenticated inside AuthContext.login(), so this
+      // redirect can't race the router's own internal navigation queue the
+      // way a caller-side router.push() used to. Phone number collection
+      // lives outside the (onboarding) group -- it needs a token to save
+      // against, so it can only run post-registration, not during the
+      // pre-account welcome/terms walkthrough.
+      if (!onPhoneNumber) {
+        router.replace("/phone-number");
       }
       return;
     }
@@ -101,6 +106,9 @@ function RootLayoutNav() {
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="responder" />
+      <Stack.Screen name="phone-number" />
+      <Stack.Screen name="getting-started/welcome" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="getting-started/tour" options={{ gestureEnabled: false }} />
       <Stack.Screen
         name="change-password/index"
         options={{
