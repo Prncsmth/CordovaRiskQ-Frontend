@@ -6,6 +6,7 @@ export type LoginResponse = {
     id: string;
     name: string;
     email: string;
+    role?: "citizen" | "responder";
   };
 };
 
@@ -22,6 +23,7 @@ export type RegisterResponse = {
     id: string;
     name: string;
     email: string;
+    role?: "citizen" | "responder";
   };
 };
 
@@ -43,6 +45,7 @@ export type GoogleAuthResponse = {
     id: string;
     name: string;
     email: string;
+    role?: "citizen" | "responder";
   };
   isNewUser: boolean;
 };

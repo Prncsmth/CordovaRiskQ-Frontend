@@ -1,9 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 export default function QuickActionsRow() {
   const router = useRouter();
@@ -17,19 +22,19 @@ export default function QuickActionsRow() {
     {
       key: "report",
       label: "Report Incident",
-      icon: "warning-outline",
+      icon: "warning",
       onPress: () => router.push("/(tabs)/report"),
     },
     {
       key: "evacuation",
       label: "Evacuation Center",
-      icon: "home-outline",
+      icon: "home",
       onPress: () => router.push("/(tabs)/map"),
     },
     {
       key: "contacts",
       label: "Emergency Contacts",
-      icon: "call-outline",
+      icon: "call",
       onPress: () => router.push("/contacts"),
     },
   ];
@@ -37,19 +42,45 @@ export default function QuickActionsRow() {
   return (
     <View style={styles.row}>
       {actions.map((action) => (
-        <TouchableOpacity
-          key={action.key}
-          style={styles.card}
-          onPress={action.onPress}
-          activeOpacity={0.7}
-        >
-          <View style={styles.iconCircle}>
-            <Ionicons name={action.icon} size={16} color={COLORS.primary} />
-          </View>
-          <Text style={styles.label}>{action.label}</Text>
-        </TouchableOpacity>
+        <QuickActionCard key={action.key} action={action} />
       ))}
     </View>
+  );
+}
+
+function QuickActionCard({
+  action,
+}: {
+  action: {
+    key: string;
+    label: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    onPress: () => void;
+  };
+}) {
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={[styles.card, animatedStyle]}>
+      <Pressable
+        style={styles.cardPressable}
+        onPress={action.onPress}
+        onPressIn={() => {
+          scale.value = withTiming(0.97, { duration: 100 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 100 });
+        }}
+      >
+        <View style={styles.iconCircle}>
+          <Ionicons name={action.icon} size={18} color="#A70707" />
+        </View>
+        <Text style={styles.label}>{action.label}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -60,26 +91,38 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    borderRadius: RADIUS.md,
+    borderColor: "#F4E6E6",
+    ...SHADOW,
+  },
+  cardPressable: {
     paddingVertical: SPACING.sm + 2,
     alignItems: "center",
+    justifyContent: "center",
   },
   iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#FDE8E7",
+    borderWidth: 1,
+    borderColor: "#F8D7D0",
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.xs,
+    shadowColor: "#A70707",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   label: {
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
     color: COLORS.text,
     textAlign: "center",
+    lineHeight: 18,
   },
 });

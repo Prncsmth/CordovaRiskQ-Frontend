@@ -11,6 +11,7 @@ import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -92,6 +93,22 @@ export default function LoginScreen() {
           actionText="Register"
           onPress={() => router.push("/register")}
         />
+
+        {__DEV__ && (
+          <Pressable
+            style={styles.devLinkWrap}
+            onPress={() =>
+              login("dev-responder-token", {
+                id: "dev-responder",
+                name: "Dev Responder",
+                email: "responder@dev.local",
+                role: "responder",
+              })
+            }
+          >
+            <Text style={styles.devLink}>Continue as Responder (dev)</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -125,5 +142,14 @@ const styles = StyleSheet.create({
   error: {
     color: COLORS.danger,
     marginBottom: SPACING.sm,
+  },
+  devLinkWrap: {
+    alignItems: "center",
+    marginTop: SPACING.lg,
+  },
+  devLink: {
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.gray,
+    textDecorationLine: "underline",
   },
 });

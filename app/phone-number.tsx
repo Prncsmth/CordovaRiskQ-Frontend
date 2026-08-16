@@ -1,19 +1,18 @@
+// app/phone-number.tsx
+// Mandatory step shown right after a new account is created (register or
+// first-time Google sign-in) -- see the `needsOnboarding` redirect in
+// app/_layout.tsx. Not part of the (onboarding) welcome/terms walkthrough:
+// it needs a token to save against, so it can only run once the user
+// actually has an account.
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import BackButton from "@/components/common/BackButton";
+import PrimaryButton from "@/components/auth/PrimaryButton";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile } from "@/services/user.service";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
 
 const KEYS: { digit: string; letters: string }[] = [
   { digit: "1", letters: "" },
@@ -32,16 +31,15 @@ function formatPhone(digits: string): string {
   const a = digits.slice(0, 3);
   const b = digits.slice(3, 6);
   const c = digits.slice(6, 10);
-  let out = a.length ? `(${a}` : "";
-  if (a.length === 3) out += ") ";
-  if (b) out += b;
-  if (c) out += "-" + c;
+  let out = a;
+  if (b) out += " " + b;
+  if (c) out += " " + c;
   return out;
 }
 
 export default function PhoneNumberScreen() {
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token, user, completeOnboarding } = useAuth();
   const [phone, setPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -54,15 +52,25 @@ export default function PhoneNumberScreen() {
   }
 
   async function handleContinue() {
-    if (!token || !user) return;
+    if (phone.trim().length === 0) {
+      Alert.alert(
+        "Phone number required",
+        "Enter a valid mobile number first.",
+      );
+      return;
+    }
 
     setIsSaving(true);
     try {
-      await updateProfile(token, {
-        email: user.email,
-        mobile: formatPhone(phone),
-      });
-      router.push("/terms");
+      if (token && user) {
+        await updateProfile(token, {
+          email: user.email,
+          mobile: `+63 ${formatPhone(phone)}`,
+        });
+      }
+
+      completeOnboarding();
+      router.replace("/getting-started/welcome");
     } catch (err) {
       Alert.alert(
         "Couldn't save phone number",
@@ -73,47 +81,30 @@ export default function PhoneNumberScreen() {
     }
   }
 
-  const canContinue = phone.length === 10 && !isSaving;
-
   return (
     <View style={styles.container}>
-      <BackButton onPress={() => router.back()} />
-
-      <Text style={styles.title}>Your phone number</Text>
+      <Text style={styles.eyebrow}>One last thing</Text>
+      <Text style={styles.title}>What&apos;s your number?</Text>
       <Text style={styles.subtitle}>
-        It&apos;s helpful to provide a good reason why the phone number is
-        required.
+        We&apos;ll use this to send emergency and incident alerts.
       </Text>
 
       <View style={styles.displayWrap}>
-        <Text style={phone ? styles.digits : styles.digitsPlaceholder}>
-          {phone ? formatPhone(phone) : "(555) 123-4567"}
-        </Text>
+        <View style={styles.numberRow}>
+          <Text style={styles.prefix}>+63</Text>
+          <Text style={phone ? styles.digits : styles.digitsPlaceholder}>
+            {phone ? formatPhone(phone) : "912 345 6789"}
+          </Text>
+        </View>
         <View style={styles.divider} />
       </View>
 
-      <TouchableOpacity
-        style={[
-          styles.continueButton,
-          !canContinue && styles.continueButtonDisabled,
-        ]}
+      <PrimaryButton
+        title="Continue"
+        loading={isSaving}
+        disabled={phone.length === 0 || isSaving}
         onPress={handleContinue}
-        disabled={!canContinue}
-        activeOpacity={0.8}
-      >
-        {isSaving ? (
-          <ActivityIndicator color={COLORS.primary} />
-        ) : (
-          <Text
-            style={[
-              styles.continueText,
-              !canContinue && styles.continueTextDisabled,
-            ]}
-          >
-            Continue
-          </Text>
-        )}
-      </TouchableOpacity>
+      />
 
       <View style={styles.keypad}>
         {KEYS.map((k) => (
@@ -147,11 +138,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
   },
 
-  title: {
-    fontSize: 26,
+  eyebrow: {
+    fontSize: 12,
     fontWeight: "700",
+    letterSpacing: 1,
+    color: COLORS.primary,
+    textTransform: "uppercase",
+  },
+
+  title: {
+    fontFamily: FONT_FAMILY.display,
+    fontSize: 26,
     color: COLORS.text,
-    marginTop: SPACING.md,
+    marginTop: SPACING.xs,
   },
 
   subtitle: {
@@ -164,6 +163,18 @@ const styles = StyleSheet.create({
   displayWrap: {
     marginTop: SPACING.xl,
     alignItems: "center",
+  },
+
+  numberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+
+  prefix: {
+    fontSize: 30,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
   },
 
   digits: {
@@ -183,29 +194,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.borderMuted,
     width: "100%",
     marginTop: SPACING.md,
-  },
-
-  continueButton: {
-    marginTop: SPACING.md,
-    height: 54,
-    borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  continueButtonDisabled: {
-    backgroundColor: COLORS.borderMuted,
-  },
-
-  continueText: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  continueTextDisabled: {
-    color: COLORS.textTertiary,
   },
 
   keypad: {
@@ -231,7 +219,7 @@ const styles = StyleSheet.create({
   },
 
   keyLetters: {
-    fontSize: 9,
+    fontSize: 10,
     letterSpacing: 1.2,
     color: COLORS.textTertiary,
     marginTop: 2,

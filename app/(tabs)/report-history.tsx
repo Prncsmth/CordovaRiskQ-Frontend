@@ -7,7 +7,7 @@ import PrimaryButton from "@/components/auth/PrimaryButton";
 import { EmptyState } from "@/components/common/EmptyState";
 import ReportHistoryCard from "@/components/report-history/ReportHistoryCard";
 import { getReportHistory, type ReportHistoryItem } from "@/services/report.service";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
 
 export default function ReportHistoryScreen() {
   const insets = useSafeAreaInsets();
@@ -69,8 +69,8 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   title: {
+    fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
-    fontWeight: "800",
     color: COLORS.text,
   },
   subtitle: {

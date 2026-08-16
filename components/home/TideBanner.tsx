@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import RippleRings from "@/components/common/RippleRings";
+import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 export type TideLevel = "normal" | "watch" | "warning";
 
@@ -31,8 +32,16 @@ export default function TideBanner({ level, message }: TideBannerProps) {
 
   return (
     <View style={[styles.banner, { backgroundColor: bg }]}>
-      <View style={[styles.iconCircle, { backgroundColor: fg }]}>
-        <Ionicons name={icon} size={12} color={COLORS.white} />
+      <View style={styles.iconWrap}>
+        <RippleRings
+          size={30}
+          ringCount={2}
+          color={`${fg}26`}
+          style={styles.ripple}
+        />
+        <View style={[styles.iconCircle, { backgroundColor: fg }]}>
+          <Ionicons name={icon} size={12} color={COLORS.white} />
+        </View>
       </View>
       <View style={styles.textCol}>
         <Text style={[styles.title, { color: fg }]}>
@@ -51,20 +60,28 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.md,
     padding: SPACING.sm + 2,
   },
+  iconWrap: {
+    width: 30,
+    height: 30,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ripple: {
+    position: "absolute",
+  },
   iconCircle: {
     width: 20,
     height: 20,
     borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 1,
   },
   textCol: {
     flex: 1,
   },
   title: {
+    fontFamily: FONT_FAMILY.displaySemibold,
     fontSize: TYPOGRAPHY.caption,
-    fontWeight: "800",
   },
   message: {
     fontSize: TYPOGRAPHY.small,

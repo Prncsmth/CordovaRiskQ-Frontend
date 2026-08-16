@@ -1,4 +1,16 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git status *)",
+      "Bash(adb devices *)",
+      "Bash(where adb *)",
+      "Bash(tasklist /FI \"PID eq 20628\")",
+      "Bash(curl -s http://localhost:8081/status)",
+      "WebSearch",
+      "Bash(rm \"C:\\\\Users\\\\Administrator\\\\CORDOVARISKQ\\\\CordovaRiskQ-Frontend\\\\app\\\\sos\\\\index.tsx\")",
+      "Bash(rmdir \"C:\\\\Users\\\\Administrator\\\\CORDOVARISKQ\\\\CordovaRiskQ-Frontend\\\\app\\\\sos\")"
+    ]
+  },
   "worktree": {
     "baseRef": "head"
   }

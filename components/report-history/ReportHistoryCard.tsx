@@ -2,7 +2,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import type { ReportHistoryItem } from "@/services/report.service";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 type ReportHistoryCardProps = {
   item: ReportHistoryItem;
@@ -33,10 +33,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
     borderRadius: RADIUS.md,
     padding: SPACING.sm + 4,
+    ...SHADOW,
   },
   textCol: {
     flex: 1,

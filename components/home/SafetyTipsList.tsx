@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
 type SafetyTip = {
   title: string;
@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   heading: {
+    fontFamily: FONT_FAMILY.displaySemibold,
     fontSize: TYPOGRAPHY.caption,
-    fontWeight: "800",
     color: COLORS.text,
   },
   list: {

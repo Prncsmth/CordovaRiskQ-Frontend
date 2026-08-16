@@ -1,4 +1,3 @@
-import * as authStorage from "./authStorage";
 import React, {
     createContext,
     useContext,
@@ -6,6 +5,7 @@ import React, {
     useMemo,
     useState,
 } from "react";
+import * as authStorage from "./authStorage";
 
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
@@ -14,6 +14,7 @@ type AuthUser = {
   id: string;
   name: string;
   email: string;
+  role: "citizen" | "responder";
 };
 
 // token, user, and needsOnboarding are kept in a single state object so that
@@ -49,11 +50,13 @@ type AuthContextValue = {
   user: AuthUser | null;
   login: (
     token: string,
-    user: AuthUser,
+    user: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
     needsOnboardingFlag?: boolean,
   ) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (user: AuthUser) => Promise<void>;
+  updateUser: (
+    user: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
+  ) => Promise<void>;
   completeOnboarding: () => void;
 };
 
@@ -96,14 +99,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: authState.user,
       login: async (
         newToken: string,
-        newUser: AuthUser,
+        newUser: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
         needsOnboardingFlag = false,
       ) => {
+        // The backend doesn't send `role` yet, so default to "citizen" here
+        // -- the one place every login/register/Google-auth call funnels
+        // through -- rather than at each call site.
+        const user: AuthUser = { ...newUser, role: newUser.role ?? "citizen" };
         await authStorage.setItem(TOKEN_KEY, newToken);
-        await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
+        await authStorage.setItem(USER_KEY, JSON.stringify(user));
         setAuthState({
           token: newToken,
-          user: newUser,
+          user,
           needsOnboarding: needsOnboardingFlag,
         });
       },
@@ -112,9 +119,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authStorage.deleteItem(USER_KEY);
         setAuthState(INITIAL_AUTH_STATE);
       },
-      updateUser: async (newUser: AuthUser) => {
-        await authStorage.setItem(USER_KEY, JSON.stringify(newUser));
-        setAuthState((prev) => ({ ...prev, user: newUser }));
+      updateUser: async (
+        newUser: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
+      ) => {
+        // Preserve the existing role if the caller doesn't pass one -- a
+        // profile save shouldn't silently reset a responder to citizen.
+        const user: AuthUser = {
+          ...newUser,
+          role: newUser.role ?? authState.user?.role ?? "citizen",
+        };
+        await authStorage.setItem(USER_KEY, JSON.stringify(user));
+        setAuthState((prev) => ({ ...prev, user }));
       },
       completeOnboarding: () => {
         setAuthState((prev) => ({ ...prev, needsOnboarding: false }));

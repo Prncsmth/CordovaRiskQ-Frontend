@@ -6,8 +6,13 @@ export const COLORS = {
 
   secondary: "#FF6B35",
 
+  // Tide — deep mangrove-channel teal, the app's informational/secondary
+  // accent. Keeps primary red reserved exclusively for danger/SOS.
+  tide: "#0E7B86",
+  tideTint: "#E3F4F3",
+
   background: "#FFFFFF",
-  surface: "#F7F6F4",
+  surface: "#F5F7F8",
 
   text: "#17181A",
   textSecondary: "#6B7280",
@@ -16,9 +21,9 @@ export const COLORS = {
 
   gray: "#9CA3AF",
 
-  border: "#E5E3DF",
-  borderMuted: "#F1F0EE",
-  inputBg: "#F9F8F6",
+  border: "#E6E9EB",
+  borderMuted: "#EEF1F2",
+  inputBg: "#F7F9FA",
 
   white: "#FFFFFF",
   black: "#000000",

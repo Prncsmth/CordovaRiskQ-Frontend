@@ -1,6 +1,8 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+
 export function EmptyState({
   message,
   subtitle,
@@ -18,17 +20,18 @@ export function EmptyState({
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    padding: SPACING.lg,
     alignItems: "center",
     justifyContent: "center",
   },
   message: {
-    color: "#6b7280",
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.body,
     textAlign: "center",
   },
   subtitle: {
-    color: "#9ca3af",
-    fontSize: 13,
+    color: COLORS.textTertiary,
+    fontSize: TYPOGRAPHY.caption,
     textAlign: "center",
     marginTop: 4,
   },

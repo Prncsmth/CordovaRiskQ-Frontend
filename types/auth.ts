@@ -2,6 +2,7 @@ export type AuthUser = {
   id: string;
   email: string;
   name: string;
+  role: "citizen" | "responder";
 };
 
 export type LoginPayload = {

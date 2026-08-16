@@ -3,7 +3,7 @@ import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 type PhotoPickerProps = {
   attached: boolean;
@@ -28,45 +28,66 @@ export default function PhotoPicker({ attached, onToggle }: PhotoPickerProps) {
 
   return (
     <TouchableOpacity style={styles.emptyBox} onPress={onToggle} activeOpacity={0.7}>
-      <Ionicons name="camera-outline" size={22} color={COLORS.textTertiary} />
-      <Text style={styles.emptyLabel}>Add Photo (Optional)</Text>
+      <View style={styles.emptyIcon}>
+        <Ionicons name="camera" size={22} color={COLORS.primary} />
+      </View>
+      <Text style={styles.emptyLabel}>Add Photo</Text>
+      <Text style={styles.emptyHint}>Tap to attach evidence</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   emptyBox: {
-    height: 88,
+    height: 130,
+    backgroundColor: COLORS.background,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     borderStyle: "dashed",
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     alignItems: "center",
     justifyContent: "center",
-    gap: SPACING.xs,
+    gap: 4,
+  },
+  emptyIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primaryTint,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: SPACING.xs,
   },
   emptyLabel: {
     fontSize: TYPOGRAPHY.caption,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  emptyHint: {
+    fontSize: TYPOGRAPHY.small,
     color: COLORS.textTertiary,
   },
   attachedWrap: {
-    height: 88,
-    width: 88,
+    height: 130,
+    width: 130,
   },
   thumb: {
-    width: 88,
-    height: 88,
+    width: 130,
+    height: 130,
+    borderRadius: RADIUS.lg,
+    ...SHADOW,
   },
   removeButton: {
     position: "absolute",
     top: -6,
     right: -6,
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.text,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
 });

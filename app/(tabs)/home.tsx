@@ -12,11 +12,11 @@ import { SOSButton } from "@/components/sos/SOSButton";
 import { useSos } from "@/context/SosContext";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
 import { getNotifications } from "@/services/notification.service";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
 
 const MOCK_NAME = "Carl";
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
-const MOCK_TEMPERATURE_C = 29;
+const MOCK_TEMPERATURE_C = 29;  
 const MOCK_WEATHER_DESCRIPTION = "Partly Cloudy";
 const MOCK_TIDE = {
   level: "normal",
@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
     gap: SPACING.xs,
   },
   sectionHeading: {
+    fontFamily: FONT_FAMILY.displaySemibold,
     fontSize: TYPOGRAPHY.caption,
-    fontWeight: "800",
     color: COLORS.text,
     marginBottom: SPACING.xs,
   },

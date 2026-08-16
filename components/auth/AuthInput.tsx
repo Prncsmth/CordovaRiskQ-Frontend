@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
 
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: TYPOGRAPHY.body,
     color: COLORS.text,
   },
 });
