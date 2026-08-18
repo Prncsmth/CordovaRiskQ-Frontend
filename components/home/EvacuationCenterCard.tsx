@@ -46,7 +46,9 @@ export default function EvacuationCenterCard({
               size={13}
               color={COLORS.textSecondary}
             />
-            <Text style={styles.meta}>{center.distanceKm} km away</Text>
+            <Text style={styles.meta}>
+              {center.distanceKm.toFixed(1)} km away
+            </Text>
           </View>
 
           <View
