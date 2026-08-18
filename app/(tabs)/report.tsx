@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -34,16 +34,18 @@ export default function ReportScreen() {
     longitude: FALLBACK_BARANGAY.longitude,
   });
 
-  useEffect(() => {
-    getCurrentLocation()
-      .then((fix) => {
-        if (!fix) return;
-        const nearest = getNearestBarangay(fix.latitude, fix.longitude);
-        setLocation(`Barangay ${nearest.name}, Cordova`);
-        setCoords(fix);
-      })
-      .catch(() => {});
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getCurrentLocation()
+        .then((fix) => {
+          if (!fix) return;
+          const nearest = getNearestBarangay(fix.latitude, fix.longitude);
+          setLocation(`Barangay ${nearest.name}, Cordova`);
+          setCoords(fix);
+        })
+        .catch(() => {});
+    }, []),
+  );
 
   const canSubmit = category !== null && details.trim().length > 0;
 
