@@ -29,7 +29,8 @@ This spec covers: a new `Incident` backend resource that both the citizen report
 - **Responder self-registration.** No signup flow for responder accounts. The one test account needed for this feature is created manually (see Testing).
 - **Photo upload.** `PhotoPicker` on the report form still only toggles a local boolean (`hasPhoto`); no file goes anywhere. Unrelated to this pipeline.
 - **`SosAlert` table changes.** It keeps being written exactly as it is today (unchanged migration, unchanged shape) — the Admin repo or anything else reading it is unaffected. `Incident` is an additive table, not a replacement.
-- **"Start Assistance," "Chat with Team," and "Navigate" backend behavior.** `Navigate` already just reads the incident's existing `responderCoords`/`incidentCoords` and needs no change. "Start Assistance" stays a `Alert.alert("Coming soon.")` stub — accepting and progressing an incident's status is in scope, but this specific action isn't. "Chat with Team" isn't touched by this spec at all.
+- **"Start Assistance" and "Chat with Team" backend behavior.** "Start Assistance" stays a `Alert.alert("Coming soon.")` stub — accepting and progressing an incident's status is in scope, but this specific action isn't. "Chat with Team" isn't touched by this spec at all.
+- **New capability for the Navigate screen.** It keeps doing exactly what it does today — showing a straight-line route between the responder and the incident. It does, however, need its data source updated: it currently reads via `mockIncidents.ts`'s synchronous `getIncidentById`, and that file is deleted as part of this spec (scope item 4), so `navigate.tsx` moves to the same async `incident.service.ts` the other two responder screens use. This is a mechanical swap, not new scope.
 - **Automated tests.** Neither repo has a test setup; verification is manual (see Testing below).
 
 ## Architecture
