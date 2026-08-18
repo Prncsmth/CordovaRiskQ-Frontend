@@ -1,4 +1,7 @@
 // services/evacuation.service.ts
+import { CORDOVA_BARANGAYS, CORDOVA_CENTER } from "@/constants/cordovaBarangays";
+import { haversineDistanceKm } from "@/utils/distance";
+
 export type EvacuationCenter = {
   id: string;
   name: string;
@@ -49,12 +52,32 @@ const CENTERS: EvacuationCenter[] = [
   },
 ];
 
+// One elementary school gym per barangay — the standard, always-available
+// evacuation venue in Philippine municipalities. Fallback distanceKm is
+// computed from the municipal center since these aren't hand-picked like
+// the named centers above.
+const BARANGAY_SCHOOL_GYMS: EvacuationCenter[] = CORDOVA_BARANGAYS.map(
+  (barangay) => ({
+    id: `${barangay.id}-elementary-school-gym`,
+    name: `${barangay.name} Elementary School Gym`,
+    address: `Barangay ${barangay.name}, Cordova, Cebu`,
+    distanceKm: haversineDistanceKm(CORDOVA_CENTER, barangay),
+    capacity: { current: 0, max: 300 },
+    status: "open",
+    facilities: ["Water", "Restrooms", "Power"],
+    latitude: barangay.latitude,
+    longitude: barangay.longitude,
+  }),
+);
+
+const ALL_CENTERS: EvacuationCenter[] = [...CENTERS, ...BARANGAY_SCHOOL_GYMS];
+
 export async function getEvacuationCenters(): Promise<EvacuationCenter[]> {
-  return CENTERS;
+  return ALL_CENTERS;
 }
 
 export async function getEvacuationCenterById(
   id: string,
 ): Promise<EvacuationCenter | undefined> {
-  return CENTERS.find((c) => c.id === id);
+  return ALL_CENTERS.find((c) => c.id === id);
 }
