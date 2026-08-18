@@ -16,7 +16,7 @@ Every shipped feature has a paired design spec + implementation plan in `docs/su
 |---|---|---|
 | Design system import (theme, colors, base UI kit) | `2026-07-25-cordova-riskq-design-import` | n/a |
 | Home screen | `2026-07-28-home-screen` | Mock (`services/evacuation.service.ts`, hardcoded) |
-| Report incident flow | `2026-07-29-report-incident` | Mock (`services/report.service.ts` fakes a ref number) |
+| Report incident flow | `2026-07-29-report-incident` | Mock (`services/report.service.ts` fakes a ref number), but the pinned location is now real device GPS (see below) instead of a hardcoded barangay |
 | Change Password (bottom sheet) | `2026-07-31-change-password`, `2026-08-03-user-profile-backend` | **Real** (`PUT` via `user.service.ts`) |
 | Profile screen (menu) | `2026-07-31-profile-screen` | n/a (navigation only) |
 | Report history | `2026-07-31-report-history` | Mock (`services/report.service.ts`) |
@@ -24,6 +24,7 @@ Every shipped feature has a paired design spec + implementation plan in `docs/su
 | Onboarding (phone number + terms gate) | `2026-08-05-onboarding` | **Real**, persists `mobile` to `PUT /api/users/me`; gated by backend's `isNewUser` flag on Google sign-up |
 | Device geolocation (`services/location.service.ts`) | no plan/spec (bounded fix) | n/a — was hardcoded to `{0,0}`, now requests permission + calls `expo-location` for real; consolidated into the one place `SosContext.tsx` and `(tabs)/map.tsx` both used to duplicate inline |
 | SOS trigger | no plan/spec (bounded fix) | **Real**. New `POST /api/sos` (authenticated) on the backend — route/controller/service/`SosAlert` Prisma model mirroring the `user` resource pattern. `services/sos.service.ts` calls it with the real device location from the fix above |
+| Report location (`(tabs)/report.tsx`) | no plan/spec (bounded fix) | Still feeds the mock `report.service.ts`, but now uses real GPS: precise coordinates + a nearest-barangay label (`constants/cordovaBarangays.ts`'s new `getNearestBarangay`), not full reverse geocoding. Falls back to the old hardcoded Poblacion default if location is unavailable. The submitted payload now carries `latitude`/`longitude` so they're ready once a real report/incident backend exists — **note: no pipeline connects citizen reports to the responder side yet**, that's a separate, bigger feature (see Next steps) |
 
 Auth (login/register/forgot-password/Google sign-in) predates the plans/specs convention but is real-backend-wired via `services/auth.service.ts` and `AuthContext`.
 

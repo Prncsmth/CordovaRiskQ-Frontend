@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,12 +11,16 @@ import CategoryGrid from "@/components/report/CategoryGrid";
 import DetailsInput from "@/components/report/DetailsInput";
 import PhotoPicker from "@/components/report/PhotoPicker";
 import PinnedLocationCard from "@/components/report/PinnedLocationCard";
-import { CORDOVA_BARANGAYS } from "@/constants/cordovaBarangays";
+import {
+  CORDOVA_BARANGAYS,
+  getNearestBarangay,
+} from "@/constants/cordovaBarangays";
+import { getCurrentLocation } from "@/services/location.service";
 import { createReport } from "@/services/report.service";
 import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
 
-const MOCK_LOCATION = "Barangay Poblacion, Cordova";
-const MOCK_COORDS = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
+const FALLBACK_BARANGAY = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
+const FALLBACK_LOCATION = `Barangay ${FALLBACK_BARANGAY.name}, Cordova`;
 
 export default function ReportScreen() {
   const insets = useSafeAreaInsets();
@@ -24,6 +28,22 @@ export default function ReportScreen() {
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [details, setDetails] = useState("");
   const [photoAttached, setPhotoAttached] = useState(false);
+  const [location, setLocation] = useState(FALLBACK_LOCATION);
+  const [coords, setCoords] = useState({
+    latitude: FALLBACK_BARANGAY.latitude,
+    longitude: FALLBACK_BARANGAY.longitude,
+  });
+
+  useEffect(() => {
+    getCurrentLocation()
+      .then((fix) => {
+        if (!fix) return;
+        const nearest = getNearestBarangay(fix.latitude, fix.longitude);
+        setLocation(`Barangay ${nearest.name}, Cordova`);
+        setCoords(fix);
+      })
+      .catch(() => {});
+  }, []);
 
   const canSubmit = category !== null && details.trim().length > 0;
 
@@ -32,14 +52,16 @@ export default function ReportScreen() {
 
     const result = await createReport({
       category,
-      location: MOCK_LOCATION,
+      location,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
       details,
       hasPhoto: photoAttached,
     });
 
     router.push({
       pathname: "/report-confirmation",
-      params: { ref: result.ref, category, location: MOCK_LOCATION },
+      params: { ref: result.ref, category, location },
     });
   };
 
@@ -76,9 +98,9 @@ export default function ReportScreen() {
           <Text style={styles.sectionHeading}>Pinned Location</Text>
         </View>
         <PinnedLocationCard
-          address={MOCK_LOCATION}
-          latitude={MOCK_COORDS.latitude}
-          longitude={MOCK_COORDS.longitude}
+          address={location}
+          latitude={coords.latitude}
+          longitude={coords.longitude}
         />
       </View>
 
