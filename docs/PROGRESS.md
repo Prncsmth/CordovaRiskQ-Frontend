@@ -2,7 +2,7 @@
 
 > Living document. Update this after every feature lands (new plan/spec pair merged, or a task list in `docs/superpowers/plans/*` finished). Don't duplicate detail that already lives in `docs/superpowers/plans/*` or `specs/*` — link to it instead.
 
-Last updated: 2026-08-08 (responder role/routing update)
+Last updated: 2026-08-18 (device geolocation + SOS backend wiring)
 
 ## How this project builds features
 
@@ -22,6 +22,8 @@ Every shipped feature has a paired design spec + implementation plan in `docs/su
 | Report history | `2026-07-31-report-history` | Mock (`services/report.service.ts`) |
 | User profile (view/edit) | `2026-07-31-user-profile`, `2026-08-03-user-profile-backend` | **Real** (`services/user.service.ts`) |
 | Onboarding (phone number + terms gate) | `2026-08-05-onboarding` | **Real**, persists `mobile` to `PUT /api/users/me`; gated by backend's `isNewUser` flag on Google sign-up |
+| Device geolocation (`services/location.service.ts`) | no plan/spec (bounded fix) | n/a — was hardcoded to `{0,0}`, now requests permission + calls `expo-location` for real; consolidated into the one place `SosContext.tsx` and `(tabs)/map.tsx` both used to duplicate inline |
+| SOS trigger | no plan/spec (bounded fix) | **Real**. New `POST /api/sos` (authenticated) on the backend — route/controller/service/`SosAlert` Prisma model mirroring the `user` resource pattern. `services/sos.service.ts` calls it with the real device location from the fix above |
 
 Auth (login/register/forgot-password/Google sign-in) predates the plans/specs convention but is real-backend-wired via `services/auth.service.ts` and `AuthContext`.
 
@@ -33,7 +35,7 @@ These screens exist and render, but their `services/*.ts` return hardcoded array
 - `app/evacuation-detail/[id]` — `services/evacuation.service.ts` (hardcoded centers)
 - `app/notifications` — `services/notification.service.ts` (hardcoded)
 - `app/faqs`, `app/settings`, `app/contact-support` — static content, nothing to wire
-- `app/sos` + `components/sos/*` — `services/sos.service.ts` is a stub (`triggerSOS()` always resolves `{success:true}`); `services/location.service.ts.getCurrentLocation()` always returns `{0,0}` — device geolocation was never wired in
+- `app/sos` + `components/sos/*` — SOS trigger and device geolocation are now real (see Done table above). `cancelSOS` in `SosContext.tsx` is still local-only (no cancel/resolve endpoint on the backend) — out of scope for the trigger fix
 - `(tabs)/map.tsx` — uses `react-native-maps` but check whether it's live-wired to real evacuation-center/incident data or still placeholder markers
 
 ## In progress — Responder (team) flow
@@ -68,14 +70,14 @@ This is a first-draft prototype of a **second user role** (emergency responder/t
 Pick one path — they're independent:
 
 1. **Formalize the responder flow** (recommended if this is the priority): write a design spec + implementation plan under `docs/superpowers/` per the project's normal process, covering: the backend returning `user.role` on login/register/Google-auth (frontend side already handles it, see above), removing the `__DEV__` login bypass once that lands, replacing `mockIncidents.ts` with a real incidents API, and wiring the three no-op buttons.
-2. **Finish backend-wiring the civilian app** before starting a second role: SOS trigger + device geolocation (`location.service.ts` currently hardcoded to `{0,0}`), evacuation centers, notifications, contacts/hotlines, and report submission/history — each would follow the same plan/spec pattern as User Profile did.
+2. **Finish backend-wiring the civilian app** before starting a second role: SOS trigger + device geolocation ✅ done (2026-08-18); still remaining: evacuation centers, notifications, contacts/hotlines, and report submission/history — each would follow the same plan/spec pattern as User Profile did.
 3. **Land the in-flight config changes** either way: decide if `react-native-maps` + `eas.json` are still wanted, commit them (or revert if abandoned), and fill in the real Google OAuth client IDs in `.env` (currently placeholders — Google Sign-In is non-functional until these are real).
 
 ## Definition of "frontend complete"
 
 Not there yet. Outstanding before this app could be considered done:
 - [ ] Every screen's service backed by a real API call, not a hardcoded array (see mock-data list above)
-- [ ] SOS button actually triggers something real + real device location
+- [x] SOS button actually triggers something real + real device location
 - [ ] Responder flow either formalized and finished, or removed if out of scope
 - [ ] Google Sign-In client IDs filled in `.env`
 - [x] Role-based routing (civilian vs. responder account types) — frontend done; backend still needs to return `user.role`

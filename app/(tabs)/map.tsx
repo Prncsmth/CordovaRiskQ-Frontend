@@ -22,6 +22,7 @@ import {
   getEvacuationCenters,
   type EvacuationCenter,
 } from "@/services/evacuation.service";
+import { getCurrentLocation } from "@/services/location.service";
 import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 type ExpoLocationModule = typeof import("expo-location");
@@ -171,34 +172,16 @@ export default function MapScreen() {
   const handleLocateMe = async () => {
     try {
       setIsLocating(true);
-      const module = require("expo-location") as ExpoLocationModule;
-      const requestFn =
-        (module as any).requestForegroundPermissionsAsync ??
-        (module as any).default?.requestForegroundPermissionsAsync;
-      const getCurrentPositionFn =
-        (module as any).getCurrentPositionAsync ??
-        (module as any).default?.getCurrentPositionAsync;
+      const location = await getCurrentLocation();
 
-      if (
-        typeof requestFn !== "function" ||
-        typeof getCurrentPositionFn !== "function"
-      ) {
-        throw new Error("Expo Location methods not available");
-      }
-
-      const { status } = await requestFn();
-      if (status !== "granted") {
+      if (!location) {
         setLocationDenied(true);
         return;
       }
 
       setLocationDenied(false);
-      const position = await getCurrentPositionFn({});
       cameraRef.current?.setCamera({
-        centerCoordinate: [
-          position.coords.longitude,
-          position.coords.latitude,
-        ],
+        centerCoordinate: [location.longitude, location.latitude],
         zoomLevel: 16,
         animationDuration: 600,
       });
