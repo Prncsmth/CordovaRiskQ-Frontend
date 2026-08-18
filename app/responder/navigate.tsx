@@ -7,7 +7,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
@@ -123,9 +123,11 @@ export default function NavigateScreen() {
           <mapbox.MarkerView
             coordinate={[responderCoords.longitude, responderCoords.latitude]}
           >
-            <View style={styles.responderDot}>
-              <Ionicons name="navigate" size={16} color={COLORS.white} />
-            </View>
+            <Image
+              source={require("@/assets/images/riskq.png")}
+              style={styles.responderLogo}
+              resizeMode="contain"
+            />
           </mapbox.MarkerView>
 
           <mapbox.MarkerView
@@ -189,15 +191,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  responderDot: {
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: COLORS.white,
+  responderLogo: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "transparent",
   },
   incidentPin: {
     width: 38,

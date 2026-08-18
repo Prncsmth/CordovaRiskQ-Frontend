@@ -66,13 +66,15 @@ export default function IncidentDetailScreen() {
     <View style={[styles.screen, { paddingTop: insets.top + SPACING.sm }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.header}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={styles.headerTitle}>
-          {phase === "pending" ? "New Incident" : `Incident #${incident.id}`}
-        </Text>
-        <View style={{ width: 36 }} />
-      </View>
+      {phase !== "on_the_way" && (
+        <View style={styles.header}>
+          <BackButton onPress={() => router.back()} />
+          <Text style={styles.headerTitle}>
+            {phase === "pending" ? "New Incident" : `Incident #${incident.id}`}
+          </Text>
+          <View style={{ width: 36 }} />
+        </View>
+      )}
 
       {phase === "pending" && (
         <PendingView
@@ -260,8 +262,20 @@ function OnTheWayView({
   const visual = getIncidentVisual(incident.type);
 
   return (
-    <View style={styles.body}>
-      <View style={styles.summaryCard}>
+    <View style={styles.mapScreen}>
+      {incident.incidentCoords && incident.responderCoords ? (
+        <View style={styles.mapContainer}>
+          <IncidentMap
+            responderCoords={incident.responderCoords}
+            incidentCoords={incident.incidentCoords}
+            etaMinutes={incident.etaMinutes ?? 6}
+          />
+        </View>
+      ) : (
+        <Text style={styles.notFound}>Location data unavailable.</Text>
+      )}
+
+      <View style={styles.mapHeaderCard}>
         <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
           <Ionicons name={visual.icon} size={18} color={COLORS.white} />
         </View>
@@ -271,19 +285,7 @@ function OnTheWayView({
         </View>
       </View>
 
-      {incident.incidentCoords && incident.responderCoords ? (
-        <IncidentMap
-          responderCoords={incident.responderCoords}
-          incidentCoords={incident.incidentCoords}
-          etaMinutes={incident.etaMinutes ?? 6}
-        />
-      ) : (
-        <Text style={styles.notFound}>Location data unavailable.</Text>
-      )}
-
-      <View style={{ flex: 1 }} />
-
-      <View style={styles.etaActionRow}>
+      <View style={styles.actionDock}>
         <RButton
           label="Navigate"
           icon="navigate"
@@ -294,7 +296,6 @@ function OnTheWayView({
           style={{ flex: 1 }}
         />
       </View>
-      <RButton label="Mark as Arrived" variant="success" onPress={onArrive} />
     </View>
   );
 }
@@ -379,6 +380,41 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.md,
+  },
+  mapScreen: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: COLORS.surface,
+  },
+  mapHeaderCard: {
+    position: "absolute",
+    top: SPACING.sm,
+    left: SPACING.md,
+    right: SPACING.md,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+    ...SHADOW,
+  },
+  mapContainer: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  actionDock: {
+    position: "absolute",
+    left: SPACING.md,
+    right: SPACING.md,
+    bottom: SPACING.sm,
+    zIndex: 2,
   },
   centeredBody: {
     alignItems: "center",

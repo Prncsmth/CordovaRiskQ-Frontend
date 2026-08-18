@@ -7,7 +7,10 @@ export default function ResponderLayout() {
       <Stack.Screen name="[id]" />
       <Stack.Screen
         name="navigate"
-        options={{ presentation: "fullScreenModal", animation: "slide_from_bottom" }}
+        options={{
+          presentation: "fullScreenModal",
+          animation: "slide_from_bottom",
+        }}
       />
     </Stack>
   );
