@@ -6,7 +6,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -39,7 +46,9 @@ export default function ResponderIncidentsScreen() {
   const { logout, user } = useAuth();
   const [duty, setDuty] = useState<DutyStatus>("online");
 
-  const highUrgencyCount = mockIncidents.filter((i) => i.urgency === "high").length;
+  const highUrgencyCount = mockIncidents.filter(
+    (i) => i.urgency === "high",
+  ).length;
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
   const handleLogout = () => {
@@ -60,27 +69,42 @@ export default function ResponderIncidentsScreen() {
           </View>
         </View>
 
-        <Pressable onPress={handleLogout} hitSlop={12} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={20} color={COLORS.textSecondary} />
+        <Pressable
+          onPress={handleLogout}
+          hitSlop={12}
+          style={styles.logoutButton}
+        >
+          <Ionicons name="power" size={18} color={COLORS.primary} />
         </Pressable>
       </View>
 
       <View style={styles.statusRow}>
         <Pressable
-          style={[styles.dutyPill, duty === "offline" && styles.dutyPillOffline]}
-          onPress={() => setDuty((d) => (d === "online" ? "offline" : "online"))}
+          style={[
+            styles.dutyPill,
+            duty === "offline" && styles.dutyPillOffline,
+          ]}
+          onPress={() =>
+            setDuty((d) => (d === "online" ? "offline" : "online"))
+          }
         >
           <View
             style={[
               styles.dutyDot,
-              { backgroundColor: duty === "online" ? COLORS.success : COLORS.gray },
+              {
+                backgroundColor:
+                  duty === "online" ? COLORS.success : COLORS.gray,
+              },
             ]}
           />
-          <Text style={styles.dutyText}>{duty === "online" ? "Online" : "Offline"}</Text>
+          <Text style={styles.dutyText}>
+            {duty === "online" ? "Online" : "Offline"}
+          </Text>
         </Pressable>
 
         <Text style={styles.headerSubtitle}>
-          {mockIncidents.length} nearby incident{mockIncidents.length === 1 ? "" : "s"}
+          {mockIncidents.length} nearby incident
+          {mockIncidents.length === 1 ? "" : "s"}
         </Text>
       </View>
 
@@ -93,10 +117,14 @@ export default function ResponderIncidentsScreen() {
           <Text style={styles.statLabel}>Nearby</Text>
         </View>
         <View style={styles.statCard}>
-          <View style={[styles.statIcon, { backgroundColor: COLORS.primaryTint }]}>
+          <View
+            style={[styles.statIcon, { backgroundColor: COLORS.primaryTint }]}
+          >
             <Ionicons name="alert-circle" size={16} color={COLORS.primary} />
           </View>
-          <Text style={[styles.statValue, { color: COLORS.primary }]}>{highUrgencyCount}</Text>
+          <Text style={[styles.statValue, { color: COLORS.primary }]}>
+            {highUrgencyCount}
+          </Text>
           <Text style={styles.statLabel}>High Urgency</Text>
         </View>
       </View>
@@ -123,7 +151,10 @@ export default function ResponderIncidentsScreen() {
             <IncidentCard
               incident={item}
               onPress={() =>
-                router.push({ pathname: "/responder/[id]", params: { id: item.id } })
+                router.push({
+                  pathname: "/responder/[id]",
+                  params: { id: item.id },
+                })
               }
             />
           )}
@@ -133,7 +164,13 @@ export default function ResponderIncidentsScreen() {
   );
 }
 
-function IncidentCard({ incident, onPress }: { incident: Incident; onPress: () => void }) {
+function IncidentCard({
+  incident,
+  onPress,
+}: {
+  incident: Incident;
+  onPress: () => void;
+}) {
   const visual = getIncidentVisual(incident.type);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -152,14 +189,23 @@ function IncidentCard({ incident, onPress }: { incident: Incident; onPress: () =
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        <View style={[styles.categoryBadge, { backgroundColor: `${visual.color}1A` }]}>
+        <View
+          style={[
+            styles.categoryBadge,
+            { backgroundColor: `${visual.color}1A` },
+          ]}
+        >
           <Ionicons name={visual.icon} size={22} color={visual.color} />
         </View>
 
         <View style={styles.cardBody}>
           <Text style={styles.cardTitle}>{incident.type}</Text>
           <View style={styles.cardLocationRow}>
-            <Ionicons name="location-outline" size={12} color={COLORS.textSecondary} />
+            <Ionicons
+              name="location-outline"
+              size={12}
+              color={COLORS.textSecondary}
+            />
             <Text style={styles.cardLocation}>{incident.location}</Text>
           </View>
           <View style={styles.cardMetaRow}>
@@ -171,7 +217,11 @@ function IncidentCard({ incident, onPress }: { incident: Incident; onPress: () =
           </View>
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color={COLORS.textTertiary} />
+        <Ionicons
+          name="chevron-forward"
+          size={20}
+          color={COLORS.textTertiary}
+        />
       </Pressable>
     </Animated.View>
   );
@@ -208,13 +258,15 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   logoutButton: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
-    ...SHADOW,
+    ...SHADOW_LG,
+    borderWidth: 1.5,
+    borderColor: COLORS.primaryTint,
   },
   statusRow: {
     flexDirection: "row",
