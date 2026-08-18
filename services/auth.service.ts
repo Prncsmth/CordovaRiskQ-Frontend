@@ -39,6 +39,12 @@ export async function registerUser(
   });
 }
 
+export async function requestPasswordReset(
+  email: string,
+): Promise<{ success: boolean }> {
+  return apiPost<{ success: boolean }>("/api/auth/forgot-password", { email });
+}
+
 export type GoogleAuthResponse = {
   token: string;
   user: {
