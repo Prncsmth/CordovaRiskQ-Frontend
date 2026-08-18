@@ -139,7 +139,6 @@ export default function IncidentMap({
           <Text style={styles.etaText}>ETA {etaMinutes} mins</Text>
         </View>
       </View>
-
     </View>
   );
 }

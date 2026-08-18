@@ -3,10 +3,17 @@
 // Way -> Arrived. Driven by a single `phase` state so the incident's real
 // status field (from the backend) can replace this local state 1:1 later.
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -58,7 +65,11 @@ export default function IncidentDetailScreen() {
   const handleCancelIncident = () => {
     Alert.alert("Cancel incident?", "This cannot be undone.", [
       { text: "Back", style: "cancel" },
-      { text: "Cancel Incident", style: "destructive", onPress: () => router.back() },
+      {
+        text: "Cancel Incident",
+        style: "destructive",
+        onPress: () => router.back(),
+      },
     ]);
   };
 
@@ -94,7 +105,10 @@ export default function IncidentDetailScreen() {
       )}
 
       {phase === "on_the_way" && (
-        <OnTheWayView incident={incident} onArrive={() => setPhase("arrived")} />
+        <OnTheWayView
+          incident={incident}
+          onArrive={() => setPhase("arrived")}
+        />
       )}
 
       {phase === "arrived" && (
@@ -197,15 +211,25 @@ function LobbyView({
           style={[styles.tabButton, tab === "lobby" && styles.tabButtonActive]}
           onPress={() => onChangeTab("lobby")}
         >
-          <Text style={[styles.tabLabel, tab === "lobby" && styles.tabLabelActive]}>
+          <Text
+            style={[styles.tabLabel, tab === "lobby" && styles.tabLabelActive]}
+          >
             Team Lobby
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.tabButton, tab === "details" && styles.tabButtonActive]}
+          style={[
+            styles.tabButton,
+            tab === "details" && styles.tabButtonActive,
+          ]}
           onPress={() => onChangeTab("details")}
         >
-          <Text style={[styles.tabLabel, tab === "details" && styles.tabLabelActive]}>
+          <Text
+            style={[
+              styles.tabLabel,
+              tab === "details" && styles.tabLabelActive,
+            ]}
+          >
             Details
           </Text>
         </Pressable>
@@ -281,7 +305,9 @@ function OnTheWayView({
         </View>
         <View>
           <Text style={styles.summaryTitle}>{incident.type}</Text>
-          <Text style={styles.summarySubtitle}>You&apos;re {incident.distanceKm} km away</Text>
+          <Text style={styles.summarySubtitle}>
+            You&apos;re {incident.distanceKm} km away
+          </Text>
         </View>
       </View>
 
@@ -291,7 +317,10 @@ function OnTheWayView({
           icon="navigate"
           variant="primary"
           onPress={() =>
-            router.push({ pathname: "/responder/navigate", params: { id: incident.id } })
+            router.push({
+              pathname: "/responder/navigate",
+              params: { id: incident.id },
+            })
           }
           style={{ flex: 1 }}
         />
@@ -311,14 +340,20 @@ function ArrivedView({
   return (
     <View style={styles.body}>
       <View style={styles.centeredBody}>
-        <Text style={styles.arrivedText}>You have arrived at the incident location.</Text>
+        <Text style={styles.arrivedText}>
+          You have arrived at the incident location.
+        </Text>
         <View style={styles.checkCircle}>
           <Ionicons name="checkmark" size={40} color={COLORS.white} />
         </View>
       </View>
 
       <Text style={styles.sectionLabel}>Actions</Text>
-      <ActionRow icon="people-outline" label="Start Assistance" onPress={onStartAssistance} />
+      <ActionRow
+        icon="people-outline"
+        label="Start Assistance"
+        onPress={onStartAssistance}
+      />
       <ActionRow
         icon="close-circle-outline"
         label="Cancel Incident"
@@ -348,7 +383,9 @@ function ActionRow({
         color={danger ? COLORS.danger : COLORS.text}
         style={{ marginRight: SPACING.sm }}
       />
-      <Text style={[styles.actionLabel, danger && { color: COLORS.danger }]}>{label}</Text>
+      <Text style={[styles.actionLabel, danger && { color: COLORS.danger }]}>
+        {label}
+      </Text>
       <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
     </Pressable>
   );
