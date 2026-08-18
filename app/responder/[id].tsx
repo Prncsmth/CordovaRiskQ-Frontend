@@ -196,7 +196,7 @@ function LobbyView({
 
   return (
     <View style={styles.body}>
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, { borderLeftColor: visual.color }]}>
         <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
           <Ionicons name={visual.icon} size={18} color={COLORS.white} />
         </View>
@@ -299,7 +299,7 @@ function OnTheWayView({
         <Text style={styles.notFound}>Location data unavailable.</Text>
       )}
 
-      <View style={styles.mapHeaderCard}>
+      <View style={[styles.mapHeaderCard, { borderLeftColor: visual.color }]}>
         <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
           <Ionicons name={visual.icon} size={18} color={COLORS.white} />
         </View>
@@ -394,7 +394,7 @@ function ActionRow({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
   },
   header: {
     flexDirection: "row",
@@ -433,6 +433,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderLeftWidth: 3,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     gap: SPACING.sm,
@@ -517,6 +518,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderLeftWidth: 3,
     padding: SPACING.md,
     marginBottom: SPACING.md,
     gap: SPACING.sm,

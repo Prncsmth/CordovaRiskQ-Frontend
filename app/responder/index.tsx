@@ -36,6 +36,7 @@ import {
   SPACING,
   TYPOGRAPHY,
 } from "@/theme";
+import { RESPONDER_COLORS } from "@/theme/responderColors";
 import type { Incident } from "@/types/responder";
 
 type DutyStatus = "online" | "offline";
@@ -82,6 +83,7 @@ export default function ResponderIncidentsScreen() {
         <Pressable
           style={[
             styles.dutyPill,
+            duty === "online" && styles.dutyPillOnline,
             duty === "offline" && styles.dutyPillOffline,
           ]}
           onPress={() =>
@@ -97,7 +99,12 @@ export default function ResponderIncidentsScreen() {
               },
             ]}
           />
-          <Text style={styles.dutyText}>
+          <Text
+            style={[
+              styles.dutyText,
+              duty === "online" && styles.dutyTextOnline,
+            ]}
+          >
             {duty === "online" ? "Online" : "Offline"}
           </Text>
         </Pressable>
@@ -116,16 +123,21 @@ export default function ResponderIncidentsScreen() {
           <Text style={styles.statValue}>{mockIncidents.length}</Text>
           <Text style={styles.statLabel}>Nearby</Text>
         </View>
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, styles.statCardDark]}>
           <View
-            style={[styles.statIcon, { backgroundColor: COLORS.primaryTint }]}
+            style={[
+              styles.statIcon,
+              { backgroundColor: RESPONDER_COLORS.surfaceDark },
+            ]}
           >
             <Ionicons name="alert-circle" size={16} color={COLORS.primary} />
           </View>
-          <Text style={[styles.statValue, { color: COLORS.primary }]}>
+          <Text style={[styles.statValue, styles.statValueDark]}>
             {highUrgencyCount}
           </Text>
-          <Text style={styles.statLabel}>High Urgency</Text>
+          <Text style={[styles.statLabel, styles.statLabelDark]}>
+            High Urgency
+          </Text>
         </View>
       </View>
 
@@ -180,7 +192,7 @@ function IncidentCard({
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        style={styles.card}
+        style={[styles.card, { borderLeftColor: visual.color }]}
         onPress={onPress}
         onPressIn={() => {
           scale.value = withTiming(0.98, { duration: 100 });
@@ -230,7 +242,7 @@ function IncidentCard({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
   },
   header: {
     flexDirection: "row",
@@ -284,8 +296,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
+  dutyPillOnline: {
+    backgroundColor: COLORS.tide,
+  },
   dutyPillOffline: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.background,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
@@ -298,6 +313,9 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
     color: COLORS.text,
+  },
+  dutyTextOnline: {
+    color: COLORS.white,
   },
   statsRow: {
     flexDirection: "row",
@@ -313,6 +331,9 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.md,
     ...SHADOW,
   },
+  statCardDark: {
+    backgroundColor: RESPONDER_COLORS.surfaceDark,
+  },
   statIcon: {
     width: 32,
     height: 32,
@@ -326,11 +347,17 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.heading,
     color: COLORS.text,
   },
+  statValueDark: {
+    color: COLORS.primary,
+  },
   statLabel: {
     fontSize: TYPOGRAPHY.small,
     color: COLORS.textTertiary,
     fontWeight: "600",
     marginTop: 2,
+  },
+  statLabelDark: {
+    color: RESPONDER_COLORS.textOnDarkMuted,
   },
   offlineState: {
     flex: 1,
@@ -358,6 +385,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderLeftWidth: 3,
     padding: SPACING.md,
     gap: SPACING.sm,
     ...SHADOW_LG,

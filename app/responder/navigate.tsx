@@ -165,7 +165,12 @@ export default function NavigateScreen() {
         </View>
       )}
 
-      <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>
+      <View
+        style={[
+          styles.topCard,
+          { top: insets.top + SPACING.sm, borderLeftColor: visual.color },
+        ]}
+      >
         <View style={styles.topCardHeader}>
           <View style={[styles.infoIcon, { backgroundColor: visual.color }]}>
             <Ionicons name={visual.icon} size={16} color={COLORS.white} />
@@ -242,6 +247,7 @@ const styles = StyleSheet.create({
     right: SPACING.md,
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderLeftWidth: 3,
     padding: SPACING.md,
     ...SHADOW_LG,
   },
