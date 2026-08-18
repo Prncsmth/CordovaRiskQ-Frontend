@@ -49,7 +49,7 @@ model Incident {
   latitude              Float
   longitude             Float
   urgency               String    // high | medium | low
-  status                String    @default("pending") // pending | accepted | on_the_way | arrived | completed | cancelled
+  status                String    @default("pending") // pending | lobby | on_the_way | arrived | completed | cancelled — matches the frontend's existing IncidentStatus literals exactly (see Architecture note below)
   acceptedByResponderId String?
   acceptedBy            User?     @relation("AcceptedIncidents", fields: [acceptedByResponderId], references: [id])
   createdAt             DateTime  @default(now())
@@ -67,7 +67,7 @@ Per [[project-shared-neon-db-drift]]: this migration is hand-written SQL applied
 - `createFromSos(reporterId, sosAlertId, data: { latitude?, longitude? })` — creates a row with `source: "sos"`, `category: "sos"`, `urgency: "high"`, `locationLabel: "SOS Alert"` (no barangay lookup available at this layer — matches what `sos.service.ts` already receives). Called by `sosService.trigger()` right after it creates the `SosAlert` row, both awaited sequentially in the same request (no `$transaction` needed — a failure to create the linked `Incident` row after a successful `SosAlert` write is logged but doesn't fail the SOS trigger itself, since the trigger's primary job — recording the SOS — already succeeded).
 - `list()` — `prisma.incident.findMany({ where: { status: { notIn: ["completed", "cancelled"] } }, orderBy: { createdAt: "desc" } })`.
 - `getById(id)` — throws `AppError("Incident not found", 404)` if missing.
-- `accept(id, responderId)` — throws 404 if missing, throws `AppError("Incident already accepted", 409)` if `status !== "pending"`; otherwise sets `status: "accepted"`, `acceptedByResponderId: responderId`.
+- `accept(id, responderId)` — throws 404 if missing, throws `AppError("Incident already accepted", 409)` if `status !== "pending"`; otherwise sets `status: "lobby"` (not `"accepted"` — `app/responder/[id].tsx`'s own file header says the real status field should replace its local `phase` state "1:1", and that local type already uses `"lobby"` for this exact transition — using the same literal on both sides means `incident.service.ts` on the frontend needs zero status-name translation), `acceptedByResponderId: responderId`.
 - `updateStatus(id, responderId, status)` — throws 404 if missing, throws `AppError("Not your incident", 403)` if `acceptedByResponderId !== responderId`, throws `AppError("Invalid status", 400)` if `status` isn't one of `on_the_way | arrived | completed | cancelled`.
 
 `src/validations/incident.validation.ts`: `createIncidentSchema` (`category` enum, `details` optional string, `locationLabel` string, `latitude`/`longitude` numbers), `updateStatusSchema` (`status` enum of the four transition values).
