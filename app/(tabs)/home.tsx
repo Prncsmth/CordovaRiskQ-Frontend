@@ -11,8 +11,10 @@ import TideBanner from "@/components/home/TideBanner";
 import { SOSButton } from "@/components/sos/SOSButton";
 import { useSos } from "@/context/SosContext";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
+import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";
 import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
+import { haversineDistanceKm } from "@/utils/distance";
 
 const MOCK_NAME = "Carl";
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
@@ -34,10 +36,18 @@ export default function HomeScreen() {
       .then((notifications) => setHasUnread(notifications.length > 0))
       .catch(() => {});
 
-    getEvacuationCenters()
-      .then((centers) => {
+    Promise.all([getEvacuationCenters(), getCurrentLocation()])
+      .then(([centers, location]) => {
         if (centers.length === 0) return;
-        const nearest = centers.reduce((closest, center) =>
+
+        const withDistance = location
+          ? centers.map((center) => ({
+              ...center,
+              distanceKm: haversineDistanceKm(location, center),
+            }))
+          : centers;
+
+        const nearest = withDistance.reduce((closest, center) =>
           center.distanceKm < closest.distanceKm ? center : closest,
         );
         setNearestCenter(nearest);

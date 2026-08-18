@@ -15,7 +15,7 @@ Every shipped feature has a paired design spec + implementation plan in `docs/su
 | Feature | Plan/Spec | Backend-wired? |
 |---|---|---|
 | Design system import (theme, colors, base UI kit) | `2026-07-25-cordova-riskq-design-import` | n/a |
-| Home screen | `2026-07-28-home-screen` | Mock (`services/evacuation.service.ts`, hardcoded) |
+| Home screen | `2026-07-28-home-screen` | Mock centers (`services/evacuation.service.ts`, hardcoded), but "nearest center" is now ranked by real device distance (`utils/distance.ts`) instead of each center's static `distanceKm` |
 | Report incident flow | `2026-07-29-report-incident` | Mock (`services/report.service.ts` fakes a ref number), but the pinned location is now real device GPS (see below) instead of a hardcoded barangay |
 | Change Password (bottom sheet) | `2026-07-31-change-password`, `2026-08-03-user-profile-backend` | **Real** (`PUT` via `user.service.ts`) |
 | Profile screen (menu) | `2026-07-31-profile-screen` | n/a (navigation only) |
