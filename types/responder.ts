@@ -27,7 +27,7 @@ export interface Incident {
   type: string;
   location: string;
   urgency: Urgency;
-  distanceKm: number;
+  distanceKm?: number;
   status: IncidentStatus;
   maxResponders: number;
   team: TeamMember[];
