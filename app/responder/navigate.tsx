@@ -19,7 +19,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import { getIncidentById } from "@/services/mockIncidents";
+import { useAuth } from "@/context/AuthContext";
+import { getIncidentById } from "@/services/incident.service";
+import type { Coordinates } from "@/services/location.service";
+import { getCurrentLocation } from "@/services/location.service";
+import type { Incident } from "@/types/responder";
 import {
     COLORS,
     FONT_FAMILY,
@@ -42,8 +46,16 @@ export default function NavigateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const incident = getIncidentById(id);
+  const { token } = useAuth();
+  const [incident, setIncident] = useState<Incident | undefined>(undefined);
+  const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
   const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
+
+  useEffect(() => {
+    if (!token || !id) return;
+    getIncidentById(token, id).then(setIncident);
+    getCurrentLocation().then(setResponderCoords).catch(() => {});
+  }, [token, id]);
 
   useEffect(() => {
     let mounted = true;
@@ -71,7 +83,7 @@ export default function NavigateScreen() {
     };
   }, []);
 
-  if (!incident || !incident.responderCoords || !incident.incidentCoords) {
+  if (!incident || !responderCoords || !incident.incidentCoords) {
     return (
       <View style={styles.fallbackScreen}>
         <Stack.Screen
@@ -86,7 +98,7 @@ export default function NavigateScreen() {
   }
 
   const visual = getIncidentVisual(incident.type);
-  const { responderCoords, incidentCoords } = incident;
+  const { incidentCoords } = incident;
 
   const routeShape = {
     type: "Feature" as const,
@@ -205,7 +217,11 @@ export default function NavigateScreen() {
               size={14}
               color={COLORS.secondary}
             />
-            <Text style={styles.statChipText}>{incident.distanceKm} km</Text>
+            <Text style={styles.statChipText}>
+              {incident.distanceKm != null
+                ? `${incident.distanceKm.toFixed(1)} km`
+                : "—"}
+            </Text>
           </View>
         </View>
       </View>
