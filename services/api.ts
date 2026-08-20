@@ -89,3 +89,24 @@ export async function apiPut<T>(
 
   return response.json() as Promise<T>;
 }
+
+export async function apiPatch<T>(
+  path: string,
+  body: Record<string, unknown>,
+  token?: string,
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(token),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(await extractErrorMessage(response));
+  }
+
+  return response.json() as Promise<T>;
+}
