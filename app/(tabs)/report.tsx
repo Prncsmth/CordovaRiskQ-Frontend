@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
@@ -15,6 +15,7 @@ import {
   CORDOVA_BARANGAYS,
   getNearestBarangay,
 } from "@/constants/cordovaBarangays";
+import { useAuth } from "@/context/AuthContext";
 import { getCurrentLocation } from "@/services/location.service";
 import { createReport } from "@/services/report.service";
 import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
@@ -25,6 +26,7 @@ const FALLBACK_LOCATION = `Barangay ${FALLBACK_BARANGAY.name}, Cordova`;
 export default function ReportScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { token } = useAuth();
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [details, setDetails] = useState("");
   const [photoAttached, setPhotoAttached] = useState(false);
@@ -50,21 +52,27 @@ export default function ReportScreen() {
   const canSubmit = category !== null && details.trim().length > 0;
 
   const handleSubmit = async () => {
-    if (!category || details.trim().length === 0) return;
+    if (!category || details.trim().length === 0 || !token) return;
 
-    const result = await createReport({
-      category,
-      location,
-      latitude: coords.latitude,
-      longitude: coords.longitude,
-      details,
-      hasPhoto: photoAttached,
-    });
+    try {
+      const result = await createReport(token, {
+        category,
+        details,
+        locationLabel: location,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
 
-    router.push({
-      pathname: "/report-confirmation",
-      params: { ref: result.ref, category, location },
-    });
+      router.push({
+        pathname: "/report-confirmation",
+        params: { ref: result.ref, category, location },
+      });
+    } catch (err) {
+      Alert.alert(
+        "Couldn't submit report",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+    }
   };
 
   return (
