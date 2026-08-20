@@ -4,8 +4,8 @@
 // Tapping one opens the phased detail flow in [id].tsx (accept/decline ->
 // lobby -> on the way -> arrived).
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -26,7 +26,9 @@ import RippleRings from "@/components/common/RippleRings";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { useAuth } from "@/context/AuthContext";
-import { mockIncidents } from "@/services/mockIncidents";
+import { getIncidents } from "@/services/incident.service";
+import type { Coordinates } from "@/services/location.service";
+import { getCurrentLocation } from "@/services/location.service";
 import {
   COLORS,
   FONT_FAMILY,
@@ -39,17 +41,50 @@ import {
 import { RESPONDER_COLORS } from "@/theme/responderColors";
 import type { Incident } from "@/types/responder";
 
+const POLL_INTERVAL_MS = 12000;
+
 type DutyStatus = "online" | "offline";
 
 export default function ResponderIncidentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { logout, user } = useAuth();
+  const { logout, user, token } = useAuth();
   const [duty, setDuty] = useState<DutyStatus>("online");
+  const [incidents, setIncidents] = useState<Incident[]>([]);
 
-  const highUrgencyCount = mockIncidents.filter(
-    (i) => i.urgency === "high",
-  ).length;
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+
+      let cancelled = false;
+      let responderLocation: Coordinates | undefined;
+
+      async function load() {
+        if (!token) return;
+        try {
+          const data = await getIncidents(token, responderLocation);
+          if (!cancelled) setIncidents(data);
+        } catch {
+          // A failed poll shouldn't clear the currently-shown list; the
+          // next interval tick retries.
+        }
+      }
+
+      getCurrentLocation().then((fix) => {
+        responderLocation = fix;
+        load();
+      });
+
+      const interval = setInterval(load, POLL_INTERVAL_MS);
+
+      return () => {
+        cancelled = true;
+        clearInterval(interval);
+      };
+    }, [token]),
+  );
+
+  const highUrgencyCount = incidents.filter((i) => i.urgency === "high").length;
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
   const handleLogout = () => {
@@ -110,8 +145,8 @@ export default function ResponderIncidentsScreen() {
         </Pressable>
 
         <Text style={styles.headerSubtitle}>
-          {mockIncidents.length} nearby incident
-          {mockIncidents.length === 1 ? "" : "s"}
+          {incidents.length} nearby incident
+          {incidents.length === 1 ? "" : "s"}
         </Text>
       </View>
 
@@ -120,7 +155,7 @@ export default function ResponderIncidentsScreen() {
           <View style={[styles.statIcon, { backgroundColor: COLORS.tideTint }]}>
             <Ionicons name="navigate" size={16} color={COLORS.tide} />
           </View>
-          <Text style={styles.statValue}>{mockIncidents.length}</Text>
+          <Text style={styles.statValue}>{incidents.length}</Text>
           <Text style={styles.statLabel}>Nearby</Text>
         </View>
         <View style={[styles.statCard, styles.statCardDark]}>
@@ -156,7 +191,7 @@ export default function ResponderIncidentsScreen() {
         </View>
       ) : (
         <FlatList
-          data={mockIncidents}
+          data={incidents}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
@@ -223,7 +258,9 @@ function IncidentCard({
           <View style={styles.cardMetaRow}>
             <UrgencyBadge urgency={incident.urgency} />
             <Text style={styles.cardDistance}>
-              {incident.distanceKm} km
+              {incident.distanceKm != null
+                ? `${incident.distanceKm.toFixed(1)} km`
+                : "Distance unknown"}
               {incident.etaMinutes ? ` · ${incident.etaMinutes} min` : ""}
             </Text>
           </View>
