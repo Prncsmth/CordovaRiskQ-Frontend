@@ -65,12 +65,13 @@ export default function RegisterScreen() {
   }
 
   return (
-    <LinearGradient
-      colors={COLORS.heroGradient}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.flex}
-    >
+    <View style={styles.flex}>
+      <LinearGradient
+        colors={COLORS.heroGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFillObject}
+      />
       <KeyboardAvoidingView
         style={styles.transparentFlex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -130,7 +131,7 @@ export default function RegisterScreen() {
           />
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 

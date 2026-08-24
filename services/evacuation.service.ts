@@ -15,8 +15,8 @@ export type EvacuationCenter = {
 // services/mockIncidents.ts) until these centers are backed by a real API.
 const CENTERS: EvacuationCenter[] = [
   {
-    id: "kagawasan-elementary",
-    name: "Kagawasan Elementary School",
+    id: "cordova-central-elementary",
+    name: "Cordova Central Elementary School",
     address: "Brgy. Poblacion, Cordova, Cebu",
     distanceKm: 1.2,
     capacity: { current: 300, max: 450 },

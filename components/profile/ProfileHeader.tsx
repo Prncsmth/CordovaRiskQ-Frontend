@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { Avatar } from "@/components/common/Avatar";
+import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 type ProfileHeaderProps = {
@@ -14,9 +15,10 @@ type ProfileHeaderProps = {
 export default function ProfileHeader({ name, onLogout }: ProfileHeaderProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { photoUri } = useProfilePhoto();
   return (
     <View style={styles.card}>
-      <Avatar name={name} />
+      <Avatar name={name} photoUri={photoUri} />
       <View style={styles.textCol}>
         <Text style={styles.welcome}>Welcome</Text>
         <Text style={styles.name}>{name}</Text>
@@ -30,7 +32,7 @@ export default function ProfileHeader({ name, onLogout }: ProfileHeaderProps) {
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons name="log-out-outline" size={20} color={COLORS.primary} />
+        <Ionicons name="log-out-outline" size={19} color={COLORS.primary} />
       </TouchableOpacity>
     </View>
   );
@@ -66,12 +68,19 @@ function createStyles(COLORS: ColorPalette) {
     marginTop: 2,
   },
   logoutButton: {
-    width: 38,
-    height: 38,
+    width: 40,
+    height: 40,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.primaryTint,
+    borderWidth: 1,
+    borderColor: COLORS.primaryLight,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   });
 }

@@ -5,6 +5,7 @@ import {
 } from "@expo-google-fonts/sora";
 import SosOverlay from "@/components/sos/SosOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
 import { SosProvider } from "@/context/SosContext";
 import { ThemeProvider as AppThemeProvider, useThemeMode } from "@/context/ThemeContext";
 import { UserProvider } from "@/context/UserContext";
@@ -162,9 +163,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <UserProvider>
-          <AppThemeProvider>
-            <ThemedApp />
-          </AppThemeProvider>
+          <ProfilePhotoProvider>
+            <AppThemeProvider>
+              <ThemedApp />
+            </AppThemeProvider>
+          </ProfilePhotoProvider>
         </UserProvider>
       </AuthProvider>
     </GestureHandlerRootView>

@@ -28,6 +28,7 @@ import RippleRings from "@/components/common/RippleRings";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { useAuth } from "@/context/AuthContext";
+import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { mockIncidents } from "@/services/mockIncidents";
 import {
   FONT_FAMILY,
@@ -48,6 +49,7 @@ export default function ResponderIncidentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
+  const { photoUri } = useProfilePhoto();
   const [duty, setDuty] = useState<DutyStatus>("online");
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
@@ -88,7 +90,7 @@ export default function ResponderIncidentsScreen() {
         >
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Avatar name={user?.name ?? "Responder"} />
+              <Avatar name={user?.name ?? "Responder"} photoUri={photoUri} />
               <View>
                 <Text style={styles.headerGreeting}>Hi, {firstName}</Text>
                 <Text style={styles.headerTitle}>Dashboard</Text>

@@ -26,7 +26,7 @@ const LEFT_TABS: TabConfig[] = [
 const RIGHT_TABS: TabConfig[] = [
   {
     name: "report-history",
-    label: "Report History",
+    label: "History",
     icon: "document-text-outline",
     activeIcon: "document-text",
   },
