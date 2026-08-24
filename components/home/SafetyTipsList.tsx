@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 type SafetyTip = {
   title: string;
@@ -54,9 +54,12 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   heading: {
-    fontFamily: FONT_FAMILY.displaySemibold,
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.text,
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginLeft: 2,
   },
   list: {
     gap: SPACING.sm,
@@ -64,9 +67,12 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     gap: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.md,
-    padding: SPACING.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    padding: SPACING.sm + 2,
+    ...SHADOW,
   },
   iconCircle: {
     width: 28,

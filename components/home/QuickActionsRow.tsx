@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -67,7 +69,10 @@ function QuickActionCard({
     <Animated.View style={[styles.card, animatedStyle]}>
       <Pressable
         style={styles.cardPressable}
-        onPress={action.onPress}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          action.onPress();
+        }}
         onPressIn={() => {
           scale.value = withTiming(0.97, { duration: 100 });
         }}
@@ -75,9 +80,14 @@ function QuickActionCard({
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        <View style={styles.iconCircle}>
+        <LinearGradient
+          colors={["#FEEEEC", "#FBDAD6"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.iconCircle}
+        >
           <Ionicons name={action.icon} size={18} color="#A70707" />
-        </View>
+        </LinearGradient>
         <Text style={styles.label}>{action.label}</Text>
       </Pressable>
     </Animated.View>
@@ -106,7 +116,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#FDE8E7",
     borderWidth: 1,
     borderColor: "#F8D7D0",
     alignItems: "center",

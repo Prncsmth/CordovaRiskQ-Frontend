@@ -72,6 +72,7 @@ const styles = StyleSheet.create({
     fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
     color: COLORS.text,
+    letterSpacing: -0.3,
   },
   locationRow: {
     flexDirection: "row",

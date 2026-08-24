@@ -1,7 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { type EvacuationCenter } from "@/services/evacuation.service";
@@ -24,62 +29,78 @@ export default function EvacuationCenterCard({
   const router = useRouter();
   const isOpen = center.status === "open";
 
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/evacuation-detail/${center.id}`)}
-      activeOpacity={0.7}
-    >
-      <PlaceholderThumb style={styles.thumb} />
-      <View style={styles.textCol}>
-        <Text style={styles.name} numberOfLines={2}>
-          {center.name}
-        </Text>
-        <Text style={styles.address} numberOfLines={1}>
-          {center.address}
-        </Text>
+    <Animated.View style={[styles.card, animatedStyle]}>
+      <Pressable
+        style={styles.pressable}
+        onPress={() => router.push(`/evacuation-detail/${center.id}`)}
+        onPressIn={() => {
+          scale.value = withTiming(0.98, { duration: 100 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 100 });
+        }}
+      >
+        <PlaceholderThumb style={styles.thumb} />
+        <View style={styles.textCol}>
+          <Text style={styles.name} numberOfLines={2}>
+            {center.name}
+          </Text>
+          <Text style={styles.address} numberOfLines={1}>
+            {center.address}
+          </Text>
 
-        <View style={styles.metaRow}>
-          <View style={styles.distanceRow}>
-            <Ionicons
-              name="navigate-outline"
-              size={13}
-              color={COLORS.textSecondary}
-            />
-            <Text style={styles.meta}>{center.distanceKm} km away</Text>
-          </View>
+          <View style={styles.metaRow}>
+            <View style={styles.distanceRow}>
+              <Ionicons
+                name="navigate-outline"
+                size={13}
+                color={COLORS.textSecondary}
+              />
+              <Text style={styles.meta}>{center.distanceKm} km away</Text>
+            </View>
 
-          <View
-            style={[
-              styles.statusPill,
-              { backgroundColor: isOpen ? COLORS.successBg : COLORS.primaryTint },
-            ]}
-          >
-            <Text
+            <View
               style={[
-                styles.statusText,
-                { color: isOpen ? COLORS.success : COLORS.primary },
+                styles.statusPill,
+                { backgroundColor: isOpen ? COLORS.successBg : COLORS.primaryTint },
               ]}
             >
-              {isOpen ? "Open" : "Full"}
-            </Text>
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: isOpen ? COLORS.success : COLORS.primary },
+                ]}
+              >
+                {isOpen ? "Open" : "Full"}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={COLORS.textFaint} />
-    </TouchableOpacity>
+        <Ionicons name="chevron-forward" size={18} color={COLORS.textFaint} />
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    ...SHADOW,
+  },
+  pressable: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.md,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
     padding: SPACING.md,
-    ...SHADOW,
   },
   thumb: {
     width: 76,

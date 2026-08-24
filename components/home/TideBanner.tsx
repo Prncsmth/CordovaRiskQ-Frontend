@@ -3,7 +3,7 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import RippleRings from "@/components/common/RippleRings";
-import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 export type TideLevel = "normal" | "watch" | "warning";
 
@@ -57,8 +57,11 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: "row",
     gap: SPACING.sm,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     padding: SPACING.sm + 2,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.6)",
+    ...SHADOW,
   },
   iconWrap: {
     width: 30,
