@@ -16,28 +16,6 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npx expo start
    ```
 
-   The evacuation map uses `@rnmapbox/maps`, which requires a development
-   build and is not available in Expo Go. Build and install the native app
-   once, then start the bundler with:
-
-   ```bash
-   npx expo run:android
-   npm run start:dev
-   ```
-
-   On Windows, the local Android command requires Android Studio and an
-   emulator or connected device. Alternatively, create an EAS development
-   build:
-
-   ```bash
-   eas build --platform android --profile development
-   npm run start:dev
-   ```
-
-   Rebuild after changing `app.json` or updating a native package. For a
-   clean native regeneration, run `npx expo prebuild --clean` before the
-   platform build command.
-
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)
