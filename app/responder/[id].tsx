@@ -3,6 +3,7 @@
 // Way -> Arrived. Driven by a single `phase` state so the incident's real
 // status field (from the backend) can replace this local state 1:1 later.
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -14,6 +15,11 @@ import {
   Text,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -25,24 +31,103 @@ import TeamMemberRow from "@/components/responder/TeamMemberRow";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { getIncidentById } from "@/services/mockIncidents";
 import {
-  COLORS,
   FONT_FAMILY,
   RADIUS,
   SHADOW,
   SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
 } from "@/theme";
 import type { Incident, IncidentStatus } from "@/types/responder";
 
 type Phase = Exclude<IncidentStatus, "completed" | "cancelled">;
 type LobbyTab = "lobby" | "details";
 
+// Hand-picked darker shade of an arbitrary incident color, used as the
+// second gradient stop on icon badges -- incident colors are dynamic
+// (per report category), not theme tokens, so there's no "Dark" variant
+// to reference the way COLORS.primaryDark works.
+function darken(hex: string, amount: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.max(0, (num >> 16) - amount);
+  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
+  const b = Math.max(0, (num & 0x0000ff) - amount);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+// Gradient-filled circular icon badge with a glossy top sheen -- the same
+// treatment as SOSButton, reused here for the incident-type badges shown
+// across every phase of the flow.
+function GradientIconCircle({
+  color,
+  size,
+  iconSize,
+  icon,
+  style,
+  COLORS,
+}: {
+  color: string;
+  size: number;
+  iconSize: number;
+  icon: keyof typeof Ionicons.glyphMap;
+  style?: object;
+  COLORS: ColorPalette;
+}) {
+  return (
+    <View
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          shadowColor: color,
+          shadowOpacity: 0.3,
+          shadowRadius: size * 0.18,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
+        },
+        style,
+      ]}
+    >
+      <LinearGradient
+        colors={[color, darken(color, 40)]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{
+          flex: 1,
+          borderRadius: size / 2,
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        <LinearGradient
+          colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.7 }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "55%",
+          }}
+        />
+        <Ionicons name={icon} size={iconSize} color={COLORS.white} />
+      </LinearGradient>
+    </View>
+  );
+}
+
 export default function IncidentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const incident = useMemo(() => getIncidentById(id), [id]);
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   const [phase, setPhase] = useState<Phase>("pending");
   const [tab, setTab] = useState<LobbyTab>("lobby");
@@ -133,6 +218,8 @@ function PendingView({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
 
   return (
@@ -145,9 +232,13 @@ function PendingView({
           color={`${visual.color}33`}
           style={styles.pulseRings}
         />
-        <View style={[styles.sosCircle, { backgroundColor: visual.color }]}>
-          <Ionicons name={visual.icon} size={34} color={COLORS.white} />
-        </View>
+        <GradientIconCircle
+          color={visual.color}
+          size={88}
+          iconSize={34}
+          icon={visual.icon}
+          COLORS={COLORS}
+        />
       </View>
       <Text style={styles.incidentType}>{incident.type}</Text>
       <Text style={styles.incidentLocation}>{incident.location}</Text>
@@ -183,6 +274,8 @@ function LobbyView({
   onChangeTab: (t: LobbyTab) => void;
   onHeadOut: () => void;
 }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
   const [rung, setRung] = useState(false);
   const captain = incident.team.find((m) => m.isCaptain);
@@ -197,9 +290,13 @@ function LobbyView({
   return (
     <View style={styles.body}>
       <View style={styles.summaryCard}>
-        <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
-          <Ionicons name={visual.icon} size={18} color={COLORS.white} />
-        </View>
+        <GradientIconCircle
+          color={visual.color}
+          size={40}
+          iconSize={18}
+          icon={visual.icon}
+          COLORS={COLORS}
+        />
         <View>
           <Text style={styles.summaryTitle}>{incident.type}</Text>
           <Text style={styles.summarySubtitle}>{incident.location}</Text>
@@ -209,7 +306,10 @@ function LobbyView({
       <View style={styles.tabRow}>
         <Pressable
           style={[styles.tabButton, tab === "lobby" && styles.tabButtonActive]}
-          onPress={() => onChangeTab("lobby")}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onChangeTab("lobby");
+          }}
         >
           <Text
             style={[styles.tabLabel, tab === "lobby" && styles.tabLabelActive]}
@@ -222,7 +322,10 @@ function LobbyView({
             styles.tabButton,
             tab === "details" && styles.tabButtonActive,
           ]}
-          onPress={() => onChangeTab("details")}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onChangeTab("details");
+          }}
         >
           <Text
             style={[
@@ -266,6 +369,8 @@ function LobbyView({
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -283,6 +388,8 @@ function OnTheWayView({
   onArrive: () => void;
 }) {
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
 
   return (
@@ -300,9 +407,13 @@ function OnTheWayView({
       )}
 
       <View style={styles.mapHeaderCard}>
-        <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
-          <Ionicons name={visual.icon} size={18} color={COLORS.white} />
-        </View>
+        <GradientIconCircle
+          color={visual.color}
+          size={40}
+          iconSize={18}
+          icon={visual.icon}
+          COLORS={COLORS}
+        />
         <View>
           <Text style={styles.summaryTitle}>{incident.type}</Text>
           <Text style={styles.summarySubtitle}>
@@ -337,15 +448,22 @@ function ArrivedView({
   onStartAssistance: () => void;
   onCancelIncident: () => void;
 }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   return (
     <View style={styles.body}>
       <View style={styles.centeredBody}>
         <Text style={styles.arrivedText}>
           You have arrived at the incident location.
         </Text>
-        <View style={styles.checkCircle}>
-          <Ionicons name="checkmark" size={40} color={COLORS.white} />
-        </View>
+        <GradientIconCircle
+          color={COLORS.success}
+          size={88}
+          iconSize={40}
+          icon="checkmark"
+          style={{ marginBottom: SPACING.lg }}
+          COLORS={COLORS}
+        />
       </View>
 
       <Text style={styles.sectionLabel}>Actions</Text>
@@ -375,23 +493,49 @@ function ActionRow({
   onPress: () => void;
   danger?: boolean;
 }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  const tint = danger ? COLORS.danger : COLORS.tide;
+
   return (
-    <Pressable style={styles.actionRow} onPress={onPress}>
-      <Ionicons
-        name={icon}
-        size={20}
-        color={danger ? COLORS.danger : COLORS.text}
-        style={{ marginRight: SPACING.sm }}
-      />
-      <Text style={[styles.actionLabel, danger && { color: COLORS.danger }]}>
-        {label}
-      </Text>
-      <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
-    </Pressable>
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        style={styles.actionRow}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
+        onPressIn={() => {
+          scale.value = withTiming(0.98, { duration: 100 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 100 });
+        }}
+      >
+        <View
+          style={[styles.actionIcon, { backgroundColor: `${tint}1A` }]}
+        >
+          <Ionicons name={icon} size={18} color={tint} />
+        </View>
+        <Text style={[styles.actionLabel, danger && { color: COLORS.danger }]}>
+          {label}
+        </Text>
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={COLORS.textTertiary}
+        />
+      </Pressable>
+    </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -433,10 +577,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     gap: SPACING.sm,
-    ...SHADOW,
+    ...SHADOW_LG,
   },
   mapContainer: {
     position: "absolute",
@@ -470,14 +616,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
   },
-  sosCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOW_LG,
-  },
   incidentType: {
     fontFamily: FONT_FAMILY.display,
     fontSize: TYPOGRAPHY.heading,
@@ -492,12 +630,17 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
-    gap: SPACING.xl,
+    gap: SPACING.sm,
     marginBottom: SPACING.xl,
   },
   metaBox: {
     alignItems: "center",
     gap: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    paddingVertical: SPACING.sm + 2,
+    paddingHorizontal: SPACING.lg,
+    minWidth: 108,
   },
   metaLabel: {
     fontSize: TYPOGRAPHY.small,
@@ -517,17 +660,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     padding: SPACING.md,
     marginBottom: SPACING.md,
     gap: SPACING.sm,
     ...SHADOW,
-  },
-  summaryBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
   summaryTitle: {
     fontSize: TYPOGRAPHY.body,
@@ -596,22 +734,25 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: SPACING.lg,
   },
-  checkCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.success,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.lg,
-    ...SHADOW_LG,
-  },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: SPACING.md,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderMuted,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    paddingVertical: SPACING.sm + 2,
+    paddingHorizontal: SPACING.md,
+    marginBottom: SPACING.sm,
+    gap: SPACING.sm,
+    ...SHADOW,
+  },
+  actionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   actionLabel: {
     flex: 1,
@@ -619,4 +760,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.text,
   },
-});
+  });
+}

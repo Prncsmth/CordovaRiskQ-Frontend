@@ -5,8 +5,10 @@
 // components/responder/IncidentMap.tsx for why there's no Directions API
 // call behind it).
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Image,
@@ -21,13 +23,26 @@ import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import { getIncidentById } from "@/services/mockIncidents";
 import {
-    COLORS,
     FONT_FAMILY,
     RADIUS,
+    SHADOW,
     SHADOW_LG,
     SPACING,
     TYPOGRAPHY,
+    useThemeColors,
+    type ColorPalette,
 } from "@/theme";
+
+// Hand-picked darker shade of an arbitrary incident color, for the gradient
+// fill on marker/icon badges -- mirrors the primary/primaryDark two-tone
+// pattern used across the app, but incident colors aren't theme tokens.
+function darken(hex: string, amount: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.max(0, (num >> 16) - amount);
+  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
+  const b = Math.max(0, (num & 0x0000ff) - amount);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 type MapboxModule = {
   default: { setAccessToken: (token: string) => void };
@@ -44,6 +59,8 @@ export default function NavigateScreen() {
   const insets = useSafeAreaInsets();
   const incident = getIncidentById(id);
   const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   useEffect(() => {
     let mounted = true;
@@ -151,10 +168,15 @@ export default function NavigateScreen() {
           <mapbox.MarkerView
             coordinate={[incidentCoords.longitude, incidentCoords.latitude]}
           >
-            <View
-              style={[styles.incidentPin, { backgroundColor: visual.color }]}
-            >
-              <Ionicons name={visual.icon} size={18} color={COLORS.white} />
+            <View style={[styles.incidentPin, { shadowColor: visual.color }]}>
+              <LinearGradient
+                colors={[visual.color, darken(visual.color, 40)]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.incidentPinFill}
+              >
+                <Ionicons name={visual.icon} size={18} color={COLORS.white} />
+              </LinearGradient>
             </View>
           </mapbox.MarkerView>
         </mapbox.MapView>
@@ -167,9 +189,14 @@ export default function NavigateScreen() {
 
       <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>
         <View style={styles.topCardHeader}>
-          <View style={[styles.infoIcon, { backgroundColor: visual.color }]}>
+          <LinearGradient
+            colors={[visual.color, darken(visual.color, 40)]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.infoIcon, { shadowColor: visual.color }]}
+          >
             <Ionicons name={visual.icon} size={16} color={COLORS.white} />
-          </View>
+          </LinearGradient>
           <View style={styles.infoTextCol}>
             <Text style={styles.infoTitle} numberOfLines={1}>
               {incident.type}
@@ -179,7 +206,10 @@ export default function NavigateScreen() {
             </Text>
           </View>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
             hitSlop={10}
             style={styles.closeButton}
           >
@@ -208,7 +238,8 @@ export default function NavigateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.surface,
@@ -231,10 +262,18 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
     borderWidth: 2,
     borderColor: COLORS.white,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  incidentPinFill: {
+    flex: 1,
+    borderRadius: RADIUS.full,
+    alignItems: "center",
+    justifyContent: "center",
   },
   topCard: {
     position: "absolute",
@@ -242,6 +281,8 @@ const styles = StyleSheet.create({
     right: SPACING.md,
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     padding: SPACING.md,
     ...SHADOW_LG,
   },
@@ -256,6 +297,10 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   infoTextCol: {
     flex: 1,
@@ -275,8 +320,11 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: RADIUS.full,
     backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     alignItems: "center",
     justifyContent: "center",
+    ...SHADOW,
   },
   statRow: {
     flexDirection: "row",
@@ -318,4 +366,5 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontWeight: "700",
   },
-});
+  });
+}

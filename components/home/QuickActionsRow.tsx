@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -10,10 +10,12 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { COLORS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import { useThemeColors, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export default function QuickActionsRow() {
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   const actions: {
     key: string;
@@ -44,7 +46,7 @@ export default function QuickActionsRow() {
   return (
     <View style={styles.row}>
       {actions.map((action) => (
-        <QuickActionCard key={action.key} action={action} />
+        <QuickActionCard key={action.key} action={action} COLORS={COLORS} styles={styles} />
       ))}
     </View>
   );
@@ -52,6 +54,8 @@ export default function QuickActionsRow() {
 
 function QuickActionCard({
   action,
+  COLORS,
+  styles,
 }: {
   action: {
     key: string;
@@ -59,6 +63,8 @@ function QuickActionCard({
     icon: keyof typeof Ionicons.glyphMap;
     onPress: () => void;
   };
+  COLORS: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
 }) {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -81,12 +87,12 @@ function QuickActionCard({
         }}
       >
         <LinearGradient
-          colors={["#FEEEEC", "#FBDAD6"]}
+          colors={COLORS.iconTileGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.iconCircle}
         >
-          <Ionicons name={action.icon} size={18} color="#A70707" />
+          <Ionicons name={action.icon} size={18} color={COLORS.primary} />
         </LinearGradient>
         <Text style={styles.label}>{action.label}</Text>
       </Pressable>
@@ -94,44 +100,46 @@ function QuickActionCard({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-  },
-  card: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#F4E6E6",
-    ...SHADOW,
-  },
-  cardPressable: {
-    paddingVertical: SPACING.sm + 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  iconCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
-    borderColor: "#F8D7D0",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.xs,
-    shadowColor: "#A70707",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  label: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.text,
-    textAlign: "center",
-    lineHeight: 18,
-  },
-});
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+    },
+    card: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      ...SHADOW,
+    },
+    cardPressable: {
+      paddingVertical: SPACING.sm + 2,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    iconCircle: {
+      width: 42,
+      height: 42,
+      borderRadius: 21,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.xs,
+      shadowColor: COLORS.primary,
+      shadowOpacity: 0.08,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 2,
+    },
+    label: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.text,
+      textAlign: "center",
+      lineHeight: 18,
+    },
+  });
+}

@@ -4,25 +4,27 @@
 // screen the user is on, matching the tab bar's own `stage !== "idle"`
 // hide behavior in components/tabs/TabBar.tsx.
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import RippleRings from "@/components/common/RippleRings";
 import { useSos } from "@/context/SosContext";
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY } from "@/theme";
+import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export default function SosOverlay() {
   const { stage, confirmSOS, cancelSOS } = useSos();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   if (stage === "idle") return null;
 
   return (
     <View style={styles.container}>
       {stage === "confirm" ? (
-        <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} />
+        <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
       ) : (
-        <ActiveView onCancel={cancelSOS} />
+        <ActiveView onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
       )}
     </View>
   );
@@ -31,9 +33,13 @@ export default function SosOverlay() {
 function ConfirmView({
   onConfirm,
   onCancel,
+  COLORS,
+  styles,
 }: {
   onConfirm: () => void;
   onCancel: () => void;
+  COLORS: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <View style={styles.backdrop}>
@@ -66,13 +72,21 @@ function ConfirmView({
   );
 }
 
-function ActiveView({ onCancel }: { onCancel: () => void }) {
+function ActiveView({
+  onCancel,
+  COLORS,
+  styles,
+}: {
+  onCancel: () => void;
+  COLORS: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
+}) {
   const insets = useSafeAreaInsets();
 
   return (
     <View style={[styles.activeScreen, { paddingBottom: insets.bottom + SPACING.lg }]}>
       <View style={styles.activeBody}>
-        <PulseRings />
+        <PulseRings styles={styles} />
         <Text style={styles.activeTitle}>Help Is On The Way</Text>
         <Text style={styles.activeSubtitle}>
           Your location has been shared with emergency responders.
@@ -93,7 +107,7 @@ function ActiveView({ onCancel }: { onCancel: () => void }) {
 
 const RING_SIZE = 170;
 
-function PulseRings() {
+function PulseRings({ styles }: { styles: ReturnType<typeof createStyles> }) {
   return (
     <View style={styles.pulseWrap}>
       <RippleRings
@@ -110,160 +124,162 @@ function PulseRings() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 100,
-    elevation: 100,
-  },
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: SPACING.lg,
-  },
-  dialog: {
-    width: "100%",
-    backgroundColor: COLORS.white,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
-    alignItems: "center",
-    ...SHADOW_LG,
-  },
-  dialogIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.sm,
-  },
-  dialogTitle: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.subtitle,
-    color: COLORS.text,
-    textAlign: "center",
-  },
-  dialogMessage: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    marginTop: SPACING.xs,
-    lineHeight: 20,
-  },
-  dialogActions: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-    marginTop: SPACING.lg,
-    width: "100%",
-  },
-  dialogButton: {
-    flex: 1,
-    height: 48,
-    borderRadius: RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  dialogButtonSecondary: {
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  dialogButtonSecondaryText: {
-    color: COLORS.text,
-    fontWeight: "700",
-    fontSize: TYPOGRAPHY.body,
-  },
-  dialogButtonPrimary: {
-    backgroundColor: COLORS.primary,
-  },
-  dialogButtonPrimaryText: {
-    color: COLORS.white,
-    fontWeight: "700",
-    fontSize: TYPOGRAPHY.body,
-  },
-  activeScreen: {
-    flex: 1,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: SPACING.lg,
-  },
-  activeBody: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: SPACING.sm,
-  },
-  pulseWrap: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.md,
-  },
-  pulseRings: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-  },
-  pulseCenter: {
-    width: 100,
-    height: 100,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  pulseCenterText: {
-    fontFamily: FONT_FAMILY.display,
-    color: COLORS.primary,
-    fontSize: TYPOGRAPHY.heading,
-    letterSpacing: 1,
-  },
-  activeTitle: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.heading,
-    color: COLORS.white,
-    textAlign: "center",
-  },
-  activeSubtitle: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.white,
-    opacity: 0.9,
-    textAlign: "center",
-    paddingHorizontal: SPACING.md,
-  },
-  etaPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
-    backgroundColor: "rgba(255, 255, 255, 0.18)",
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.xs,
-    marginTop: SPACING.sm,
-  },
-  etaText: {
-    color: COLORS.white,
-    fontWeight: "600",
-    fontSize: TYPOGRAPHY.caption,
-  },
-  cancelButton: {
-    width: "100%",
-    height: 52,
-    borderRadius: RADIUS.md,
-    borderWidth: 1.5,
-    borderColor: COLORS.white,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.md,
-  },
-  cancelButtonText: {
-    color: COLORS.white,
-    fontWeight: "700",
-    fontSize: TYPOGRAPHY.body,
-  },
-});
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      ...StyleSheet.absoluteFillObject,
+      zIndex: 100,
+      elevation: 100,
+    },
+    backdrop: {
+      flex: 1,
+      backgroundColor: COLORS.scrim,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: SPACING.lg,
+    },
+    dialog: {
+      width: "100%",
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.xl,
+      padding: SPACING.lg,
+      alignItems: "center",
+      ...SHADOW_LG,
+    },
+    dialogIcon: {
+      width: 56,
+      height: 56,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primaryTint,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.sm,
+    },
+    dialogTitle: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.subtitle,
+      color: COLORS.text,
+      textAlign: "center",
+    },
+    dialogMessage: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+      marginTop: SPACING.xs,
+      lineHeight: 20,
+    },
+    dialogActions: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+      width: "100%",
+    },
+    dialogButton: {
+      flex: 1,
+      height: 48,
+      borderRadius: RADIUS.md,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dialogButtonSecondary: {
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    dialogButtonSecondaryText: {
+      color: COLORS.text,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.body,
+    },
+    dialogButtonPrimary: {
+      backgroundColor: COLORS.primary,
+    },
+    dialogButtonPrimaryText: {
+      color: COLORS.white,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.body,
+    },
+    activeScreen: {
+      flex: 1,
+      backgroundColor: COLORS.primary,
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: SPACING.lg,
+    },
+    activeBody: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: SPACING.sm,
+    },
+    pulseWrap: {
+      width: RING_SIZE,
+      height: RING_SIZE,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.md,
+    },
+    pulseRings: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+    },
+    pulseCenter: {
+      width: 100,
+      height: 100,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.white,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pulseCenterText: {
+      fontFamily: FONT_FAMILY.display,
+      color: COLORS.primary,
+      fontSize: TYPOGRAPHY.heading,
+      letterSpacing: 1,
+    },
+    activeTitle: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.heading,
+      color: COLORS.white,
+      textAlign: "center",
+    },
+    activeSubtitle: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.white,
+      opacity: 0.9,
+      textAlign: "center",
+      paddingHorizontal: SPACING.md,
+    },
+    etaPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+      backgroundColor: "rgba(255, 255, 255, 0.18)",
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      marginTop: SPACING.sm,
+    },
+    etaText: {
+      color: COLORS.white,
+      fontWeight: "600",
+      fontSize: TYPOGRAPHY.caption,
+    },
+    cancelButton: {
+      width: "100%",
+      height: 52,
+      borderRadius: RADIUS.md,
+      borderWidth: 1.5,
+      borderColor: COLORS.white,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.md,
+    },
+    cancelButtonText: {
+      color: COLORS.white,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.body,
+    },
+  });
+}

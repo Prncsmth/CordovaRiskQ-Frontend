@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -11,12 +11,13 @@ import Animated, {
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { type EvacuationCenter } from "@/services/evacuation.service";
 import {
-  COLORS,
+  useThemeColors,
   FONT_FAMILY,
   RADIUS,
   SHADOW,
   SPACING,
   TYPOGRAPHY,
+  type ColorPalette,
 } from "@/theme";
 
 type EvacuationCenterCardProps = {
@@ -27,6 +28,8 @@ export default function EvacuationCenterCard({
   center,
 }: EvacuationCenterCardProps) {
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const isOpen = center.status === "open";
 
   const scale = useSharedValue(1);
@@ -88,59 +91,61 @@ export default function EvacuationCenterCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    ...SHADOW,
-  },
-  pressable: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.md,
-    padding: SPACING.md,
-  },
-  thumb: {
-    width: 76,
-    height: 76,
-  },
-  textCol: {
-    flex: 1,
-    gap: 2,
-  },
-  name: {
-    fontFamily: FONT_FAMILY.displaySemibold,
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.text,
-  },
-  address: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: SPACING.xs,
-  },
-  distanceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  meta: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-  },
-  statusPill: {
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 3,
-  },
-  statusText: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-  },
-});
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      ...SHADOW,
+    },
+    pressable: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.md,
+      padding: SPACING.md,
+    },
+    thumb: {
+      width: 76,
+      height: 76,
+    },
+    textCol: {
+      flex: 1,
+      gap: 2,
+    },
+    name: {
+      fontFamily: FONT_FAMILY.displaySemibold,
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.text,
+    },
+    address: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+    },
+    metaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: SPACING.xs,
+    },
+    distanceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    meta: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+    },
+    statusPill: {
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 3,
+    },
+    statusText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+    },
+  });
+}

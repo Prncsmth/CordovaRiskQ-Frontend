@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import { useThemeColors, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 type SafetyTip = {
   title: string;
@@ -25,6 +25,9 @@ const TIPS: SafetyTip[] = [
 ];
 
 export default function SafetyTipsList() {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+
   return (
     <View style={styles.section}>
       <Text style={styles.heading}>Safety Tips</Text>
@@ -49,50 +52,52 @@ export default function SafetyTipsList() {
   );
 }
 
-const styles = StyleSheet.create({
-  section: {
-    gap: SPACING.sm,
-  },
-  heading: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginLeft: 2,
-  },
-  list: {
-    gap: SPACING.sm,
-  },
-  card: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    padding: SPACING.sm + 2,
-    ...SHADOW,
-  },
-  iconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  textCol: {
-    flex: 1,
-  },
-  title: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  body: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-});
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    section: {
+      gap: SPACING.sm,
+    },
+    heading: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      marginLeft: 2,
+    },
+    list: {
+      gap: SPACING.sm,
+    },
+    card: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      padding: SPACING.sm + 2,
+      ...SHADOW,
+    },
+    iconCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primaryTint,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    textCol: {
+      flex: 1,
+    },
+    title: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.text,
+    },
+    body: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+      marginTop: 2,
+    },
+  });
+}

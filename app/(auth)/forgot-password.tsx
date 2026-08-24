@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,11 +18,23 @@ import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import RippleRings from "@/components/common/RippleRings";
 import { requestPasswordReset } from "@/services/auth.service";
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW_LG,
+  SPACING,
+  TYPOGRAPHY,
+  useIsDarkTheme,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const COLORS = useThemeColors();
+  const isDark = useIsDarkTheme();
+  const styles = useMemo(() => createStyles(COLORS, isDark), [COLORS, isDark]);
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,7 +72,7 @@ export default function ForgotPasswordScreen() {
           <RippleRings
             size={200}
             ringCount={3}
-            color="rgba(30, 142, 62, 0.08)"
+            color={`${COLORS.success}14`}
             style={styles.watermark}
           />
           <View style={styles.checkCircle}>
@@ -117,7 +129,11 @@ export default function ForgotPasswordScreen() {
           onChangeText={setEmail}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.error}>{error}</Text>
+          </View>
+        ) : null}
 
         <PrimaryButton
           title="Send Reset Link"
@@ -135,89 +151,100 @@ export default function ForgotPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+function createStyles(COLORS: ColorPalette, isDark: boolean) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
 
-  container: {
-    flexGrow: 1,
-    justifyContent: "flex-start",
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.xl,
-  },
+    container: {
+      flexGrow: 1,
+      justifyContent: "flex-start",
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: SPACING.xl,
+    },
 
-  back: {
-    marginBottom: SPACING.lg,
-  },
+    back: {
+      marginBottom: SPACING.lg,
+    },
 
-  backSuccess: {
-    marginBottom: SPACING.lg,
-    marginLeft: SPACING.lg,
-  },
+    backSuccess: {
+      marginBottom: SPACING.lg,
+      marginLeft: SPACING.lg,
+    },
 
-  error: {
-    color: COLORS.danger,
-    marginBottom: SPACING.sm,
-  },
+    errorBanner: {
+      backgroundColor: `${COLORS.danger}${isDark ? "26" : "14"}`,
+      borderRadius: RADIUS.md,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
 
-  successBody: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: SPACING.lg,
-  },
+    error: {
+      color: COLORS.danger,
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "600",
+    },
 
-  watermark: {
-    position: "absolute",
-  },
+    successBody: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: SPACING.lg,
+    },
 
-  checkCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.success,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.lg,
-    ...SHADOW_LG,
-  },
+    watermark: {
+      position: "absolute",
+    },
 
-  successTitle: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.title,
-    color: COLORS.text,
-    textAlign: "center",
-  },
+    checkCircle: {
+      width: 96,
+      height: 96,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.success,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.lg,
+      ...SHADOW_LG,
+    },
 
-  successSubtitle: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    marginTop: SPACING.md,
-    lineHeight: 22,
-  },
+    successTitle: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.title,
+      color: COLORS.text,
+      textAlign: "center",
+    },
 
-  successEmail: {
-    fontWeight: "700",
-    color: COLORS.text,
-  },
+    successSubtitle: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+      marginTop: SPACING.md,
+      lineHeight: 22,
+    },
 
-  successButton: {
-    width: "100%",
-    marginTop: SPACING.xl,
-  },
+    successEmail: {
+      fontWeight: "700",
+      color: COLORS.text,
+    },
 
-  resendPrompt: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.lg,
-    textAlign: "center",
-  },
+    successButton: {
+      width: "100%",
+      marginTop: SPACING.xl,
+    },
 
-  resendAction: {
-    color: COLORS.primary,
-    fontWeight: "700",
-  },
-});
+    resendPrompt: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      marginTop: SPACING.lg,
+      textAlign: "center",
+    },
+
+    resendAction: {
+      color: COLORS.primary,
+      fontWeight: "700",
+    },
+  });
+}

@@ -1,7 +1,8 @@
-import React from "react";
+import * as Haptics from "expo-haptics";
+import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
-import { COLORS, SPACING, TYPOGRAPHY } from "../../theme";
+import { SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "../../theme";
 
 interface AuthFooterProps {
   promptText: string;
@@ -14,32 +15,44 @@ export default function AuthFooter({
   actionText,
   onPress,
 }: AuthFooterProps) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.prompt}>{promptText}</Text>
-      <TouchableOpacity onPress={onPress}>
+      <TouchableOpacity
+        hitSlop={8}
+        activeOpacity={0.7}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
+      >
         <Text style={styles.action}>{actionText}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: SPACING.lg,
-  },
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: "row",
+      justifyContent: "center",
+      marginTop: SPACING.lg,
+    },
 
-  prompt: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.gray,
-    marginRight: SPACING.xs,
-  },
+    prompt: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.textSecondary,
+      marginRight: SPACING.xs,
+    },
 
-  action: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.primary,
-    fontWeight: "600",
-  },
-});
+    action: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.primary,
+      fontWeight: "600",
+    },
+  });
+}

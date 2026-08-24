@@ -1,11 +1,13 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -16,12 +18,22 @@ import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import { useAuth } from "@/context/AuthContext";
 import { registerUser } from "@/services/auth.service";
-import { COLORS, SPACING } from "@/theme";
+import {
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+  useIsDarkTheme,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { login } = useAuth();
   const insets = useSafeAreaInsets();
+  const COLORS = useThemeColors();
+  const isDark = useIsDarkTheme();
+  const styles = useMemo(() => createStyles(COLORS, isDark), [COLORS, isDark]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -53,83 +65,109 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
+    <LinearGradient
+      colors={COLORS.heroGradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <ScrollView
-        contentContainerStyle={[
-          styles.container,
-          { paddingTop: insets.top + SPACING.md },
-        ]}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.transparentFlex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <BackButton onPress={() => router.push("/login")} style={styles.back} />
+        <ScrollView
+          contentContainerStyle={[
+            styles.container,
+            { paddingTop: insets.top + SPACING.md },
+          ]}
+          keyboardShouldPersistTaps="handled"
+        >
+          <BackButton onPress={() => router.push("/login")} style={styles.back} />
 
-        <AuthHeader title="Sign up" subtitle="Create an account to continue" />
+          <AuthHeader title="Sign up" subtitle="Create an account to continue" />
 
-        <AuthInput
-          label="Full Name"
-          placeholder="Enter your full name"
-          value={name}
-          onChangeText={setName}
-        />
+          <AuthInput
+            label="Full Name"
+            placeholder="Enter your full name"
+            value={name}
+            onChangeText={setName}
+          />
 
-        <AuthInput
-          label="Email"
-          placeholder="Enter your email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
+          <AuthInput
+            label="Email"
+            placeholder="Enter your email"
+            autoCapitalize="none"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
 
-        <AuthInput
-          label="Set Password"
-          placeholder="Enter your password"
-          secureTextEntry
-          secureToggle
-          value={password}
-          onChangeText={setPassword}
-        />
+          <AuthInput
+            label="Set Password"
+            placeholder="Enter your password"
+            secureTextEntry
+            secureToggle
+            value={password}
+            onChangeText={setPassword}
+          />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+          {error ? (
+            <View style={styles.errorBanner}>
+              <Text style={styles.error}>{error}</Text>
+            </View>
+          ) : null}
 
-        <PrimaryButton
-          title="Register"
-          loading={loading}
-          onPress={handleRegister}
-        />
+          <PrimaryButton
+            title="Register"
+            loading={loading}
+            onPress={handleRegister}
+          />
 
-        <AuthFooter
-          promptText="Already have an account?"
-          actionText="Login"
-          onPress={() => router.push("/login")}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <AuthFooter
+            promptText="Already have an account?"
+            actionText="Login"
+            onPress={() => router.push("/login")}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+function createStyles(COLORS: ColorPalette, isDark: boolean) {
+  return StyleSheet.create({
+    flex: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
 
-  container: {
-    flexGrow: 1,
-    justifyContent: "flex-start",
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.xl,
-  },
+    transparentFlex: {
+      flex: 1,
+    },
 
-  back: {
-    marginBottom: SPACING.lg,
-  },
+    container: {
+      flexGrow: 1,
+      justifyContent: "flex-start",
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: SPACING.xl,
+    },
 
-  error: {
-    color: COLORS.danger,
-    marginBottom: SPACING.sm,
-  },
-});
+    back: {
+      marginBottom: SPACING.lg,
+    },
+
+    errorBanner: {
+      backgroundColor: `${COLORS.danger}${isDark ? "26" : "14"}`,
+      borderRadius: RADIUS.md,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
+
+    error: {
+      color: COLORS.danger,
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "600",
+    },
+  });
+}

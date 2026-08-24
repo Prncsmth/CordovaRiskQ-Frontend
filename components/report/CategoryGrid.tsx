@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import * as Haptics from "expo-haptics";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -8,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CATEGORIES, type Category, type CategoryId } from "@/components/report/categories";
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 type CategoryGridProps = {
   selected: CategoryId | null;
@@ -16,6 +17,8 @@ type CategoryGridProps = {
 };
 
 export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   return (
     <View style={styles.grid}>
       {CATEGORIES.map((category) => (
@@ -24,6 +27,8 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
           category={category}
           isSelected={category.id === selected}
           onSelect={onSelect}
+          COLORS={COLORS}
+          styles={styles}
         />
       ))}
     </View>
@@ -34,10 +39,14 @@ function CategoryCard({
   category,
   isSelected,
   onSelect,
+  COLORS,
+  styles,
 }: {
   category: Category;
   isSelected: boolean;
   onSelect: (id: CategoryId) => void;
+  COLORS: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
 }) {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -55,7 +64,10 @@ function CategoryCard({
             borderColor: category.color,
           },
         ]}
-        onPress={() => onSelect(category.id)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onSelect(category.id);
+        }}
         onPressIn={() => {
           scale.value = withTiming(0.96, { duration: 100 });
         }}
@@ -80,7 +92,8 @@ function CategoryCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -92,6 +105,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.sm,
     alignItems: "center",
@@ -104,6 +119,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.xs,
+    shadowColor: COLORS.text,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
   },
   label: {
     fontSize: TYPOGRAPHY.caption,
@@ -123,4 +143,5 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.white,
   },
-});
+  });
+}

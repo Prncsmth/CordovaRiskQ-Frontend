@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import EvacuationCenterCard from "@/components/home/EvacuationCenterCard";
@@ -9,7 +9,7 @@ import { SOSButton } from "@/components/sos/SOSButton";
 import { useSos } from "@/context/SosContext";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
 import { getNotifications } from "@/services/notification.service";
-import { COLORS, SPACING, TYPOGRAPHY } from "@/theme";
+import { useThemeColors, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 const MOCK_NAME = "Carl";
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
@@ -21,6 +21,8 @@ const MOCK_TIDE = {
 } as const;
 
 export default function HomeScreen() {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
   const [hasUnread, setHasUnread] = useState(false);
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
@@ -81,7 +83,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   flex: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -111,4 +114,5 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.xs,
   },
-});
+  });
+}

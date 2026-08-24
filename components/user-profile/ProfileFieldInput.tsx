@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -7,7 +7,7 @@ import {
   View,
 } from "react-native";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { useThemeColors, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 type ProfileFieldInputProps = {
   label?: string;
@@ -27,11 +27,15 @@ export default function ProfileFieldInput({
   secureTextEntry,
   placeholder,
 }: ProfileFieldInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+
   return (
     <View style={styles.wrapper}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
-        style={styles.input}
+        style={[styles.input, isFocused && styles.inputFocused]}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
@@ -39,27 +43,39 @@ export default function ProfileFieldInput({
         secureTextEntry={secureTextEntry}
         placeholder={placeholder}
         placeholderTextColor={COLORS.textTertiary}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  wrapper: {
-    gap: SPACING.xs,
-  },
-  label: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-  },
-  input: {
-    height: 52,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: SPACING.md,
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.text,
-  },
-});
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    wrapper: {
+      gap: SPACING.xs,
+    },
+    label: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+      marginLeft: SPACING.xs,
+    },
+    input: {
+      height: 52,
+      borderRadius: RADIUS.full,
+      borderWidth: 1.5,
+      borderColor: COLORS.borderMuted,
+      backgroundColor: COLORS.background,
+      paddingHorizontal: SPACING.md,
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.text,
+      ...SHADOW,
+    },
+    inputFocused: {
+      borderColor: COLORS.primary,
+    },
+  });
+}

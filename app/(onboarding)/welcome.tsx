@@ -1,14 +1,22 @@
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useMemo } from "react";
 import { Image, StyleSheet, Text, View } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import RippleRings from "@/components/common/RippleRings";
 import StepIndicator from "@/components/onboarding/StepIndicator";
-import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  FONT_FAMILY,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   return (
     <View style={styles.container}>
@@ -18,7 +26,7 @@ export default function WelcomeScreen() {
         <RippleRings
           size={260}
           ringCount={3}
-          color="rgba(14, 123, 134, 0.05)"
+          color={`${COLORS.tide}0D`}
           style={styles.watermark}
         />
 
@@ -43,46 +51,48 @@ export default function WelcomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingTop: 62,
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.lg,
-  },
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+      paddingTop: 62,
+      paddingHorizontal: SPACING.lg,
+      paddingBottom: SPACING.lg,
+    },
 
-  hero: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+    hero: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  watermark: {
-    position: "absolute",
-    top: "50%",
-    marginTop: -130,
-  },
+    watermark: {
+      position: "absolute",
+      top: "50%",
+      marginTop: -130,
+    },
 
-  logo: {
-    width: 88,
-    height: 88,
-    marginBottom: SPACING.xl,
-  },
+    logo: {
+      width: 88,
+      height: 88,
+      marginBottom: SPACING.xl,
+    },
 
-  title: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.title,
-    color: COLORS.text,
-    textAlign: "center",
-  },
+    title: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.title,
+      color: COLORS.text,
+      textAlign: "center",
+    },
 
-  subtitle: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-    marginTop: SPACING.md,
-    lineHeight: 22,
-    maxWidth: 320,
-  },
-});
+    subtitle: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+      marginTop: SPACING.md,
+      lineHeight: 22,
+      maxWidth: 320,
+    },
+  });
+}

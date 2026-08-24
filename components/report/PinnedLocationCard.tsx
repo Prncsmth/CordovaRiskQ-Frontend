@@ -1,10 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW_LG,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 type PinnedLocationCardProps = {
   address: string;
@@ -27,7 +41,13 @@ export default function PinnedLocationCard({
   longitude,
 }: PinnedLocationCardProps) {
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   useEffect(() => {
     let mounted = true;
@@ -56,10 +76,20 @@ export default function PinnedLocationCard({
   }, []);
 
   return (
-    <Pressable
-      onPress={() => router.push("/(tabs)/map")}
-      style={styles.wrap}
-    >
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/(tabs)/map");
+        }}
+        onPressIn={() => {
+          scale.value = withTiming(0.98, { duration: 100 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 100 });
+        }}
+        style={styles.wrap}
+      >
       <View style={styles.mapBox}>
         {mapbox ? (
           <mapbox.MapView
@@ -104,11 +134,13 @@ export default function PinnedLocationCard({
           <Text style={styles.autoBadgeText}>Auto-detected</Text>
         </View>
       </View>
-    </Pressable>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   wrap: {
     borderRadius: RADIUS.lg,
     backgroundColor: COLORS.background,
@@ -178,4 +210,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: COLORS.tide,
   },
-});
+  });
+}

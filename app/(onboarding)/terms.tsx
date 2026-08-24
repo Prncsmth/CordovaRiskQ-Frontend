@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   LayoutChangeEvent,
   NativeScrollEvent,
@@ -14,7 +14,15 @@ import {
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import StepIndicator from "@/components/onboarding/StepIndicator";
-import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 const SUMMARY: string[] = [
   "We use your location during active reports and SOS alerts.",
@@ -47,6 +55,8 @@ const SECTIONS: { heading: string; body: string }[] = [
 
 export default function TermsScreen() {
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
@@ -134,93 +144,98 @@ export default function TermsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
 
-  header: {
-    paddingTop: 62,
-    paddingHorizontal: SPACING.lg,
-  },
+    header: {
+      paddingTop: 62,
+      paddingHorizontal: SPACING.lg,
+    },
 
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.md,
-  },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.md,
+    },
 
-  stepIndicator: {
-    flex: 1,
-  },
+    stepIndicator: {
+      flex: 1,
+    },
 
-  title: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: 24,
-    color: COLORS.text,
-    marginTop: SPACING.md,
-  },
+    title: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: 24,
+      color: COLORS.text,
+      marginTop: SPACING.md,
+    },
 
-  subtitle: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-  },
+    subtitle: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      marginTop: SPACING.xs,
+    },
 
-  summaryCard: {
-    marginTop: SPACING.md,
-    backgroundColor: COLORS.primaryTint,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.md,
-    gap: SPACING.sm,
-  },
+    summaryCard: {
+      marginTop: SPACING.md,
+      backgroundColor: COLORS.primaryTint,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: `${COLORS.primary}14`,
+      padding: SPACING.md,
+      gap: SPACING.sm,
+      ...SHADOW,
+    },
 
-  summaryRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-  },
+    summaryRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+    },
 
-  summaryIcon: {
-    marginTop: 2,
-    marginRight: SPACING.xs,
-  },
+    summaryIcon: {
+      marginTop: 2,
+      marginRight: SPACING.xs,
+    },
 
-  summaryText: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    lineHeight: 20,
-  },
+    summaryText: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      lineHeight: 20,
+    },
 
-  body: {
-    flex: 1,
-    marginTop: SPACING.md,
-  },
+    body: {
+      flex: 1,
+      marginTop: SPACING.md,
+    },
 
-  bodyContent: {
-    padding: SPACING.lg,
-    gap: SPACING.md,
-  },
+    bodyContent: {
+      padding: SPACING.lg,
+      gap: SPACING.md,
+    },
 
-  section: {
-    marginBottom: SPACING.md,
-  },
+    section: {
+      marginBottom: SPACING.md,
+    },
 
-  sectionHeading: {
-    fontSize: TYPOGRAPHY.caption,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginBottom: SPACING.xs,
-  },
+    sectionHeading: {
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "700",
+      color: COLORS.text,
+      marginBottom: SPACING.xs,
+    },
 
-  sectionBody: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    lineHeight: 21,
-  },
+    sectionBody: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      lineHeight: 21,
+    },
 
-  footer: {
-    padding: SPACING.lg,
-  },
-});
+    footer: {
+      padding: SPACING.lg,
+    },
+  });
+}

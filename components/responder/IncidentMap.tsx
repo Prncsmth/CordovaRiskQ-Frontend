@@ -1,10 +1,30 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  RADIUS,
+  SHADOW,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 import type { Coordinates } from "@/types/responder";
+
+// Hand-picked darker shade of a theme color, used as the second gradient
+// stop on the ETA pill so it stays a solid, high-contrast capsule (rather
+// than a flat tint) in both light and dark mode -- mirrors the
+// primary/primaryDark two-tone pattern used elsewhere in the app.
+function darken(hex: string, amount: number): string {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const r = Math.max(0, (num >> 16) - amount);
+  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
+  const b = Math.max(0, (num & 0x0000ff) - amount);
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 type MapboxModule = {
   default: { setAccessToken: (token: string) => void };
@@ -31,6 +51,8 @@ export default function IncidentMap({
   etaMinutes: number;
 }) {
   const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
   useEffect(() => {
     let mounted = true;
@@ -134,20 +156,28 @@ export default function IncidentMap({
           </>
         )}
 
-        <View style={styles.etaPill}>
+        <LinearGradient
+          colors={[COLORS.secondary, darken(COLORS.secondary, 40)]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.etaPill}
+        >
           <Ionicons name="time-outline" size={14} color={COLORS.white} />
           <Text style={styles.etaText}>ETA {etaMinutes} mins</Text>
-        </View>
+        </LinearGradient>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     padding: 0,
     marginVertical: SPACING.md,
     overflow: "hidden",
@@ -180,6 +210,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 2,
     borderColor: COLORS.white,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   etaPill: {
     position: "absolute",
@@ -188,10 +223,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: COLORS.secondary,
     borderRadius: RADIUS.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    shadowColor: COLORS.secondary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
   etaText: {
@@ -199,4 +237,5 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: TYPOGRAPHY.small,
   },
-});
+  });
+}

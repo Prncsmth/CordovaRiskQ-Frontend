@@ -6,9 +6,9 @@ import {
 import SosOverlay from "@/components/sos/SosOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { SosProvider } from "@/context/SosContext";
-import { ThemeProvider as AppThemeProvider } from "@/context/ThemeContext";
+import { ThemeProvider as AppThemeProvider, useThemeMode } from "@/context/ThemeContext";
 import { UserProvider } from "@/context/UserContext";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/theme";
 import {
   DarkTheme,
   DefaultTheme,
@@ -29,6 +29,7 @@ export const unstable_settings = {
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, needsOnboarding, user } = useAuth();
+  const COLORS = useThemeColors();
   const router = useRouter();
   const segments = useSegments();
 
@@ -94,8 +95,15 @@ function RootLayoutNav() {
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: COLORS.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
@@ -120,8 +128,23 @@ function RootLayoutNav() {
   );
 }
 
+// Reads the app's own theme state (not the raw device scheme) so navigation
+// chrome and the status bar stay in sync with the in-app dark-mode toggle.
+function ThemedApp() {
+  const { theme } = useThemeMode();
+
+  return (
+    <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+      <SosProvider>
+        <RootLayoutNav />
+        <SosOverlay />
+        <StatusBar style={theme === "dark" ? "light" : "dark"} />
+      </SosProvider>
+    </NavigationThemeProvider>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Sora_600SemiBold,
     Sora_700Bold,
@@ -140,15 +163,7 @@ export default function RootLayout() {
       <AuthProvider>
         <UserProvider>
           <AppThemeProvider>
-            <NavigationThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-              <SosProvider>
-                <RootLayoutNav />
-                <SosOverlay />
-                <StatusBar style="auto" />
-              </SosProvider>
-            </NavigationThemeProvider>
+            <ThemedApp />
           </AppThemeProvider>
         </UserProvider>
       </AuthProvider>

@@ -1,6 +1,6 @@
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -8,9 +8,11 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY } from "@/theme";
+import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export function SOSButton({ onPress }: { onPress?: () => void }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -41,7 +43,7 @@ export function SOSButton({ onPress }: { onPress?: () => void }) {
               style={styles.fill}
             >
               <LinearGradient
-                colors={["rgba(255,255,255,0.35)", "rgba(255,255,255,0)"]}
+                colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 0.7 }}
                 style={styles.sheen}
@@ -59,53 +61,55 @@ export function SOSButton({ onPress }: { onPress?: () => void }) {
 const BUTTON_SIZE = 150;
 const GLOW_SIZE = 174;
 
-const styles = StyleSheet.create({
-  wrap: {
-    alignItems: "center",
-  },
-  glow: {
-    width: GLOW_SIZE,
-    height: GLOW_SIZE,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  button: {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    borderRadius: RADIUS.full,
-    ...SHADOW_LG,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.35,
-  },
-  pressable: {
-    width: "100%",
-    height: "100%",
-    borderRadius: RADIUS.full,
-    overflow: "hidden",
-  },
-  fill: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sheen: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "55%",
-  },
-  text: {
-    fontFamily: FONT_FAMILY.display,
-    color: COLORS.white,
-    fontSize: TYPOGRAPHY.heading,
-    letterSpacing: 1,
-  },
-  caption: {
-    marginTop: SPACING.sm,
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textTertiary,
-  },
-});
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    wrap: {
+      alignItems: "center",
+    },
+    glow: {
+      width: GLOW_SIZE,
+      height: GLOW_SIZE,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primaryTint,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    button: {
+      width: BUTTON_SIZE,
+      height: BUTTON_SIZE,
+      borderRadius: RADIUS.full,
+      ...SHADOW_LG,
+      shadowColor: COLORS.primary,
+      shadowOpacity: 0.35,
+    },
+    pressable: {
+      width: "100%",
+      height: "100%",
+      borderRadius: RADIUS.full,
+      overflow: "hidden",
+    },
+    fill: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    sheen: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: "55%",
+    },
+    text: {
+      fontFamily: FONT_FAMILY.display,
+      color: COLORS.white,
+      fontSize: TYPOGRAPHY.heading,
+      letterSpacing: 1,
+    },
+    caption: {
+      marginTop: SPACING.sm,
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textTertiary,
+    },
+  });
+}

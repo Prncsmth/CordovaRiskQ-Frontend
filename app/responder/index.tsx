@@ -4,8 +4,10 @@
 // Tapping one opens the phased detail flow in [id].tsx (accept/decline ->
 // lobby -> on the way -> arrived).
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -28,13 +30,15 @@ import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { useAuth } from "@/context/AuthContext";
 import { mockIncidents } from "@/services/mockIncidents";
 import {
-  COLORS,
   FONT_FAMILY,
   RADIUS,
   SHADOW,
   SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
+  useIsDarkTheme,
+  useThemeColors,
+  type ColorPalette,
 } from "@/theme";
 import type { Incident } from "@/types/responder";
 
@@ -45,6 +49,15 @@ export default function ResponderIncidentsScreen() {
   const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
   const [duty, setDuty] = useState<DutyStatus>("online");
+  const COLORS = useThemeColors();
+  const isDark = useIsDarkTheme();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  // "Nearby" stat icon is tide-tinted rather than the primary/danger tint
+  // that COLORS.iconTileGradient represents, so it needs its own
+  // theme-aware two-stop gradient instead of a hardcoded light-only hex.
+  const tideIconGradient: [string, string] = isDark
+    ? [COLORS.tideTint, "#1F5C58"]
+    : [COLORS.tideTint, "#CFEDEB"];
 
   const highUrgencyCount = mockIncidents.filter(
     (i) => i.urgency === "high",
@@ -52,81 +65,106 @@ export default function ResponderIncidentsScreen() {
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
   const handleLogout = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert("Log out?", "You'll stop receiving incident alerts.", [
       { text: "Cancel", style: "cancel" },
       { text: "Log Out", style: "destructive", onPress: () => logout() },
     ]);
   };
 
+  const handleToggleDuty = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setDuty((d) => (d === "online" ? "offline" : "online"));
+  };
+
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + SPACING.sm }]}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Avatar name={user?.name ?? "Responder"} />
-          <View>
-            <Text style={styles.headerGreeting}>Hi, {firstName}</Text>
-            <Text style={styles.headerTitle}>Dashboard</Text>
-          </View>
-        </View>
-
-        <Pressable
-          onPress={handleLogout}
-          hitSlop={12}
-          style={styles.logoutButton}
+    <View style={styles.screen}>
+      <View style={styles.hero}>
+        <LinearGradient
+          colors={COLORS.heroGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroGradient, { paddingTop: insets.top + SPACING.sm }]}
         >
-          <Ionicons name="power" size={18} color={COLORS.primary} />
-        </Pressable>
-      </View>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Avatar name={user?.name ?? "Responder"} />
+              <View>
+                <Text style={styles.headerGreeting}>Hi, {firstName}</Text>
+                <Text style={styles.headerTitle}>Dashboard</Text>
+              </View>
+            </View>
 
-      <View style={styles.statusRow}>
-        <Pressable
-          style={[
-            styles.dutyPill,
-            duty === "offline" && styles.dutyPillOffline,
-          ]}
-          onPress={() =>
-            setDuty((d) => (d === "online" ? "offline" : "online"))
-          }
-        >
-          <View
-            style={[
-              styles.dutyDot,
-              {
-                backgroundColor:
-                  duty === "online" ? COLORS.success : COLORS.gray,
-              },
-            ]}
-          />
-          <Text style={styles.dutyText}>
-            {duty === "online" ? "Online" : "Offline"}
-          </Text>
-        </Pressable>
-
-        <Text style={styles.headerSubtitle}>
-          {mockIncidents.length} nearby incident
-          {mockIncidents.length === 1 ? "" : "s"}
-        </Text>
-      </View>
-
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <View style={[styles.statIcon, { backgroundColor: COLORS.tideTint }]}>
-            <Ionicons name="navigate" size={16} color={COLORS.tide} />
+            <Pressable
+              onPress={handleLogout}
+              hitSlop={12}
+              style={styles.logoutButton}
+            >
+              <Ionicons name="power" size={18} color={COLORS.primary} />
+            </Pressable>
           </View>
-          <Text style={styles.statValue}>{mockIncidents.length}</Text>
-          <Text style={styles.statLabel}>Nearby</Text>
-        </View>
-        <View style={styles.statCard}>
-          <View
-            style={[styles.statIcon, { backgroundColor: COLORS.primaryTint }]}
-          >
-            <Ionicons name="alert-circle" size={16} color={COLORS.primary} />
+
+          <View style={styles.statusRow}>
+            <Pressable
+              style={[
+                styles.dutyPill,
+                duty === "offline" && styles.dutyPillOffline,
+              ]}
+              onPress={handleToggleDuty}
+            >
+              <View
+                style={[
+                  styles.dutyDot,
+                  {
+                    backgroundColor:
+                      duty === "online" ? COLORS.success : COLORS.gray,
+                  },
+                ]}
+              />
+              <Text style={styles.dutyText}>
+                {duty === "online" ? "Online" : "Offline"}
+              </Text>
+            </Pressable>
+
+            <Text style={styles.headerSubtitle}>
+              {mockIncidents.length} nearby incident
+              {mockIncidents.length === 1 ? "" : "s"}
+            </Text>
           </View>
-          <Text style={[styles.statValue, { color: COLORS.primary }]}>
-            {highUrgencyCount}
-          </Text>
-          <Text style={styles.statLabel}>High Urgency</Text>
-        </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <LinearGradient
+                colors={tideIconGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.statIcon}
+              >
+                <Ionicons name="navigate" size={16} color={COLORS.tide} />
+              </LinearGradient>
+              <Text style={styles.statValue}>{mockIncidents.length}</Text>
+              <Text style={styles.statLabel}>Nearby</Text>
+            </View>
+            <View style={styles.statCard}>
+              <LinearGradient
+                colors={COLORS.iconTileGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.statIcon}
+              >
+                <Ionicons
+                  name="alert-circle"
+                  size={16}
+                  color={COLORS.primary}
+                />
+              </LinearGradient>
+              <Text style={[styles.statValue, { color: COLORS.primary }]}>
+                {highUrgencyCount}
+              </Text>
+              <Text style={styles.statLabel}>High Urgency</Text>
+            </View>
+          </View>
+        </LinearGradient>
       </View>
 
       {duty === "offline" ? (
@@ -134,7 +172,9 @@ export default function ResponderIncidentsScreen() {
           <RippleRings
             size={140}
             ringCount={3}
-            color="rgba(107, 114, 128, 0.08)"
+            color={
+              isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(107, 114, 128, 0.08)"
+            }
             style={styles.offlineWatermark}
           />
           <Ionicons name="moon-outline" size={32} color={COLORS.textTertiary} />
@@ -171,6 +211,8 @@ function IncidentCard({
   incident: Incident;
   onPress: () => void;
 }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -181,7 +223,10 @@ function IncidentCard({
     <Animated.View style={animatedStyle}>
       <Pressable
         style={styles.card}
-        onPress={onPress}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
         onPressIn={() => {
           scale.value = withTiming(0.98, { duration: 100 });
         }}
@@ -192,7 +237,10 @@ function IncidentCard({
         <View
           style={[
             styles.categoryBadge,
-            { backgroundColor: `${visual.color}1A` },
+            {
+              backgroundColor: `${visual.color}1A`,
+              borderColor: `${visual.color}33`,
+            },
           ]}
         >
           <Ionicons name={visual.icon} size={22} color={visual.color} />
@@ -227,10 +275,19 @@ function IncidentCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  hero: {
+    ...SHADOW_LG,
+  },
+  heroGradient: {
+    borderBottomLeftRadius: RADIUS.xl + 6,
+    borderBottomRightRadius: RADIUS.xl + 6,
+    paddingBottom: SPACING.md,
   },
   header: {
     flexDirection: "row",
@@ -337,6 +394,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.sm,
     gap: SPACING.sm,
   },
   offlineWatermark: {
@@ -350,6 +408,7 @@ const styles = StyleSheet.create({
   },
   list: {
     paddingHorizontal: SPACING.md,
+    paddingTop: SPACING.sm,
     paddingBottom: SPACING.xl,
     gap: SPACING.sm,
   },
@@ -366,6 +425,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: RADIUS.full,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -398,4 +458,5 @@ const styles = StyleSheet.create({
     color: COLORS.textTertiary,
     fontWeight: "600",
   },
-});
+  });
+}

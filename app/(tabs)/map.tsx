@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -22,7 +24,16 @@ import {
   getEvacuationCenters,
   type EvacuationCenter,
 } from "@/services/evacuation.service";
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SHADOW_LG,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 type ExpoLocationModule = typeof import("expo-location");
 
@@ -55,6 +66,8 @@ type MapboxModule = {
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const cameraRef = useRef<any>(null);
   const hasCenteredOnUser = useRef(false);
   const [centers, setCenters] = useState<EvacuationCenter[]>([]);
@@ -159,6 +172,7 @@ export default function MapScreen() {
   };
 
   const handleSelectBarangay = (barangay: Barangay) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Keyboard.dismiss();
     setSearchQuery("");
     cameraRef.current?.setCamera({
@@ -170,6 +184,7 @@ export default function MapScreen() {
 
   const handleLocateMe = async () => {
     try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setIsLocating(true);
       const module = require("expo-location") as ExpoLocationModule;
       const requestFn =
@@ -210,12 +225,14 @@ export default function MapScreen() {
   };
 
   const handleZoomIn = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = Math.min(zoomLevel + 1, MAX_ZOOM);
     cameraRef.current?.zoomTo(next, 300);
     setZoomLevel(next);
   };
 
   const handleZoomOut = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const next = Math.max(zoomLevel - 1, MIN_ZOOM);
     cameraRef.current?.zoomTo(next, 300);
     setZoomLevel(next);
@@ -225,8 +242,13 @@ export default function MapScreen() {
     return (
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-          <Text style={styles.title}>Evacuation Map</Text>
-          <Text style={styles.subtitle}>Map is unavailable right now.</Text>
+          <View style={styles.headerIcon}>
+            <Ionicons name="map" size={16} color={COLORS.primary} />
+          </View>
+          <View style={styles.headerTextCol}>
+            <Text style={styles.title}>Evacuation Map</Text>
+            <Text style={styles.subtitle}>Map is unavailable right now.</Text>
+          </View>
         </View>
         <View style={styles.fallbackContainer}>
           <Text style={styles.fallbackText}>{mapError}</Text>
@@ -239,8 +261,13 @@ export default function MapScreen() {
     return (
       <View style={styles.screen}>
         <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-          <Text style={styles.title}>Evacuation Map</Text>
-          <Text style={styles.subtitle}>Loading map...</Text>
+          <View style={styles.headerIcon}>
+            <Ionicons name="map" size={16} color={COLORS.primary} />
+          </View>
+          <View style={styles.headerTextCol}>
+            <Text style={styles.title}>Evacuation Map</Text>
+            <Text style={styles.subtitle}>Loading map...</Text>
+          </View>
         </View>
         <View style={styles.fallbackContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
@@ -254,12 +281,17 @@ export default function MapScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-        <Text style={styles.title}>Evacuation Map</Text>
-        <Text style={styles.subtitle}>
-          {locationDenied
-            ? "Nearby evacuation centers"
-            : "Nearby evacuation centers · live location"}
-        </Text>
+        <View style={styles.headerIcon}>
+          <Ionicons name="map" size={16} color={COLORS.primary} />
+        </View>
+        <View style={styles.headerTextCol}>
+          <Text style={styles.title}>Evacuation Map</Text>
+          <Text style={styles.subtitle}>
+            {locationDenied
+              ? "Nearby evacuation centers"
+              : "Nearby evacuation centers · live location"}
+          </Text>
+        </View>
       </View>
 
       <View style={styles.mapContainer}>
@@ -314,7 +346,7 @@ export default function MapScreen() {
         </MapView>
 
         <View style={[styles.searchContainer, { top: SPACING.md }]}>
-          <View style={styles.searchBar}>
+          <BlurView intensity={60} tint={COLORS.glassTint} style={styles.searchBar}>
             <Ionicons name="search" size={18} color={COLORS.textSecondary} />
             <TextInput
               value={searchQuery}
@@ -337,7 +369,7 @@ export default function MapScreen() {
                 />
               </Pressable>
             )}
-          </View>
+          </BlurView>
 
           {barangayResults.length > 0 && (
             <View style={styles.searchResults}>
@@ -347,11 +379,13 @@ export default function MapScreen() {
                   onPress={() => handleSelectBarangay(barangay)}
                   style={styles.searchResultRow}
                 >
-                  <Ionicons
-                    name="location-outline"
-                    size={16}
-                    color={COLORS.textSecondary}
-                  />
+                  <View style={styles.searchResultIcon}>
+                    <Ionicons
+                      name="location-outline"
+                      size={14}
+                      color={COLORS.primary}
+                    />
+                  </View>
                   <Text style={styles.searchResultText}>{barangay.name}</Text>
                 </Pressable>
               ))}
@@ -365,54 +399,61 @@ export default function MapScreen() {
             { bottom: insets.bottom + SPACING.lg + 44 + SPACING.sm },
           ]}
         >
-          <Pressable
-            onPress={handleZoomIn}
-            disabled={zoomLevel >= MAX_ZOOM}
-            style={styles.zoomButton}
-            accessibilityLabel="Zoom in"
-          >
-            <Ionicons
-              name="add"
-              size={20}
-              color={zoomLevel >= MAX_ZOOM ? COLORS.textTertiary : COLORS.text}
-            />
-          </Pressable>
-          <View style={styles.zoomDivider} />
-          <Pressable
-            onPress={handleZoomOut}
-            disabled={zoomLevel <= MIN_ZOOM}
-            style={styles.zoomButton}
-            accessibilityLabel="Zoom out"
-          >
-            <Ionicons
-              name="remove"
-              size={20}
-              color={zoomLevel <= MIN_ZOOM ? COLORS.textTertiary : COLORS.text}
-            />
-          </Pressable>
+          <BlurView intensity={60} tint={COLORS.glassTint} style={styles.zoomBlur}>
+            <Pressable
+              onPress={handleZoomIn}
+              disabled={zoomLevel >= MAX_ZOOM}
+              style={styles.zoomButton}
+              accessibilityLabel="Zoom in"
+            >
+              <Ionicons
+                name="add"
+                size={20}
+                color={zoomLevel >= MAX_ZOOM ? COLORS.textTertiary : COLORS.text}
+              />
+            </Pressable>
+            <View style={styles.zoomDivider} />
+            <Pressable
+              onPress={handleZoomOut}
+              disabled={zoomLevel <= MIN_ZOOM}
+              style={styles.zoomButton}
+              accessibilityLabel="Zoom out"
+            >
+              <Ionicons
+                name="remove"
+                size={20}
+                color={zoomLevel <= MIN_ZOOM ? COLORS.textTertiary : COLORS.text}
+              />
+            </Pressable>
+          </BlurView>
         </View>
 
         <Pressable
           onPress={handleLocateMe}
           disabled={isLocating}
           style={[
-            styles.locateButton,
+            styles.locateButtonOuter,
             { bottom: insets.bottom + SPACING.lg },
           ]}
           accessibilityLabel="Locate me"
         >
-          {isLocating ? (
-            <ActivityIndicator size="small" color={COLORS.primary} />
-          ) : (
-            <Ionicons name="locate" size={22} color={COLORS.primary} />
-          )}
+          <BlurView intensity={60} tint={COLORS.glassTint} style={styles.locateButton}>
+            {isLocating ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Ionicons name="locate" size={22} color={COLORS.primary} />
+            )}
+          </BlurView>
         </Pressable>
 
         <View style={[styles.styleSwitcher, { top: SPACING.md + 56 }]}>
           {STYLE_OPTIONS.map((option) => (
             <Pressable
               key={option.label}
-              onPress={() => setStyleUrl(option.url)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setStyleUrl(option.url);
+              }}
               style={[
                 styles.styleButton,
                 styleUrl === option.url && styles.styleButtonActive,
@@ -434,14 +475,29 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.sm,
+  },
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primaryTint,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTextCol: {
+    flex: 1,
   },
   title: {
     fontFamily: FONT_FAMILY.display,
@@ -483,11 +539,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
-    backgroundColor: COLORS.white,
+    overflow: "hidden",
+    backgroundColor: COLORS.glassOverlay,
     borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
     paddingHorizontal: SPACING.md,
     height: 44,
-    ...SHADOW,
+    ...SHADOW_LG,
   },
   searchInput: {
     flex: 1,
@@ -497,10 +556,12 @@ const styles = StyleSheet.create({
   },
   searchResults: {
     marginTop: SPACING.xs,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
     borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     paddingVertical: SPACING.xs,
-    ...SHADOW,
+    ...SHADOW_LG,
   },
   searchResultRow: {
     flexDirection: "row",
@@ -508,6 +569,14 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
+  },
+  searchResultIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primaryTint,
+    alignItems: "center",
+    justifyContent: "center",
   },
   searchResultText: {
     fontSize: TYPOGRAPHY.body,
@@ -519,8 +588,12 @@ const styles = StyleSheet.create({
     width: 44,
     borderRadius: RADIUS.md,
     overflow: "hidden",
-    backgroundColor: COLORS.white,
-    ...SHADOW,
+    ...SHADOW_LG,
+  },
+  zoomBlur: {
+    backgroundColor: COLORS.glassOverlay,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
   },
   zoomButton: {
     height: 44,
@@ -531,23 +604,31 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.border,
   },
-  locateButton: {
+  locateButtonOuter: {
     position: "absolute",
     right: SPACING.md,
     width: 44,
     height: 44,
     borderRadius: RADIUS.full,
+    overflow: "hidden",
+    ...SHADOW_LG,
+  },
+  locateButton: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.white,
-    ...SHADOW,
+    backgroundColor: COLORS.glassOverlay,
+    borderWidth: 1,
+    borderColor: COLORS.glassBorder,
   },
   styleSwitcher: {
     position: "absolute",
     right: SPACING.md,
     flexDirection: "row",
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
     borderRadius: RADIUS.sm,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     padding: 4,
     gap: 4,
     ...SHADOW,
@@ -562,7 +643,7 @@ const styles = StyleSheet.create({
   },
   styleButtonText: {
     fontSize: TYPOGRAPHY.small,
-    fontWeight: "600",
+    fontWeight: "700",
     color: COLORS.textSecondary,
   },
   styleButtonTextActive: {
@@ -579,4 +660,5 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.body,
     textAlign: "center",
   },
-});
+  });
+}
