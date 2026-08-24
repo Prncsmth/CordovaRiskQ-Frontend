@@ -8,7 +8,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import { COLORS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
 
 export default function QuickActionsRow() {
   const router = useRouter();

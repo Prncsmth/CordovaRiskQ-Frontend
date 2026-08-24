@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
@@ -15,7 +15,7 @@ type MapboxModule = {
   LineLayer: React.ComponentType<any>;
 };
 
-const MAP_HEIGHT = 220;
+const MAP_HEIGHT = 360;
 
 // Live Mapbox preview of the responder's route to the incident. The line
 // drawn is the straight-line path between the two points (no turn-by-turn
@@ -112,9 +112,11 @@ export default function IncidentMap({
             <mapbox.MarkerView
               coordinate={[responderCoords.longitude, responderCoords.latitude]}
             >
-              <View style={styles.responderDot}>
-                <Ionicons name="navigate" size={14} color={COLORS.white} />
-              </View>
+              <Image
+                source={require("@/assets/images/riskq.png")}
+                style={styles.responderLogo}
+                resizeMode="contain"
+              />
             </mapbox.MarkerView>
 
             <mapbox.MarkerView
@@ -137,32 +139,24 @@ export default function IncidentMap({
           <Text style={styles.etaText}>ETA {etaMinutes} mins</Text>
         </View>
       </View>
-
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: COLORS.secondary }]} />
-          <Text style={styles.legendText}>You</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} />
-          <Text style={styles.legendText}>Incident</Text>
-        </View>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    flex: 1,
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
-    padding: SPACING.sm,
+    padding: 0,
     marginVertical: SPACING.md,
+    overflow: "hidden",
     ...SHADOW,
   },
   mapBox: {
-    height: MAP_HEIGHT,
-    borderRadius: RADIUS.md,
+    flex: 1,
+    minHeight: MAP_HEIGHT,
+    borderRadius: RADIUS.lg,
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
@@ -171,15 +165,11 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  responderDot: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: COLORS.white,
+  responderLogo: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "transparent",
   },
   incidentPin: {
     width: 34,
@@ -208,26 +198,5 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: "700",
     fontSize: TYPOGRAPHY.small,
-  },
-  legend: {
-    flexDirection: "row",
-    gap: SPACING.md,
-    paddingTop: SPACING.sm,
-    paddingHorizontal: SPACING.xs,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: RADIUS.full,
-  },
-  legendText: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-    fontWeight: "600",
   },
 });

@@ -7,13 +7,27 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+    ActivityIndicator,
+    Image,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import { getIncidentById } from "@/services/mockIncidents";
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+    COLORS,
+    FONT_FAMILY,
+    RADIUS,
+    SHADOW_LG,
+    SPACING,
+    TYPOGRAPHY,
+} from "@/theme";
 
 type MapboxModule = {
   default: { setAccessToken: (token: string) => void };
@@ -60,7 +74,9 @@ export default function NavigateScreen() {
   if (!incident || !incident.responderCoords || !incident.incidentCoords) {
     return (
       <View style={styles.fallbackScreen}>
-        <Stack.Screen options={{ headerShown: false, presentation: "fullScreenModal" }} />
+        <Stack.Screen
+          options={{ headerShown: false, presentation: "fullScreenModal" }}
+        />
         <Text style={styles.fallbackText}>Location data unavailable.</Text>
         <Pressable onPress={() => router.back()} style={styles.fallbackClose}>
           <Text style={styles.fallbackCloseText}>Close</Text>
@@ -97,7 +113,9 @@ export default function NavigateScreen() {
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen options={{ headerShown: false, presentation: "fullScreenModal" }} />
+      <Stack.Screen
+        options={{ headerShown: false, presentation: "fullScreenModal" }}
+      />
 
       {mapbox ? (
         <mapbox.MapView
@@ -123,15 +141,19 @@ export default function NavigateScreen() {
           <mapbox.MarkerView
             coordinate={[responderCoords.longitude, responderCoords.latitude]}
           >
-            <View style={styles.responderDot}>
-              <Ionicons name="navigate" size={16} color={COLORS.white} />
-            </View>
+            <Image
+              source={require("@/assets/images/riskq.png")}
+              style={styles.responderLogo}
+              resizeMode="contain"
+            />
           </mapbox.MarkerView>
 
           <mapbox.MarkerView
             coordinate={[incidentCoords.longitude, incidentCoords.latitude]}
           >
-            <View style={[styles.incidentPin, { backgroundColor: visual.color }]}>
+            <View
+              style={[styles.incidentPin, { backgroundColor: visual.color }]}
+            >
               <Ionicons name={visual.icon} size={18} color={COLORS.white} />
             </View>
           </mapbox.MarkerView>
@@ -156,7 +178,11 @@ export default function NavigateScreen() {
               {incident.location}
             </Text>
           </View>
-          <Pressable onPress={() => router.back()} hitSlop={10} style={styles.closeButton}>
+          <Pressable
+            onPress={() => router.back()}
+            hitSlop={10}
+            style={styles.closeButton}
+          >
             <Ionicons name="close" size={20} color={COLORS.textSecondary} />
           </Pressable>
         </View>
@@ -164,10 +190,16 @@ export default function NavigateScreen() {
         <View style={styles.statRow}>
           <View style={styles.statChip}>
             <Ionicons name="time-outline" size={14} color={COLORS.secondary} />
-            <Text style={styles.statChipText}>{incident.etaMinutes ?? 6} min away</Text>
+            <Text style={styles.statChipText}>
+              {incident.etaMinutes ?? 6} min away
+            </Text>
           </View>
           <View style={styles.statChip}>
-            <Ionicons name="navigate-outline" size={14} color={COLORS.secondary} />
+            <Ionicons
+              name="navigate-outline"
+              size={14}
+              color={COLORS.secondary}
+            />
             <Text style={styles.statChipText}>{incident.distanceKm} km</Text>
           </View>
         </View>
@@ -189,15 +221,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  responderDot: {
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.secondary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: COLORS.white,
+  responderLogo: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "transparent",
   },
   incidentPin: {
     width: 38,

@@ -3,10 +3,17 @@
 // Way -> Arrived. Driven by a single `phase` state so the incident's real
 // status field (from the backend) can replace this local state 1:1 later.
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -58,7 +65,11 @@ export default function IncidentDetailScreen() {
   const handleCancelIncident = () => {
     Alert.alert("Cancel incident?", "This cannot be undone.", [
       { text: "Back", style: "cancel" },
-      { text: "Cancel Incident", style: "destructive", onPress: () => router.back() },
+      {
+        text: "Cancel Incident",
+        style: "destructive",
+        onPress: () => router.back(),
+      },
     ]);
   };
 
@@ -66,13 +77,15 @@ export default function IncidentDetailScreen() {
     <View style={[styles.screen, { paddingTop: insets.top + SPACING.sm }]}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      <View style={styles.header}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={styles.headerTitle}>
-          {phase === "pending" ? "New Incident" : `Incident #${incident.id}`}
-        </Text>
-        <View style={{ width: 36 }} />
-      </View>
+      {phase !== "on_the_way" && (
+        <View style={styles.header}>
+          <BackButton onPress={() => router.back()} />
+          <Text style={styles.headerTitle}>
+            {phase === "pending" ? "New Incident" : `Incident #${incident.id}`}
+          </Text>
+          <View style={{ width: 36 }} />
+        </View>
+      )}
 
       {phase === "pending" && (
         <PendingView
@@ -92,7 +105,10 @@ export default function IncidentDetailScreen() {
       )}
 
       {phase === "on_the_way" && (
-        <OnTheWayView incident={incident} onArrive={() => setPhase("arrived")} />
+        <OnTheWayView
+          incident={incident}
+          onArrive={() => setPhase("arrived")}
+        />
       )}
 
       {phase === "arrived" && (
@@ -195,15 +211,25 @@ function LobbyView({
           style={[styles.tabButton, tab === "lobby" && styles.tabButtonActive]}
           onPress={() => onChangeTab("lobby")}
         >
-          <Text style={[styles.tabLabel, tab === "lobby" && styles.tabLabelActive]}>
+          <Text
+            style={[styles.tabLabel, tab === "lobby" && styles.tabLabelActive]}
+          >
             Team Lobby
           </Text>
         </Pressable>
         <Pressable
-          style={[styles.tabButton, tab === "details" && styles.tabButtonActive]}
+          style={[
+            styles.tabButton,
+            tab === "details" && styles.tabButtonActive,
+          ]}
           onPress={() => onChangeTab("details")}
         >
-          <Text style={[styles.tabLabel, tab === "details" && styles.tabLabelActive]}>
+          <Text
+            style={[
+              styles.tabLabel,
+              tab === "details" && styles.tabLabelActive,
+            ]}
+          >
             Details
           </Text>
         </Pressable>
@@ -260,41 +286,45 @@ function OnTheWayView({
   const visual = getIncidentVisual(incident.type);
 
   return (
-    <View style={styles.body}>
-      <View style={styles.summaryCard}>
+    <View style={styles.mapScreen}>
+      {incident.incidentCoords && incident.responderCoords ? (
+        <View style={styles.mapContainer}>
+          <IncidentMap
+            responderCoords={incident.responderCoords}
+            incidentCoords={incident.incidentCoords}
+            etaMinutes={incident.etaMinutes ?? 6}
+          />
+        </View>
+      ) : (
+        <Text style={styles.notFound}>Location data unavailable.</Text>
+      )}
+
+      <View style={styles.mapHeaderCard}>
         <View style={[styles.summaryBadge, { backgroundColor: visual.color }]}>
           <Ionicons name={visual.icon} size={18} color={COLORS.white} />
         </View>
         <View>
           <Text style={styles.summaryTitle}>{incident.type}</Text>
-          <Text style={styles.summarySubtitle}>You&apos;re {incident.distanceKm} km away</Text>
+          <Text style={styles.summarySubtitle}>
+            You&apos;re {incident.distanceKm} km away
+          </Text>
         </View>
       </View>
 
-      {incident.incidentCoords && incident.responderCoords ? (
-        <IncidentMap
-          responderCoords={incident.responderCoords}
-          incidentCoords={incident.incidentCoords}
-          etaMinutes={incident.etaMinutes ?? 6}
-        />
-      ) : (
-        <Text style={styles.notFound}>Location data unavailable.</Text>
-      )}
-
-      <View style={{ flex: 1 }} />
-
-      <View style={styles.etaActionRow}>
+      <View style={styles.actionDock}>
         <RButton
           label="Navigate"
           icon="navigate"
           variant="primary"
           onPress={() =>
-            router.push({ pathname: "/responder/navigate", params: { id: incident.id } })
+            router.push({
+              pathname: "/responder/navigate",
+              params: { id: incident.id },
+            })
           }
           style={{ flex: 1 }}
         />
       </View>
-      <RButton label="Mark as Arrived" variant="success" onPress={onArrive} />
     </View>
   );
 }
@@ -310,14 +340,20 @@ function ArrivedView({
   return (
     <View style={styles.body}>
       <View style={styles.centeredBody}>
-        <Text style={styles.arrivedText}>You have arrived at the incident location.</Text>
+        <Text style={styles.arrivedText}>
+          You have arrived at the incident location.
+        </Text>
         <View style={styles.checkCircle}>
           <Ionicons name="checkmark" size={40} color={COLORS.white} />
         </View>
       </View>
 
       <Text style={styles.sectionLabel}>Actions</Text>
-      <ActionRow icon="people-outline" label="Start Assistance" onPress={onStartAssistance} />
+      <ActionRow
+        icon="people-outline"
+        label="Start Assistance"
+        onPress={onStartAssistance}
+      />
       <ActionRow
         icon="close-circle-outline"
         label="Cancel Incident"
@@ -347,7 +383,9 @@ function ActionRow({
         color={danger ? COLORS.danger : COLORS.text}
         style={{ marginRight: SPACING.sm }}
       />
-      <Text style={[styles.actionLabel, danger && { color: COLORS.danger }]}>{label}</Text>
+      <Text style={[styles.actionLabel, danger && { color: COLORS.danger }]}>
+        {label}
+      </Text>
       <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
     </Pressable>
   );
@@ -379,6 +417,41 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.md,
+  },
+  mapScreen: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: COLORS.surface,
+  },
+  mapHeaderCard: {
+    position: "absolute",
+    top: SPACING.sm,
+    left: SPACING.md,
+    right: SPACING.md,
+    zIndex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
+    ...SHADOW,
+  },
+  mapContainer: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 0,
+  },
+  actionDock: {
+    position: "absolute",
+    left: SPACING.md,
+    right: SPACING.md,
+    bottom: SPACING.sm,
+    zIndex: 2,
   },
   centeredBody: {
     alignItems: "center",
