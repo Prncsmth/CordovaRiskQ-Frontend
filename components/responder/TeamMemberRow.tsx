@@ -1,14 +1,26 @@
-import React from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  RADIUS,
+  SHADOW,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 import type { ResponderStatus, TeamMember } from "@/types/responder";
 
-const STATUS_META: Record<ResponderStatus, { label: string; color: string }> = {
-  on_the_way: { label: "On the way", color: COLORS.secondary },
-  preparing: { label: "Preparing", color: COLORS.warning },
-  online: { label: "Online", color: COLORS.success },
-};
+function getStatusMeta(
+  COLORS: ColorPalette,
+): Record<ResponderStatus, { label: string; color: string }> {
+  return {
+    on_the_way: { label: "On the way", color: COLORS.secondary },
+    preparing: { label: "Preparing", color: COLORS.warning },
+    online: { label: "Online", color: COLORS.success },
+  };
+}
 
 function getInitials(name: string): string {
   return name
@@ -21,13 +33,20 @@ function getInitials(name: string): string {
 }
 
 export default function TeamMemberRow({ member }: { member: TeamMember }) {
-  const status = STATUS_META[member.status];
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const status = getStatusMeta(COLORS)[member.status];
 
   return (
     <View style={styles.row}>
-      <View style={styles.avatar}>
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.primaryDark]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.avatar}
+      >
         <Text style={styles.avatarText}>{getInitials(member.name)}</Text>
-      </View>
+      </LinearGradient>
 
       <View style={styles.info}>
         <View style={styles.nameRow}>
@@ -40,33 +59,47 @@ export default function TeamMemberRow({ member }: { member: TeamMember }) {
         </View>
       </View>
 
-      <View style={styles.statusRow}>
+      <View
+        style={[styles.statusChip, { backgroundColor: `${status.color}1A` }]}
+      >
         <View style={[styles.statusDot, { backgroundColor: status.color }]} />
-        <Text style={[styles.statusLabel, { color: status.color }]}>{status.label}</Text>
+        <Text style={[styles.statusLabel, { color: status.color }]}>
+          {status.label}
+        </Text>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: SPACING.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderMuted,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    paddingVertical: SPACING.sm + 2,
+    paddingHorizontal: SPACING.sm + 2,
+    marginBottom: SPACING.sm,
+    gap: SPACING.sm,
+    ...SHADOW,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: SPACING.sm,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   avatarText: {
-    color: COLORS.primary,
+    color: COLORS.white,
     fontWeight: "700",
     fontSize: TYPOGRAPHY.caption,
   },
@@ -94,18 +127,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  statusRow: {
+  statusChip: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
   },
   statusDot: {
-    width: 8,
-    height: 8,
+    width: 6,
+    height: 6,
     borderRadius: RADIUS.full,
   },
   statusLabel: {
     fontSize: TYPOGRAPHY.small,
-    fontWeight: "600",
+    fontWeight: "700",
   },
-});
+  });
+}

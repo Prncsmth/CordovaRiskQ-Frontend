@@ -5,10 +5,12 @@ import {
 } from "@expo-google-fonts/sora";
 import SosOverlay from "@/components/sos/SosOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
+import { ReportLocationProvider } from "@/context/ReportLocationContext";
 import { SosProvider } from "@/context/SosContext";
-import { ThemeProvider as AppThemeProvider } from "@/context/ThemeContext";
+import { ThemeProvider as AppThemeProvider, useThemeMode } from "@/context/ThemeContext";
 import { UserProvider } from "@/context/UserContext";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColors } from "@/theme";
 import {
   DarkTheme,
   DefaultTheme,
@@ -29,6 +31,7 @@ export const unstable_settings = {
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
   const { isAuthenticated, isLoading, needsOnboarding, user } = useAuth();
+  const COLORS = useThemeColors();
   const router = useRouter();
   const segments = useSegments();
 
@@ -38,6 +41,7 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboardingGroup = segments[0] === "(onboarding)";
     const inResponderGroup = segments[0] === "responder";
+    const inCitizenTabsGroup = segments[0] === "(tabs)";
     const onPhoneNumber = segments[0] === "phone-number";
 
     if (!isAuthenticated) {
@@ -70,9 +74,17 @@ function RootLayoutNav() {
     const role = user?.role ?? "citizen";
     const homeRoute = role === "responder" ? "/responder" : "/(tabs)/home";
 
-    if (role === "responder" && !inResponderGroup) {
+    if (
+      role === "responder" &&
+      (inAuthGroup || inOnboardingGroup || inCitizenTabsGroup)
+    ) {
       // Responder account sitting outside its own flow (auth/onboarding
       // screen, or the civilian tabs) -> send it to the responder home.
+      // Shared utility routes (settings, contacts, user-profile, etc.) are
+      // NOT part of "its own flow" in the narrow sense -- they're outside
+      // the "responder" segment too, but responders are meant to reach
+      // them (e.g. from the dashboard's settings button), so this only
+      // guards the screens the comment above actually names.
       router.replace(homeRoute);
       return;
     }
@@ -94,14 +106,29 @@ function RootLayoutNav() {
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: COLORS.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    // Keyed on auth state: react-native-screens keeps previously-visited
+    // screens (onboarding, login) mounted in the background for fast
+    // back-navigation, so they can still be showing whatever theme was
+    // active the last time they actually rendered -- e.g. the light mode
+    // from before the user ever toggled dark mode, if they logged in
+    // before switching it in Settings. Forcing a full remount on every
+    // login/logout transition guarantees a fresh render that reads the
+    // current theme instead of showing a stale one.
+    <Stack key={isAuthenticated ? "authed" : "guest"} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
@@ -120,8 +147,23 @@ function RootLayoutNav() {
   );
 }
 
+// Reads the app's own theme state (not the raw device scheme) so navigation
+// chrome and the status bar stay in sync with the in-app dark-mode toggle.
+function ThemedApp() {
+  const { theme } = useThemeMode();
+
+  return (
+    <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+      <SosProvider>
+        <RootLayoutNav />
+        <SosOverlay />
+        <StatusBar style={theme === "dark" ? "light" : "dark"} />
+      </SosProvider>
+    </NavigationThemeProvider>
+  );
+}
+
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Sora_600SemiBold,
     Sora_700Bold,
@@ -139,17 +181,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <UserProvider>
-          <AppThemeProvider>
-            <NavigationThemeProvider
-              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-            >
-              <SosProvider>
-                <RootLayoutNav />
-                <SosOverlay />
-                <StatusBar style="auto" />
-              </SosProvider>
-            </NavigationThemeProvider>
-          </AppThemeProvider>
+          <ProfilePhotoProvider>
+            <ReportLocationProvider>
+              <AppThemeProvider>
+                <ThemedApp />
+              </AppThemeProvider>
+            </ReportLocationProvider>
+          </ProfilePhotoProvider>
         </UserProvider>
       </AuthProvider>
     </GestureHandlerRootView>

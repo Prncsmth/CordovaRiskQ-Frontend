@@ -1,6 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,19 +11,30 @@ import DetailsInput from "@/components/report/DetailsInput";
 import PhotoPicker from "@/components/report/PhotoPicker";
 import PinnedLocationCard from "@/components/report/PinnedLocationCard";
 import { CORDOVA_BARANGAYS } from "@/constants/cordovaBarangays";
+import { useReportLocation } from "@/context/ReportLocationContext";
 import { createReport } from "@/services/report.service";
-import { COLORS, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import { FONT_FAMILY, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
-const MOCK_LOCATION = "Barangay Poblacion, Cordova";
-const MOCK_COORDS = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
+const FALLBACK_COORDS = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
+const FALLBACK_LOCATION = {
+  address: `Barangay ${FALLBACK_COORDS.name}, Cordova`,
+  latitude: FALLBACK_COORDS.latitude,
+  longitude: FALLBACK_COORDS.longitude,
+};
 
 export default function ReportScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { location } = useReportLocation();
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [details, setDetails] = useState("");
   const [photoAttached, setPhotoAttached] = useState(false);
 
+  // Defaults to the municipal fallback until the user pins their actual
+  // location from the Evacuation Map tab's pin toggle.
+  const activeLocation = location ?? FALLBACK_LOCATION;
   const canSubmit = category !== null && details.trim().length > 0;
 
   const handleSubmit = async () => {
@@ -32,14 +42,16 @@ export default function ReportScreen() {
 
     const result = await createReport({
       category,
-      location: MOCK_LOCATION,
+      location: activeLocation.address,
+      latitude: activeLocation.latitude,
+      longitude: activeLocation.longitude,
       details,
       hasPhoto: photoAttached,
     });
 
     router.push({
       pathname: "/report-confirmation",
-      params: { ref: result.ref, category, location: MOCK_LOCATION },
+      params: { ref: result.ref, category, location: activeLocation.address },
     });
   };
 
@@ -59,44 +71,26 @@ export default function ReportScreen() {
       </View>
 
       <View style={styles.section}>
-        <View style={styles.sectionHeadingRow}>
-          <View style={styles.sectionIcon}>
-            <Ionicons name="grid" size={13} color={COLORS.primary} />
-          </View>
-          <Text style={styles.sectionHeading}>Category</Text>
-        </View>
+        <Text style={styles.sectionHeading}>Category</Text>
         <CategoryGrid selected={category} onSelect={setCategory} />
       </View>
 
       <View style={styles.section}>
-        <View style={styles.sectionHeadingRow}>
-          <View style={styles.sectionIcon}>
-            <Ionicons name="location" size={13} color={COLORS.primary} />
-          </View>
-          <Text style={styles.sectionHeading}>Pinned Location</Text>
-        </View>
+        <Text style={styles.sectionHeading}>Pinned Location</Text>
         <PinnedLocationCard
-          address={MOCK_LOCATION}
-          latitude={MOCK_COORDS.latitude}
-          longitude={MOCK_COORDS.longitude}
+          address={activeLocation.address}
+          latitude={activeLocation.latitude}
+          longitude={activeLocation.longitude}
         />
       </View>
 
       <View style={styles.section}>
-        <View style={styles.sectionHeadingRow}>
-          <View style={styles.sectionIcon}>
-            <Ionicons name="create" size={13} color={COLORS.primary} />
-          </View>
-          <Text style={styles.sectionHeading}>Details</Text>
-        </View>
+        <Text style={styles.sectionHeading}>Details</Text>
         <DetailsInput value={details} onChangeText={setDetails} />
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeadingRow}>
-          <View style={styles.sectionIcon}>
-            <Ionicons name="camera" size={13} color={COLORS.primary} />
-          </View>
           <Text style={styles.sectionHeading}>Photo</Text>
           <Text style={styles.optionalTag}>Optional</Text>
         </View>
@@ -115,7 +109,8 @@ export default function ReportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   flex: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -139,23 +134,19 @@ const styles = StyleSheet.create({
   sectionHeadingRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.xs,
-  },
-  sectionIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
   },
   sectionHeading: {
-    fontFamily: FONT_FAMILY.displaySemibold,
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.text,
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginLeft: 2,
   },
   optionalTag: {
     fontSize: TYPOGRAPHY.small,
     color: COLORS.textTertiary,
   },
-});
+  });
+}

@@ -1,17 +1,34 @@
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   Pressable,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import BackButton from "@/components/common/BackButton";
+import {
+  useThemeColors,
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SHADOW_LG,
+  SPACING,
+  TYPOGRAPHY,
+  type ColorPalette,
+} from "@/theme";
 
 type Faq = {
   id: string;
@@ -66,7 +83,10 @@ const FAQS: Faq[] = [
 ];
 
 export default function FaqsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"All" | Faq["category"]>("All");
   const [openId, setOpenId] = useState<string | null>("sos");
@@ -83,179 +103,216 @@ export default function FaqsScreen() {
   }, [category, query]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.topBar}>
-          <Pressable
-            onPress={() => router.back()}
-            style={styles.iconButton}
-            hitSlop={8}
-          >
-            <Ionicons name="chevron-back" size={20} color={COLORS.text} />
-          </Pressable>
-          <Text style={styles.topBarTitle}>Help center</Text>
-          <View style={styles.topBarSpacer} />
-        </View>
+    <ScrollView
+      style={styles.flex}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.header}>
+        <BackButton onPress={() => router.back()} style={styles.backButton} />
+        <Text style={styles.headerTitle}>Help Center</Text>
+      </View>
 
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}>
+      <View style={styles.hero}>
+        <LinearGradient
+          colors={COLORS.iconTileGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroIcon}
+        >
+          <Ionicons name="sparkles-outline" size={22} color={COLORS.primary} />
+        </LinearGradient>
+        <Text style={styles.eyebrow}>RISKQ GUIDE</Text>
+        <Text style={styles.title}>Answers, when you need them.</Text>
+        <Text style={styles.subtitle}>
+          Quick guidance for staying safe, reporting incidents, and getting
+          help.
+        </Text>
+      </View>
+
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={19} color={COLORS.textSecondary} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search questions"
+          placeholderTextColor={COLORS.textTertiary}
+          style={styles.searchInput}
+          returnKeyType="search"
+        />
+        {query.length > 0 && (
+          <Pressable onPress={() => setQuery("")} hitSlop={8}>
             <Ionicons
-              name="sparkles-outline"
-              size={22}
-              color={COLORS.primary}
+              name="close-circle"
+              size={18}
+              color={COLORS.textTertiary}
             />
-          </View>
-          <Text style={styles.eyebrow}>RISKQ GUIDE</Text>
-          <Text style={styles.title}>Answers, when you need them.</Text>
-          <Text style={styles.subtitle}>
-            Quick guidance for staying safe, reporting incidents, and getting
-            help.
+          </Pressable>
+        )}
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chips}
+      >
+        {(["All", "Safety", "Reports", "Account"] as const).map((item) => (
+          <Pressable
+            key={item}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setCategory(item);
+            }}
+            style={[styles.chip, category === item && styles.chipActive]}
+          >
+            <Text
+              style={[
+                styles.chipText,
+                category === item && styles.chipTextActive,
+              ]}
+            >
+              {item}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      <View style={styles.sectionHeading}>
+        <Text style={styles.sectionTitle}>Frequently Asked</Text>
+        <Text style={styles.resultCount}>{filteredFaqs.length} articles</Text>
+      </View>
+
+      {filteredFaqs.length > 0 ? (
+        <View style={styles.card}>
+          {filteredFaqs.map((faq, index) => (
+            <View
+              key={faq.id}
+              style={index < filteredFaqs.length - 1 ? styles.rowDivider : undefined}
+            >
+              <FaqRow
+                faq={faq}
+                isOpen={openId === faq.id}
+                onToggle={() =>
+                  setOpenId((current) => (current === faq.id ? null : faq.id))
+                }
+              />
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.emptyState}>
+          <Ionicons
+            name="search-outline"
+            size={28}
+            color={COLORS.textTertiary}
+          />
+          <Text style={styles.emptyTitle}>No matching questions</Text>
+          <Text style={styles.emptyText}>
+            Try another search or category.
           </Text>
         </View>
+      )}
 
-        <View style={styles.searchWrap}>
-          <Ionicons name="search" size={19} color={COLORS.textSecondary} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search questions"
-            placeholderTextColor={COLORS.textTertiary}
-            style={styles.searchInput}
-            returnKeyType="search"
-          />
-          {query.length > 0 && (
-            <Pressable onPress={() => setQuery("")} hitSlop={8}>
-              <Ionicons
-                name="close-circle"
-                size={18}
-                color={COLORS.textTertiary}
-              />
-            </Pressable>
-          )}
+      <Pressable
+        style={({ pressed }) => [styles.footerNote, pressed && styles.pressed]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/contact-support");
+        }}
+      >
+        <Ionicons name="headset-outline" size={20} color={COLORS.tide} />
+        <View style={styles.footerCopy}>
+          <Text style={styles.footerTitle}>Still need help?</Text>
+          <Text style={styles.footerText}>Contact support directly.</Text>
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chips}
-        >
-          {(["All", "Safety", "Reports", "Account"] as const).map((item) => (
-            <Pressable
-              key={item}
-              onPress={() => setCategory(item)}
-              style={[styles.chip, category === item && styles.chipActive]}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  category === item && styles.chipTextActive,
-                ]}
-              >
-                {item}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Frequently asked</Text>
-          <Text style={styles.resultCount}>{filteredFaqs.length} articles</Text>
-        </View>
-
-        <View style={styles.faqList}>
-          {filteredFaqs.map((faq, index) => {
-            const isOpen = openId === faq.id;
-            return (
-              <View
-                key={faq.id}
-                style={[styles.faqRow, index === 0 && styles.firstRow]}
-              >
-                <Pressable
-                  onPress={() => setOpenId(isOpen ? null : faq.id)}
-                  style={styles.questionRow}
-                >
-                  <View
-                    style={[
-                      styles.categoryDot,
-                      faq.category === "Safety" && styles.safetyDot,
-                    ]}
-                  />
-                  <Text style={styles.question}>{faq.question}</Text>
-                  <Ionicons
-                    name={isOpen ? "remove" : "add"}
-                    size={18}
-                    color={isOpen ? COLORS.primary : COLORS.textSecondary}
-                  />
-                </Pressable>
-                {isOpen && <Text style={styles.answer}>{faq.answer}</Text>}
-              </View>
-            );
-          })}
-          {filteredFaqs.length === 0 && (
-            <View style={styles.emptyState}>
-              <Ionicons
-                name="search-outline"
-                size={28}
-                color={COLORS.textTertiary}
-              />
-              <Text style={styles.emptyTitle}>No matching questions</Text>
-              <Text style={styles.emptyText}>
-                Try another search or category.
-              </Text>
-            </View>
-          )}
-        </View>
-
-        <View style={styles.footerNote}>
-          <Ionicons name="headset-outline" size={20} color={COLORS.tide} />
-          <View style={styles.footerCopy}>
-            <Text style={styles.footerTitle}>Still need help?</Text>
-            <Text style={styles.footerText}>
-              Contact support from your Profile.
-            </Text>
-          </View>
-          <Ionicons name="arrow-forward" size={18} color={COLORS.tide} />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        <Ionicons name="arrow-forward" size={18} color={COLORS.tide} />
+      </Pressable>
+    </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
-  content: { paddingHorizontal: SPACING.lg, paddingBottom: SPACING.xxl },
-  topBar: {
-    height: 58,
+function FaqRow({
+  faq,
+  isOpen,
+  onToggle,
+}: {
+  faq: Faq;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <View>
+      <Animated.View style={animatedStyle}>
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onToggle();
+          }}
+          onPressIn={() => {
+            scale.value = withTiming(0.98, { duration: 100 });
+          }}
+          onPressOut={() => {
+            scale.value = withTiming(1, { duration: 100 });
+          }}
+          style={styles.questionRow}
+        >
+          <View
+            style={[
+              styles.categoryDot,
+              faq.category === "Safety" && styles.safetyDot,
+            ]}
+          />
+          <Text style={styles.question}>{faq.question}</Text>
+          <Ionicons
+            name={isOpen ? "remove" : "add"}
+            size={18}
+            color={isOpen ? COLORS.primary : COLORS.textSecondary}
+          />
+        </Pressable>
+      </Animated.View>
+      {isOpen && <Text style={styles.answer}>{faq.answer}</Text>}
+    </View>
+  );
+}
+
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+  flex: { flex: 1, backgroundColor: COLORS.background },
+  content: { paddingHorizontal: SPACING.md, gap: SPACING.md },
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-  topBarTitle: {
-    color: COLORS.text,
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-  },
-  topBarSpacer: { width: 38 },
-  iconButton: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    alignItems: "center",
     justifyContent: "center",
+    marginBottom: SPACING.xs,
   },
-  hero: { paddingTop: SPACING.lg, paddingBottom: SPACING.lg },
+  backButton: {
+    position: "absolute",
+    left: 0,
+  },
+  headerTitle: {
+    fontFamily: FONT_FAMILY.displaySemibold,
+    fontSize: TYPOGRAPHY.subtitle,
+    color: COLORS.text,
+  },
+  hero: { paddingTop: SPACING.xs, paddingBottom: SPACING.sm },
   heroIcon: {
     width: 46,
     height: 46,
     borderRadius: 16,
-    backgroundColor: COLORS.primaryTint,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.md,
+    ...SHADOW_LG,
   },
   eyebrow: {
     color: COLORS.primary,
@@ -265,11 +322,10 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xs,
   },
   title: {
+    fontFamily: FONT_FAMILY.display,
     color: COLORS.text,
     fontSize: TYPOGRAPHY.title,
     lineHeight: 36,
-    fontWeight: "800",
-    letterSpacing: 0,
   },
   subtitle: {
     color: COLORS.textSecondary,
@@ -295,7 +351,7 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.caption,
     paddingVertical: 0,
   },
-  chips: { gap: SPACING.sm, paddingVertical: SPACING.lg },
+  chips: { gap: SPACING.sm, paddingVertical: SPACING.xs },
   chip: {
     paddingHorizontal: 16,
     paddingVertical: 9,
@@ -313,31 +369,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "baseline",
-    marginBottom: SPACING.sm,
+    marginTop: SPACING.xs,
   },
   sectionTitle: {
-    color: COLORS.text,
-    fontSize: TYPOGRAPHY.subtitle,
-    fontWeight: "800",
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
   resultCount: { color: COLORS.textTertiary, fontSize: TYPOGRAPHY.small },
-  faqList: {
+  card: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    paddingHorizontal: SPACING.md,
     ...SHADOW,
   },
-  faqRow: {
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderMuted,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.md,
+  rowDivider: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderMuted,
   },
-  firstRow: { borderTopWidth: 0 },
   questionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
     minHeight: 28,
+    paddingVertical: SPACING.md,
   },
   categoryDot: {
     width: 8,
@@ -358,10 +417,15 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.caption,
     lineHeight: 22,
     paddingLeft: 16,
-    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.md,
     paddingRight: SPACING.lg,
   },
-  emptyState: { alignItems: "center", paddingVertical: SPACING.xxl },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: SPACING.xxl,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+  },
   emptyTitle: {
     color: COLORS.text,
     fontSize: TYPOGRAPHY.body,
@@ -374,7 +438,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.xs,
   },
   footerNote: {
-    marginTop: SPACING.lg,
     padding: SPACING.md,
     borderRadius: RADIUS.md,
     backgroundColor: COLORS.tideTint,
@@ -382,6 +445,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: SPACING.sm,
   },
+  pressed: { opacity: 0.85 },
   footerCopy: { flex: 1 },
   footerTitle: {
     color: COLORS.text,
@@ -393,4 +457,5 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.small,
     marginTop: 2,
   },
-});
+  });
+}

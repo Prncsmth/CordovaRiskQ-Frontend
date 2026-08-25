@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -8,7 +8,15 @@ import ContactSupportCard from "@/components/profile/ContactSupportCard";
 import MenuRow from "@/components/profile/MenuRow";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import { useAuth } from "@/context/AuthContext";
-import { COLORS, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 type MenuItem = {
   key: string;
@@ -22,6 +30,8 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { logout, user } = useAuth();
   const router = useRouter();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [notificationsOn, setNotificationsOn] = useState(true);
 
   function handleLogout() {
@@ -64,6 +74,12 @@ export default function ProfileScreen() {
       onPress: () => router.push("/faqs"),
     },
     {
+      key: "settings",
+      icon: "settings-outline",
+      label: "Settings",
+      onPress: () => router.push("/settings"),
+    },
+    {
       key: "push-notification",
       icon: "notifications-outline",
       label: "Push Notification",
@@ -90,6 +106,7 @@ export default function ProfileScreen() {
 
       <ProfileHeader name={user?.name ?? "User"} onLogout={handleLogout} />
 
+      <Text style={styles.sectionHeading}>Settings</Text>
       <View style={styles.menuCard}>
         {menuItems.map((item, index) => (
           <View
@@ -111,7 +128,8 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   flex: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -126,9 +144,19 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     marginBottom: SPACING.sm,
   },
+  sectionHeading: {
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    marginLeft: 2,
+  },
   menuCard: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     paddingHorizontal: SPACING.md,
     ...SHADOW,
   },
@@ -136,4 +164,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderMuted,
   },
-});
+  });
+}
