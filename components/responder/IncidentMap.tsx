@@ -61,14 +61,14 @@ export default function IncidentMap({
           interactive={false}
           showLayerSwitcher={false}
           markers={[
-            { id: "responder", ...responderCoords, color: COLORS.secondary },
+            { id: "responder", ...responderCoords, color: COLORS.secondary, icon: "logo" },
             { id: "incident", ...incidentCoords, color: COLORS.primary },
           ]}
           polylines={[
             {
               points: [responderCoords, incidentCoords],
               color: COLORS.secondary,
-              dashed: true,
+              dashed: false,
               weight: 3,
             },
           ]}

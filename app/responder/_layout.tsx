@@ -12,6 +12,7 @@ export default function ResponderLayout() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
       <Stack.Screen name="[id]" />
       <Stack.Screen
         name="navigate"

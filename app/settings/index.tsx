@@ -4,6 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -19,6 +20,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import { useAuth } from "@/context/AuthContext";
 import { useThemeMode } from "@/context/ThemeContext";
 import {
   useThemeColors,
@@ -46,6 +48,7 @@ type NavRow = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
+  danger?: boolean;
 };
 
 export default function SettingsScreen() {
@@ -54,9 +57,51 @@ export default function SettingsScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { theme, toggleTheme } = useThemeMode();
+  const { user, logout } = useAuth();
+  const isResponder = user?.role === "responder";
 
   const [pushNotifications, setPushNotifications] = useState(true);
   const [locationAccess, setLocationAccess] = useState(true);
+
+  const handleLogout = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert("Log out?", "You'll need to sign in again to continue.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Log Out",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          router.replace("/(auth)/login");
+        },
+      },
+    ]);
+  };
+
+  // Settings is the only account entry point responders have (they have no
+  // Profile tab the way citizens do), so it needs to carry the account
+  // actions that citizens instead reach from app/(tabs)/profile.tsx.
+  const accountRows: NavRow[] = [
+    {
+      key: "user-profile",
+      icon: "person-outline",
+      label: "User Profile",
+      onPress: () => router.push("/user-profile"),
+    },
+    {
+      key: "change-password",
+      icon: "lock-closed-outline",
+      label: "Change Password",
+      onPress: () => router.push("/change-password"),
+    },
+    {
+      key: "logout",
+      icon: "log-out-outline",
+      label: "Log Out",
+      onPress: handleLogout,
+      danger: true,
+    },
+  ];
 
   const preferenceRows: ToggleRow[] = [
     {
@@ -71,7 +116,9 @@ export default function SettingsScreen() {
       key: "location",
       icon: "location-outline",
       label: "Location Access",
-      description: "Used to find nearby evacuation centers",
+      description: isResponder
+        ? "Used to navigate to incidents and share your live location"
+        : "Used to find nearby evacuation centers",
       value: locationAccess,
       onValueChange: setLocationAccess,
     },
@@ -118,6 +165,20 @@ export default function SettingsScreen() {
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={styles.backButton} />
         <Text style={styles.headerTitle}>Settings</Text>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Account</Text>
+        <View style={styles.card}>
+          {accountRows.map((row, index) => (
+            <View
+              key={row.key}
+              style={index < accountRows.length - 1 ? styles.rowDivider : undefined}
+            >
+              <NavSettingRow row={row} />
+            </View>
+          ))}
+        </View>
       </View>
 
       <View style={styles.section}>
@@ -223,15 +284,33 @@ function NavSettingRow({ row }: { row: NavRow }) {
         }}
       >
         <LinearGradient
-          colors={COLORS.iconTileGradient}
+          colors={
+            row.danger
+              ? [`${COLORS.danger}1A`, `${COLORS.danger}1A`]
+              : COLORS.iconTileGradient
+          }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.iconCircle}
         >
-          <Ionicons name={row.icon} size={18} color={COLORS.primary} />
+          <Ionicons
+            name={row.icon}
+            size={18}
+            color={row.danger ? COLORS.danger : COLORS.primary}
+          />
         </LinearGradient>
-        <Text style={[styles.label, styles.navLabel]}>{row.label}</Text>
-        <Ionicons name="chevron-forward" size={18} color={COLORS.textFaint} />
+        <Text
+          style={[
+            styles.label,
+            styles.navLabel,
+            row.danger && { color: COLORS.danger },
+          ]}
+        >
+          {row.label}
+        </Text>
+        {!row.danger && (
+          <Ionicons name="chevron-forward" size={18} color={COLORS.textFaint} />
+        )}
       </Pressable>
     </Animated.View>
   );

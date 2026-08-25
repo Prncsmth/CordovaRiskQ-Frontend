@@ -97,13 +97,26 @@ export default function ResponderIncidentsScreen() {
               </View>
             </View>
 
-            <Pressable
-              onPress={handleLogout}
-              hitSlop={12}
-              style={styles.logoutButton}
-            >
-              <Ionicons name="power" size={18} color={COLORS.primary} />
-            </Pressable>
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/settings");
+                }}
+                hitSlop={12}
+                style={styles.logoutButton}
+              >
+                <Ionicons name="settings-outline" size={18} color={COLORS.text} />
+              </Pressable>
+
+              <Pressable
+                onPress={handleLogout}
+                hitSlop={12}
+                style={styles.logoutButton}
+              >
+                <Ionicons name="power" size={18} color={COLORS.primary} />
+              </Pressable>
+            </View>
           </View>
 
           <View style={styles.statusRow}>
@@ -135,7 +148,7 @@ export default function ResponderIncidentsScreen() {
           </View>
 
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { borderLeftColor: COLORS.tide }]}>
               <LinearGradient
                 colors={tideIconGradient}
                 start={{ x: 0, y: 0 }}
@@ -147,7 +160,7 @@ export default function ResponderIncidentsScreen() {
               <Text style={styles.statValue}>{mockIncidents.length}</Text>
               <Text style={styles.statLabel}>Nearby</Text>
             </View>
-            <View style={styles.statCard}>
+            <View style={[styles.statCard, { borderLeftColor: COLORS.primary }]}>
               <LinearGradient
                 colors={COLORS.iconTileGradient}
                 start={{ x: 0, y: 0 }}
@@ -224,7 +237,7 @@ function IncidentCard({
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        style={styles.card}
+        style={[styles.card, { borderLeftColor: visual.color }]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onPress();
@@ -303,6 +316,11 @@ function createStyles(COLORS: ColorPalette) {
     alignItems: "center",
     gap: SPACING.sm,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
   headerGreeting: {
     fontSize: TYPOGRAPHY.small,
     color: COLORS.textSecondary,
@@ -369,6 +387,7 @@ function createStyles(COLORS: ColorPalette) {
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderLeftWidth: 4,
     paddingVertical: SPACING.md,
     ...SHADOW,
   },
@@ -419,6 +438,7 @@ function createStyles(COLORS: ColorPalette) {
     alignItems: "center",
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderLeftWidth: 4,
     padding: SPACING.md,
     gap: SPACING.sm,
     ...SHADOW_LG,

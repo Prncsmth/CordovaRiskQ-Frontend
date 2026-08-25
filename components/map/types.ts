@@ -10,6 +10,9 @@ export type MapMarker = {
   longitude: number;
   color?: string;
   label?: string;
+  // When set to "logo", the marker renders the riskq app logo instead of a
+  // colored pin -- used for a responder's own position on the nav map.
+  icon?: "logo";
 };
 
 export type MapPolyline = {

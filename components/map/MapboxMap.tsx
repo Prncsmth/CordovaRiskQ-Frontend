@@ -13,7 +13,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
@@ -220,17 +220,29 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           </ShapeSource>
         ))}
 
-        {markers.map((marker) => (
-          <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
-            <Pressable
-              hitSlop={8}
-              onPress={() => onMarkerPress?.(marker.id)}
-              style={[styles.pin, { backgroundColor: marker.color ?? COLORS.primary }]}
-            >
-              <Ionicons name="location" size={18} color={COLORS.white} />
-            </Pressable>
-          </MarkerView>
-        ))}
+        {markers.map((marker) =>
+          marker.icon === "logo" ? (
+            <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
+              <Pressable hitSlop={8} onPress={() => onMarkerPress?.(marker.id)}>
+                <Image
+                  source={require("@/assets/images/riskq.png")}
+                  style={styles.logoPin}
+                  resizeMode="contain"
+                />
+              </Pressable>
+            </MarkerView>
+          ) : (
+            <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
+              <Pressable
+                hitSlop={8}
+                onPress={() => onMarkerPress?.(marker.id)}
+                style={[styles.pin, { backgroundColor: marker.color ?? COLORS.primary }]}
+              >
+                <Ionicons name="location" size={18} color={COLORS.white} />
+              </Pressable>
+            </MarkerView>
+          ),
+        )}
       </MapView>
 
       {showLayerSwitcher && (
@@ -281,6 +293,11 @@ function createStyles(COLORS: ColorPalette) {
       justifyContent: "center",
       borderWidth: 2,
       borderColor: COLORS.white,
+    },
+    logoPin: {
+      width: 36,
+      height: 36,
+      ...SHADOW,
     },
     styleSwitcher: {
       position: "absolute",

@@ -41,6 +41,7 @@ function RootLayoutNav() {
     const inAuthGroup = segments[0] === "(auth)";
     const inOnboardingGroup = segments[0] === "(onboarding)";
     const inResponderGroup = segments[0] === "responder";
+    const inCitizenTabsGroup = segments[0] === "(tabs)";
     const onPhoneNumber = segments[0] === "phone-number";
 
     if (!isAuthenticated) {
@@ -73,9 +74,17 @@ function RootLayoutNav() {
     const role = user?.role ?? "citizen";
     const homeRoute = role === "responder" ? "/responder" : "/(tabs)/home";
 
-    if (role === "responder" && !inResponderGroup) {
+    if (
+      role === "responder" &&
+      (inAuthGroup || inOnboardingGroup || inCitizenTabsGroup)
+    ) {
       // Responder account sitting outside its own flow (auth/onboarding
       // screen, or the civilian tabs) -> send it to the responder home.
+      // Shared utility routes (settings, contacts, user-profile, etc.) are
+      // NOT part of "its own flow" in the narrow sense -- they're outside
+      // the "responder" segment too, but responders are meant to reach
+      // them (e.g. from the dashboard's settings button), so this only
+      // guards the screens the comment above actually names.
       router.replace(homeRoute);
       return;
     }

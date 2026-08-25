@@ -82,7 +82,11 @@ export default function PhoneNumberScreen() {
       }
 
       completeOnboarding();
-      router.replace("/getting-started/welcome");
+      router.replace(
+        user?.role === "responder"
+          ? "/responder/welcome"
+          : "/getting-started/welcome",
+      );
     } catch (err) {
       Alert.alert(
         "Couldn't save phone number",

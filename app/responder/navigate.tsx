@@ -80,14 +80,14 @@ export default function NavigateScreen() {
         zoom={14}
         showLayerSwitcher
         markers={[
-          { id: "responder", ...responderCoords, color: COLORS.secondary },
+          { id: "responder", ...responderCoords, color: COLORS.secondary, icon: "logo" },
           { id: "incident", ...incidentCoords, color: visual.color },
         ]}
         polylines={[
           {
             points: [responderCoords, incidentCoords],
             color: COLORS.secondary,
-            dashed: true,
+            dashed: false,
             weight: 4,
           },
         ]}
