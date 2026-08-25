@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Platform,
   ScrollView,
@@ -104,7 +105,15 @@ export default function EvacuationDetailScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.heroWrap}>
-        <PlaceholderThumb style={styles.heroThumb} />
+        {center.photo ? (
+          <Image
+            source={center.photo}
+            style={styles.heroThumb}
+            resizeMode="cover"
+          />
+        ) : (
+          <PlaceholderThumb style={styles.heroThumb} />
+        )}
         <BackButton
           onPress={() => router.back()}
           style={[styles.backButton, { top: insets.top + SPACING.xs }]}

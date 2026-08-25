@@ -1,14 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AuthFooter from "@/components/auth/AuthFooter";
@@ -16,6 +9,7 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import RippleRings from "@/components/common/RippleRings";
 import { requestPasswordReset } from "@/services/auth.service";
 import {
@@ -102,16 +96,15 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
+    <KeyboardSafeView style={styles.flex}>
       <ScrollView
         contentContainerStyle={[
           styles.container,
           { paddingTop: insets.top + SPACING.md },
         ]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
       >
         <BackButton onPress={() => router.push("/login")} style={styles.back} />
 
@@ -147,7 +140,7 @@ export default function ForgotPasswordScreen() {
           onPress={() => router.push("/login")}
         />
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

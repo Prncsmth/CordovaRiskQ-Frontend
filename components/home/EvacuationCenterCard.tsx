@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -31,6 +31,7 @@ export default function EvacuationCenterCard({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const isOpen = center.status === "open";
+  const statusColor = isOpen ? COLORS.success : COLORS.primary;
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -38,7 +39,9 @@ export default function EvacuationCenterCard({
   }));
 
   return (
-    <Animated.View style={[styles.card, animatedStyle]}>
+    <Animated.View
+      style={[styles.card, { borderLeftColor: statusColor }, animatedStyle]}
+    >
       <Pressable
         style={styles.pressable}
         onPress={() => router.push(`/evacuation-detail/${center.id}`)}
@@ -49,7 +52,11 @@ export default function EvacuationCenterCard({
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        <PlaceholderThumb style={styles.thumb} />
+        {center.photo ? (
+          <Image source={center.photo} style={styles.thumb} resizeMode="cover" />
+        ) : (
+          <PlaceholderThumb style={styles.thumb} />
+        )}
         <View style={styles.textCol}>
           <Text style={styles.name} numberOfLines={2}>
             {center.name}
@@ -98,6 +105,7 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: RADIUS.lg,
       borderWidth: 1,
       borderColor: COLORS.borderMuted,
+      borderLeftWidth: 4,
       ...SHADOW,
     },
     pressable: {
@@ -109,6 +117,7 @@ function createStyles(COLORS: ColorPalette) {
     thumb: {
       width: 76,
       height: 76,
+      borderRadius: RADIUS.lg,
     },
     textCol: {
       flex: 1,

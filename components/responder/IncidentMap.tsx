@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useRef } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
-import PlaceholderThumb from "@/components/common/PlaceholderThumb";
+import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import {
   RADIUS,
   SHADOW,
@@ -26,19 +26,10 @@ function darken(hex: string, amount: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
-type MapboxModule = {
-  default: { setAccessToken: (token: string) => void };
-  MapView: React.ComponentType<any>;
-  Camera: React.ComponentType<any>;
-  MarkerView: React.ComponentType<any>;
-  ShapeSource: React.ComponentType<any>;
-  LineLayer: React.ComponentType<any>;
-};
-
 const MAP_HEIGHT = 360;
 
-// Live Mapbox preview of the responder's route to the incident. The line
-// drawn is the straight-line path between the two points (no turn-by-turn
+// Live map preview of the responder's route to the incident. The line drawn
+// is the straight-line path between the two points (no turn-by-turn
 // Directions API call) -- good enough to orient a responder at a glance
 // without wiring up a routing backend.
 export default function IncidentMap({
@@ -50,111 +41,41 @@ export default function IncidentMap({
   incidentCoords: Coordinates;
   etaMinutes: number;
 }) {
-  const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const mapRef = useRef<MapHandle>(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    try {
-      const module = require("@rnmapbox/maps");
-      const mapboxModule = (module as any).default
-        ? (module as any).default
-        : module;
-      const setAccessTokenFn =
-        mapboxModule.setAccessToken ??
-        (mapboxModule.default?.setAccessToken as unknown);
-
-      if (typeof setAccessTokenFn === "function") {
-        setAccessTokenFn(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "");
-      }
-
-      if (mounted) setMapbox(mapboxModule as unknown as MapboxModule);
-    } catch (error) {
-      console.warn("Failed to load Mapbox module", error);
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const routeShape = {
-    type: "Feature" as const,
-    properties: {},
-    geometry: {
-      type: "LineString" as const,
-      coordinates: [
-        [responderCoords.longitude, responderCoords.latitude],
-        [incidentCoords.longitude, incidentCoords.latitude],
-      ],
-    },
-  };
-
-  const lats = [responderCoords.latitude, incidentCoords.latitude];
-  const lons = [responderCoords.longitude, incidentCoords.longitude];
-  const bounds = {
-    ne: [Math.max(...lons), Math.max(...lats)] as [number, number],
-    sw: [Math.min(...lons), Math.min(...lats)] as [number, number],
-    paddingLeft: 50,
-    paddingRight: 50,
-    paddingTop: 70,
-    paddingBottom: 50,
+  const midpoint = {
+    latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
+    longitude: (responderCoords.longitude + incidentCoords.longitude) / 2,
   };
 
   return (
     <View style={styles.card}>
       <View style={styles.mapBox}>
-        {mapbox ? (
-          <mapbox.MapView
-            style={styles.map}
-            styleURL="mapbox://styles/mapbox/streets-v11"
-            logoEnabled={false}
-            attributionEnabled={false}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-          >
-            <mapbox.Camera defaultSettings={{ bounds }} />
-
-            <mapbox.ShapeSource id="responderRouteSource" shape={routeShape}>
-              <mapbox.LineLayer
-                id="responderRouteLine"
-                style={{
-                  lineColor: COLORS.secondary,
-                  lineWidth: 3,
-                  lineDasharray: [1.4, 1.4],
-                  lineCap: "round",
-                }}
-              />
-            </mapbox.ShapeSource>
-
-            <mapbox.MarkerView
-              coordinate={[responderCoords.longitude, responderCoords.latitude]}
-            >
-              <Image
-                source={require("@/assets/images/riskq.png")}
-                style={styles.responderLogo}
-                resizeMode="contain"
-              />
-            </mapbox.MarkerView>
-
-            <mapbox.MarkerView
-              coordinate={[incidentCoords.longitude, incidentCoords.latitude]}
-            >
-              <View style={styles.incidentPin}>
-                <Ionicons name="location" size={16} color={COLORS.white} />
-              </View>
-            </mapbox.MarkerView>
-          </mapbox.MapView>
-        ) : (
-          <>
-            <PlaceholderThumb style={StyleSheet.absoluteFillObject} />
-            <ActivityIndicator color={COLORS.primary} />
-          </>
-        )}
+        <AppMap
+          ref={mapRef}
+          style={styles.map}
+          center={midpoint}
+          zoom={14}
+          interactive={false}
+          showLayerSwitcher={false}
+          markers={[
+            { id: "responder", ...responderCoords, color: COLORS.secondary },
+            { id: "incident", ...incidentCoords, color: COLORS.primary },
+          ]}
+          polylines={[
+            {
+              points: [responderCoords, incidentCoords],
+              color: COLORS.secondary,
+              dashed: true,
+              weight: 3,
+            },
+          ]}
+          onReady={() =>
+            mapRef.current?.fitToPoints([responderCoords, incidentCoords], 60)
+          }
+        />
 
         <LinearGradient
           colors={[COLORS.secondary, darken(COLORS.secondary, 40)]}
@@ -194,27 +115,6 @@ function createStyles(COLORS: ColorPalette) {
   },
   map: {
     ...StyleSheet.absoluteFillObject,
-  },
-  responderLogo: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "transparent",
-  },
-  incidentPin: {
-    width: 34,
-    height: 34,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: COLORS.white,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
   },
   etaPill: {
     position: "absolute",

@@ -8,18 +8,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import {
-    ActivityIndicator,
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-} from "react-native";
+import React, { useMemo, useRef } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import PlaceholderThumb from "@/components/common/PlaceholderThumb";
+import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import { getIncidentById } from "@/services/mockIncidents";
 import {
@@ -44,49 +37,14 @@ function darken(hex: string, amount: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
-type MapboxModule = {
-  default: { setAccessToken: (token: string) => void };
-  MapView: React.ComponentType<any>;
-  Camera: React.ComponentType<any>;
-  MarkerView: React.ComponentType<any>;
-  ShapeSource: React.ComponentType<any>;
-  LineLayer: React.ComponentType<any>;
-};
-
 export default function NavigateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const incident = getIncidentById(id);
-  const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-
-  useEffect(() => {
-    let mounted = true;
-
-    try {
-      const module = require("@rnmapbox/maps");
-      const mapboxModule = (module as any).default
-        ? (module as any).default
-        : module;
-      const setAccessTokenFn =
-        mapboxModule.setAccessToken ??
-        (mapboxModule.default?.setAccessToken as unknown);
-
-      if (typeof setAccessTokenFn === "function") {
-        setAccessTokenFn(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "");
-      }
-
-      if (mounted) setMapbox(mapboxModule as unknown as MapboxModule);
-    } catch (error) {
-      console.warn("Failed to load Mapbox module", error);
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const mapRef = useRef<MapHandle>(null);
 
   if (!incident || !incident.responderCoords || !incident.incidentCoords) {
     return (
@@ -104,28 +62,9 @@ export default function NavigateScreen() {
 
   const visual = getIncidentVisual(incident.type);
   const { responderCoords, incidentCoords } = incident;
-
-  const routeShape = {
-    type: "Feature" as const,
-    properties: {},
-    geometry: {
-      type: "LineString" as const,
-      coordinates: [
-        [responderCoords.longitude, responderCoords.latitude],
-        [incidentCoords.longitude, incidentCoords.latitude],
-      ],
-    },
-  };
-
-  const lats = [responderCoords.latitude, incidentCoords.latitude];
-  const lons = [responderCoords.longitude, incidentCoords.longitude];
-  const bounds = {
-    ne: [Math.max(...lons), Math.max(...lats)] as [number, number],
-    sw: [Math.min(...lons), Math.min(...lats)] as [number, number],
-    paddingLeft: 70,
-    paddingRight: 70,
-    paddingTop: insets.top + 180,
-    paddingBottom: 120,
+  const midpoint = {
+    latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
+    longitude: (responderCoords.longitude + incidentCoords.longitude) / 2,
   };
 
   return (
@@ -134,58 +73,31 @@ export default function NavigateScreen() {
         options={{ headerShown: false, presentation: "fullScreenModal" }}
       />
 
-      {mapbox ? (
-        <mapbox.MapView
-          style={styles.map}
-          styleURL="mapbox://styles/mapbox/streets-v11"
-          logoEnabled={false}
-          attributionEnabled={false}
-        >
-          <mapbox.Camera defaultSettings={{ bounds }} />
-
-          <mapbox.ShapeSource id="fullRouteSource" shape={routeShape}>
-            <mapbox.LineLayer
-              id="fullRouteLine"
-              style={{
-                lineColor: COLORS.secondary,
-                lineWidth: 4,
-                lineDasharray: [1.4, 1.4],
-                lineCap: "round",
-              }}
-            />
-          </mapbox.ShapeSource>
-
-          <mapbox.MarkerView
-            coordinate={[responderCoords.longitude, responderCoords.latitude]}
-          >
-            <Image
-              source={require("@/assets/images/riskq.png")}
-              style={styles.responderLogo}
-              resizeMode="contain"
-            />
-          </mapbox.MarkerView>
-
-          <mapbox.MarkerView
-            coordinate={[incidentCoords.longitude, incidentCoords.latitude]}
-          >
-            <View style={[styles.incidentPin, { shadowColor: visual.color }]}>
-              <LinearGradient
-                colors={[visual.color, darken(visual.color, 40)]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.incidentPinFill}
-              >
-                <Ionicons name={visual.icon} size={18} color={COLORS.white} />
-              </LinearGradient>
-            </View>
-          </mapbox.MarkerView>
-        </mapbox.MapView>
-      ) : (
-        <View style={styles.mapLoading}>
-          <PlaceholderThumb style={StyleSheet.absoluteFillObject} />
-          <ActivityIndicator color={COLORS.primary} />
-        </View>
-      )}
+      <AppMap
+        ref={mapRef}
+        style={styles.map}
+        center={midpoint}
+        zoom={14}
+        showLayerSwitcher
+        markers={[
+          { id: "responder", ...responderCoords, color: COLORS.secondary },
+          { id: "incident", ...incidentCoords, color: visual.color },
+        ]}
+        polylines={[
+          {
+            points: [responderCoords, incidentCoords],
+            color: COLORS.secondary,
+            dashed: true,
+            weight: 4,
+          },
+        ]}
+        onReady={() =>
+          mapRef.current?.fitToPoints(
+            [responderCoords, incidentCoords],
+            insets.top + 140,
+          )
+        }
+      />
 
       <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>
         <View style={styles.topCardHeader}>
@@ -246,34 +158,6 @@ function createStyles(COLORS: ColorPalette) {
   },
   map: {
     ...StyleSheet.absoluteFillObject,
-  },
-  mapLoading: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  responderLogo: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "transparent",
-  },
-  incidentPin: {
-    width: 38,
-    height: 38,
-    borderRadius: RADIUS.full,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4,
-  },
-  incidentPinFill: {
-    flex: 1,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
   },
   topCard: {
     position: "absolute",

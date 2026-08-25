@@ -36,10 +36,13 @@ export function SOSButton({ onPress }: { onPress?: () => void }) {
             }}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
+            {/* Orange-to-red, top-to-bottom -- matches the riskq logo's own
+                circle gradient (sampled: warm orange up top fading into a
+                deep red/maroon at the bottom). */}
             <LinearGradient
-              colors={[COLORS.primary, COLORS.primaryDark]}
+              colors={[COLORS.secondary, COLORS.primaryDark]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              end={{ x: 0, y: 1 }}
               style={styles.fill}
             >
               <LinearGradient

@@ -3,6 +3,7 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import GoogleButton from "@/components/auth/GoogleButton";
 import PrimaryButton from "@/components/auth/PrimaryButton";
+import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/services/auth.service";
 import {
@@ -16,15 +17,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -47,7 +40,7 @@ export default function LoginScreen() {
     try {
       const response = await loginUser(email, password);
       await login(response.token, response.user);
-    } catch (err) {
+    } catch {
       setError("Login failed. Please check your credentials and try again.");
     } finally {
       setLoading(false);
@@ -61,14 +54,14 @@ export default function LoginScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
       />
-      <KeyboardAvoidingView
-        style={styles.transparentFlex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardSafeView style={styles.transparentFlex}>
         <ScrollView
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
         >
           <AuthHeader
             title={"Sign in to your\nAccount"}
@@ -100,7 +93,11 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
-          <PrimaryButton title="Log In" loading={loading} onPress={handleLogin} />
+          <PrimaryButton
+            title="Log In"
+            loading={loading}
+            onPress={handleLogin}
+          />
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
@@ -132,7 +129,7 @@ export default function LoginScreen() {
             </Pressable>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardSafeView>
     </View>
   );
 }
@@ -150,6 +147,7 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
       flexGrow: 1,
       justifyContent: "center",
       paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.xl,
     },
     dividerRow: {
       flexDirection: "row",

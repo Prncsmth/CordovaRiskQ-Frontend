@@ -5,12 +5,14 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   Linking,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type ImageSourcePropType,
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -36,6 +38,26 @@ import {
   TYPOGRAPHY,
   type ColorPalette,
 } from "@/theme";
+
+// Local hotline agencies -> their real photo, shown in place of a generic
+// icon in the Local Hotlines list. Keyed by Hotline.id from
+// services/contacts.service.ts.
+const HOTLINE_IMAGES: Record<string, ImageSourcePropType> = {
+  pnp: require("@/assets/images/pulis.jpg"),
+  bfp: require("@/assets/images/bfp.jpg"),
+  "coast-guard": require("@/assets/images/coastguard.png"),
+  "disaster-office": require("@/assets/images/mdrrmo.png"),
+};
+
+// Each agency's real-world designated color -- the same "colored left
+// border on a neutral card" accent used on the home screen's
+// EvacuationCenterCard, applied here per hotline row.
+const HOTLINE_ACCENT_COLORS: Record<string, string> = {
+  pnp: "#1E3A8A",
+  bfp: "#DC2626",
+  "coast-guard": "#0369A1",
+  "disaster-office": "#F59E0B",
+};
 
 export default function ContactsScreen() {
   const insets = useSafeAreaInsets();
@@ -135,7 +157,9 @@ export default function ContactsScreen() {
               style={index < hotlines.length - 1 ? styles.rowDivider : undefined}
             >
               <ContactRow
-                icon={hotline.id === "bfp" ? "flame-outline" : "call-outline"}
+                image={HOTLINE_IMAGES[hotline.id]}
+                accentColor={HOTLINE_ACCENT_COLORS[hotline.id]}
+                icon="call-outline"
                 iconTint="primary"
                 name={hotline.name}
                 number={hotline.number}
@@ -186,12 +210,16 @@ export default function ContactsScreen() {
 function ContactRow({
   icon,
   iconTint,
+  image,
+  accentColor,
   name,
   number,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   iconTint: "primary" | "tide";
+  image?: ImageSourcePropType;
+  accentColor?: string;
   name: string;
   number: string;
   onPress: () => void;
@@ -208,11 +236,20 @@ function ContactRow({
       ? COLORS.iconTileGradient
       : [COLORS.tideTint, COLORS.tideTint];
   const iconColor = iconTint === "primary" ? COLORS.primary : COLORS.tide;
+  // Local hotlines get a green call button (universally reads as "call" /
+  // "available") -- personal contacts keep the app's primary red.
+  const callButtonColors: readonly [string, string] =
+    iconTint === "primary"
+      ? [COLORS.success, COLORS.success]
+      : [COLORS.primary, COLORS.primaryDark];
 
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        style={styles.contactRow}
+        style={[
+          styles.contactRow,
+          accentColor && { borderLeftColor: accentColor, borderLeftWidth: 4, paddingLeft: SPACING.sm - 4 },
+        ]}
         onPress={onPress}
         onPressIn={() => {
           scale.value = withTiming(0.98, { duration: 100 });
@@ -221,20 +258,24 @@ function ContactRow({
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        <LinearGradient
-          colors={gradientColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.contactIcon}
-        >
-          <Ionicons name={icon} size={19} color={iconColor} />
-        </LinearGradient>
+        {image ? (
+          <Image source={image} style={styles.contactIcon} resizeMode="cover" />
+        ) : (
+          <LinearGradient
+            colors={gradientColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.contactIcon}
+          >
+            <Ionicons name={icon} size={19} color={iconColor} />
+          </LinearGradient>
+        )}
         <View style={styles.contactCopy}>
           <Text style={styles.contactName}>{name}</Text>
           <Text style={styles.contactNumber}>{number}</Text>
         </View>
         <LinearGradient
-          colors={[COLORS.primary, COLORS.primaryDark]}
+          colors={callButtonColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.callButton}

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import PartlyCloudyIcon from "@/components/home/PartlyCloudyIcon";
 import RippleRings from "@/components/common/RippleRings";
 import { useThemeColors, FONT_FAMILY, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
@@ -44,11 +45,7 @@ export default function GreetingBlock({
 
       <View style={styles.right}>
         <View style={styles.tempRow}>
-          <Ionicons
-            name="partly-sunny-outline"
-            size={14}
-            color={COLORS.textSecondary}
-          />
+          <PartlyCloudyIcon size={34} />
           <Text style={styles.temp}>{temperatureC}°C</Text>
         </View>
         <Text style={styles.weatherDesc}>{weatherDescription}</Text>
@@ -94,7 +91,7 @@ function createStyles(COLORS: ColorPalette) {
     tempRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 4,
+      gap: 6,
     },
     temp: {
       fontSize: TYPOGRAPHY.subtitle,

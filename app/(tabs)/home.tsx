@@ -6,12 +6,12 @@ import HomeHero from "@/components/home/HomeHero";
 import QuickActionsRow from "@/components/home/QuickActionsRow";
 import SafetyTipsList from "@/components/home/SafetyTipsList";
 import { SOSButton } from "@/components/sos/SOSButton";
+import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
 import { getNotifications } from "@/services/notification.service";
 import { useThemeColors, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
-const MOCK_NAME = "Carl";
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
 const MOCK_TEMPERATURE_C = 29;
 const MOCK_WEATHER_DESCRIPTION = "Partly Cloudy";
@@ -24,6 +24,8 @@ export default function HomeScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
+  const { user } = useAuth();
+  const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
   const [hasUnread, setHasUnread] = useState(false);
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
 
@@ -51,7 +53,7 @@ export default function HomeScreen() {
     >
       <HomeHero
         hasUnread={hasUnread}
-        name={MOCK_NAME}
+        name={firstName}
         location={MOCK_LOCATION}
         temperatureC={MOCK_TEMPERATURE_C}
         weatherDescription={MOCK_WEATHER_DESCRIPTION}

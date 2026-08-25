@@ -27,7 +27,6 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
           category={category}
           isSelected={category.id === selected}
           onSelect={onSelect}
-          COLORS={COLORS}
           styles={styles}
         />
       ))}
@@ -35,17 +34,18 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
   );
 }
 
+// Neutral card + a bold colored left-border stripe -- the same "designated
+// color" accent used on the home screen's EvacuationCenterCard, so a
+// category reads as color-coded without tinting the whole card.
 function CategoryCard({
   category,
   isSelected,
   onSelect,
-  COLORS,
   styles,
 }: {
   category: Category;
   isSelected: boolean;
   onSelect: (id: CategoryId) => void;
-  COLORS: ColorPalette;
   styles: ReturnType<typeof createStyles>;
 }) {
   const scale = useSharedValue(1);
@@ -58,10 +58,11 @@ function CategoryCard({
       <Pressable
         style={[
           styles.card,
+          { borderLeftColor: category.color },
           isSelected && {
-            backgroundColor: `${category.color}12`,
-            borderWidth: 1.5,
+            backgroundColor: `${category.color}14`,
             borderColor: category.color,
+            borderLeftColor: category.color,
           },
         ]}
         onPress={() => {
@@ -78,13 +79,13 @@ function CategoryCard({
         <View style={[styles.iconCircle, { backgroundColor: `${category.color}1A` }]}>
           <Ionicons name={category.icon} size={24} color={category.color} />
         </View>
-        <Text style={[styles.label, isSelected && { color: category.color }]}>
+        <Text style={[styles.label, { color: category.color }]}>
           {category.label}
         </Text>
 
         {isSelected && (
           <View style={[styles.checkBadge, { backgroundColor: category.color }]}>
-            <Ionicons name="checkmark" size={12} color={COLORS.white} />
+            <Ionicons name="checkmark" size={12} color="#FFFFFF" />
           </View>
         )}
       </Pressable>
@@ -107,6 +108,7 @@ function createStyles(COLORS: ColorPalette) {
     borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.borderMuted,
+    borderLeftWidth: 4,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.sm,
     alignItems: "center",
@@ -119,16 +121,10 @@ function createStyles(COLORS: ColorPalette) {
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.xs,
-    shadowColor: COLORS.text,
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1,
   },
   label: {
     fontSize: TYPOGRAPHY.caption,
     fontWeight: "700",
-    color: COLORS.text,
     textAlign: "center",
   },
   checkBadge: {

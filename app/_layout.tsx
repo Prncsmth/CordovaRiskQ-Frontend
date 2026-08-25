@@ -6,6 +6,7 @@ import {
 import SosOverlay from "@/components/sos/SosOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
+import { ReportLocationProvider } from "@/context/ReportLocationContext";
 import { SosProvider } from "@/context/SosContext";
 import { ThemeProvider as AppThemeProvider, useThemeMode } from "@/context/ThemeContext";
 import { UserProvider } from "@/context/UserContext";
@@ -110,7 +111,15 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    // Keyed on auth state: react-native-screens keeps previously-visited
+    // screens (onboarding, login) mounted in the background for fast
+    // back-navigation, so they can still be showing whatever theme was
+    // active the last time they actually rendered -- e.g. the light mode
+    // from before the user ever toggled dark mode, if they logged in
+    // before switching it in Settings. Forcing a full remount on every
+    // login/logout transition guarantees a fresh render that reads the
+    // current theme instead of showing a stale one.
+    <Stack key={isAuthenticated ? "authed" : "guest"} screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
@@ -164,9 +173,11 @@ export default function RootLayout() {
       <AuthProvider>
         <UserProvider>
           <ProfilePhotoProvider>
-            <AppThemeProvider>
-              <ThemedApp />
-            </AppThemeProvider>
+            <ReportLocationProvider>
+              <AppThemeProvider>
+                <ThemedApp />
+              </AppThemeProvider>
+            </ReportLocationProvider>
           </ProfilePhotoProvider>
         </UserProvider>
       </AuthProvider>

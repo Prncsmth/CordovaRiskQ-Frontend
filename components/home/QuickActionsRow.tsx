@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -17,28 +16,35 @@ export default function QuickActionsRow() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
+  // Each action's designated color ties back to how its destination screen
+  // is already color-coded elsewhere: red for reporting/danger, green for
+  // evacuation "Open" status, teal for contacts/trust.
   const actions: {
     key: string;
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
+    color: string;
     onPress: () => void;
   }[] = [
     {
       key: "report",
       label: "Report Incident",
       icon: "warning",
+      color: COLORS.primary,
       onPress: () => router.push("/(tabs)/report"),
     },
     {
       key: "evacuation",
       label: "Evacuation Center",
       icon: "home",
+      color: COLORS.success,
       onPress: () => router.push("/(tabs)/map"),
     },
     {
       key: "contacts",
       label: "Emergency Contacts",
       icon: "call",
+      color: COLORS.tide,
       onPress: () => router.push("/contacts"),
     },
   ];
@@ -46,7 +52,7 @@ export default function QuickActionsRow() {
   return (
     <View style={styles.row}>
       {actions.map((action) => (
-        <QuickActionCard key={action.key} action={action} COLORS={COLORS} styles={styles} />
+        <QuickActionCard key={action.key} action={action} styles={styles} />
       ))}
     </View>
   );
@@ -54,16 +60,15 @@ export default function QuickActionsRow() {
 
 function QuickActionCard({
   action,
-  COLORS,
   styles,
 }: {
   action: {
     key: string;
     label: string;
     icon: keyof typeof Ionicons.glyphMap;
+    color: string;
     onPress: () => void;
   };
-  COLORS: ColorPalette;
   styles: ReturnType<typeof createStyles>;
 }) {
   const scale = useSharedValue(1);
@@ -72,7 +77,9 @@ function QuickActionCard({
   }));
 
   return (
-    <Animated.View style={[styles.card, animatedStyle]}>
+    <Animated.View
+      style={[styles.card, { borderLeftColor: action.color }, animatedStyle]}
+    >
       <Pressable
         style={styles.cardPressable}
         onPress={() => {
@@ -86,14 +93,9 @@ function QuickActionCard({
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        <LinearGradient
-          colors={COLORS.iconTileGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.iconCircle}
-        >
-          <Ionicons name={action.icon} size={18} color={COLORS.primary} />
-        </LinearGradient>
+        <View style={[styles.iconCircle, { backgroundColor: `${action.color}1A` }]}>
+          <Ionicons name={action.icon} size={18} color={action.color} />
+        </View>
         <Text style={styles.label}>{action.label}</Text>
       </Pressable>
     </Animated.View>
@@ -112,6 +114,7 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: 18,
       borderWidth: 1,
       borderColor: COLORS.borderMuted,
+      borderLeftWidth: 4,
       ...SHADOW,
     },
     cardPressable: {
@@ -123,16 +126,9 @@ function createStyles(COLORS: ColorPalette) {
       width: 42,
       height: 42,
       borderRadius: 21,
-      borderWidth: 1,
-      borderColor: COLORS.borderMuted,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: SPACING.xs,
-      shadowColor: COLORS.primary,
-      shadowOpacity: 0.08,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 2,
     },
     label: {
       fontSize: TYPOGRAPHY.small,

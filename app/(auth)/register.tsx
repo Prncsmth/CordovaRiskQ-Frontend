@@ -1,14 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AuthFooter from "@/components/auth/AuthFooter";
@@ -16,6 +9,7 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import { useAuth } from "@/context/AuthContext";
 import { registerUser } from "@/services/auth.service";
 import {
@@ -71,17 +65,17 @@ export default function RegisterScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
       />
-      <KeyboardAvoidingView
-        style={styles.transparentFlex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardSafeView style={styles.transparentFlex}>
         <ScrollView
           contentContainerStyle={[
             styles.container,
             { paddingTop: insets.top + SPACING.md },
           ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
         >
           <BackButton onPress={() => router.push("/login")} style={styles.back} />
 
@@ -130,7 +124,7 @@ export default function RegisterScreen() {
             onPress={() => router.push("/login")}
           />
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardSafeView>
     </View>
   );
 }

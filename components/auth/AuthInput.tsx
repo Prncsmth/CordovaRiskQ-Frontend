@@ -8,6 +8,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Animated, {
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import {
   RADIUS,
@@ -40,7 +46,32 @@ export default function AuthInput({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [hidden, setHidden] = useState(!!secureTextEntry);
-  const [isFocused, setIsFocused] = useState(false);
+
+  // Driven by a Reanimated shared value instead of React state: updating it
+  // from onFocus/onBlur animates the border on the UI thread without
+  // re-rendering this component. Re-rendering AuthInput synchronously on the
+  // very event that just focused the TextInput causes Android (New
+  // Architecture) to immediately drop focus again -- a focus/blur loop that
+  // reads as a flickering, unusable input.
+  const focus = useSharedValue(0);
+
+  const restingBorderColor = label ? "transparent" : COLORS.border;
+  const restingBackgroundColor = label ? COLORS.inputBg : COLORS.surface;
+
+  const animatedContainerStyle = useAnimatedStyle(() => ({
+    borderColor: interpolateColor(
+      focus.value,
+      [0, 1],
+      [restingBorderColor, COLORS.primary],
+    ),
+    backgroundColor: interpolateColor(
+      focus.value,
+      [0, 1],
+      [restingBackgroundColor, COLORS.background],
+    ),
+    shadowOpacity: focus.value * 0.14,
+    elevation: focus.value * 3,
+  }));
 
   return (
     <View style={styles.wrapper}>
@@ -55,32 +86,29 @@ export default function AuthInput({
         </View>
       ) : null}
 
-      <View
+      <Animated.View
         style={[
           styles.container,
           label ? styles.containerFlat : null,
-          isFocused && styles.containerFocused,
+          animatedContainerStyle,
         ]}
       >
         {icon ? (
-          <Ionicons
-            name={icon}
-            size={22}
-            color={isFocused ? COLORS.primary : COLORS.gray}
-            style={styles.icon}
-          />
+          <Ionicons name={icon} size={22} color={COLORS.gray} style={styles.icon} />
         ) : null}
 
         <TextInput
           placeholderTextColor={COLORS.textTertiary}
           style={styles.input}
           secureTextEntry={secureToggle ? hidden : secureTextEntry}
+          autoComplete="off"
+          importantForAutofill="no"
           onFocus={(e) => {
-            setIsFocused(true);
+            focus.value = withTiming(1, { duration: 150 });
             onFocus?.(e);
           }}
           onBlur={(e) => {
-            setIsFocused(false);
+            focus.value = withTiming(0, { duration: 150 });
             onBlur?.(e);
           }}
           {...props}
@@ -95,7 +123,7 @@ export default function AuthInput({
             />
           </TouchableOpacity>
         ) : null}
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -156,16 +184,6 @@ function createStyles(COLORS: ColorPalette) {
       borderColor: "transparent",
       shadowOpacity: 0,
       elevation: 0,
-    },
-
-    containerFocused: {
-      borderColor: COLORS.primary,
-      backgroundColor: COLORS.background,
-      shadowColor: COLORS.primary,
-      shadowOpacity: 0.14,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 3,
     },
 
     icon: {
