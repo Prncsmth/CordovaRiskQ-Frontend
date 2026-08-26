@@ -5,14 +5,22 @@
 // it needs a token to save against, so it can only run once the user
 // actually has an account.
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import { useAuth } from "@/context/AuthContext";
 import { updateProfile } from "@/services/user.service";
-import { COLORS, FONT_FAMILY, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  FONT_FAMILY,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 const KEYS: { digit: string; letters: string }[] = [
   { digit: "1", letters: "" },
@@ -40,14 +48,18 @@ function formatPhone(digits: string): string {
 export default function PhoneNumberScreen() {
   const router = useRouter();
   const { token, user, completeOnboarding } = useAuth();
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [phone, setPhone] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   function appendDigit(d: string) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPhone((p) => (p + d).slice(0, 10));
   }
 
   function backspace() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPhone((p) => p.slice(0, -1));
   }
 
@@ -70,7 +82,11 @@ export default function PhoneNumberScreen() {
       }
 
       completeOnboarding();
-      router.replace("/getting-started/welcome");
+      router.replace(
+        user?.role === "responder"
+          ? "/responder/welcome"
+          : "/getting-started/welcome",
+      );
     } catch (err) {
       Alert.alert(
         "Couldn't save phone number",
@@ -108,120 +124,145 @@ export default function PhoneNumberScreen() {
 
       <View style={styles.keypad}>
         {KEYS.map((k) => (
-          <TouchableOpacity
-            key={k.digit}
-            style={styles.key}
-            onPress={() => appendDigit(k.digit)}
-          >
-            <Text style={styles.keyDigit}>{k.digit}</Text>
-            <Text style={styles.keyLetters}>{k.letters}</Text>
-          </TouchableOpacity>
+          <View key={k.digit} style={styles.keyCell}>
+            <Pressable
+              style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
+              onPress={() => appendDigit(k.digit)}
+            >
+              <Text style={styles.keyDigit}>{k.digit}</Text>
+              <Text style={styles.keyLetters}>{k.letters}</Text>
+            </Pressable>
+          </View>
         ))}
-        <View style={styles.key} />
-        <TouchableOpacity style={styles.key} onPress={() => appendDigit("0")}>
-          <Text style={styles.keyDigit}>0</Text>
-          <Text style={styles.keyLetters}>+</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.key} onPress={backspace}>
-          <Ionicons name="backspace-outline" size={24} color={COLORS.text} />
-        </TouchableOpacity>
+        <View style={styles.keyCell} />
+        <View style={styles.keyCell}>
+          <Pressable
+            style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
+            onPress={() => appendDigit("0")}
+          >
+            <Text style={styles.keyDigit}>0</Text>
+            <Text style={styles.keyLetters}>+</Text>
+          </Pressable>
+        </View>
+        <View style={styles.keyCell}>
+          <Pressable
+            style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
+            onPress={backspace}
+          >
+            <Ionicons name="backspace-outline" size={24} color={COLORS.text} />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-    paddingTop: 62,
-    paddingHorizontal: SPACING.lg,
-  },
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+      paddingTop: 62,
+      paddingHorizontal: SPACING.lg,
+    },
 
-  eyebrow: {
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 1,
-    color: COLORS.primary,
-    textTransform: "uppercase",
-  },
+    eyebrow: {
+      fontSize: 12,
+      fontWeight: "700",
+      letterSpacing: 1,
+      color: COLORS.primary,
+      textTransform: "uppercase",
+    },
 
-  title: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: 26,
-    color: COLORS.text,
-    marginTop: SPACING.xs,
-  },
+    title: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: 26,
+      color: COLORS.text,
+      marginTop: SPACING.xs,
+    },
 
-  subtitle: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: SPACING.xs,
-    lineHeight: 20,
-  },
+    subtitle: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      marginTop: SPACING.xs,
+      lineHeight: 20,
+    },
 
-  displayWrap: {
-    marginTop: SPACING.xl,
-    alignItems: "center",
-  },
+    displayWrap: {
+      marginTop: SPACING.xl,
+      alignItems: "center",
+    },
 
-  numberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-  },
+    numberRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+    },
 
-  prefix: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-  },
+    prefix: {
+      fontSize: 30,
+      fontWeight: "700",
+      color: COLORS.textSecondary,
+    },
 
-  digits: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
+    digits: {
+      fontSize: 30,
+      fontWeight: "700",
+      color: COLORS.text,
+    },
 
-  digitsPlaceholder: {
-    fontSize: 30,
-    fontWeight: "700",
-    color: COLORS.textFaint,
-  },
+    digitsPlaceholder: {
+      fontSize: 30,
+      fontWeight: "700",
+      color: COLORS.textFaint,
+    },
 
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.borderMuted,
-    width: "100%",
-    marginTop: SPACING.md,
-  },
+    divider: {
+      height: 1,
+      backgroundColor: COLORS.borderMuted,
+      width: "100%",
+      marginTop: SPACING.md,
+    },
 
-  keypad: {
-    flex: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignContent: "center",
-    justifyContent: "center",
-    paddingVertical: SPACING.lg,
-  },
+    keypad: {
+      flex: 1,
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignContent: "center",
+      justifyContent: "center",
+      paddingVertical: SPACING.lg,
+    },
 
-  key: {
-    width: "33.33%",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: SPACING.sm,
-  },
+    keyCell: {
+      width: "33.33%",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: SPACING.sm,
+    },
 
-  keyDigit: {
-    fontSize: 24,
-    fontWeight: "500",
-    color: COLORS.text,
-  },
+    key: {
+      width: 72,
+      height: 72,
+      borderRadius: RADIUS.full,
+      alignItems: "center",
+      justifyContent: "center",
+    },
 
-  keyLetters: {
-    fontSize: 10,
-    letterSpacing: 1.2,
-    color: COLORS.textTertiary,
-    marginTop: 2,
-  },
-});
+    keyPressed: {
+      backgroundColor: COLORS.surface,
+    },
+
+    keyDigit: {
+      fontSize: 24,
+      fontWeight: "500",
+      color: COLORS.text,
+    },
+
+    keyLetters: {
+      fontSize: 10,
+      letterSpacing: 1.2,
+      color: COLORS.textTertiary,
+      marginTop: 2,
+    },
+  });
+}

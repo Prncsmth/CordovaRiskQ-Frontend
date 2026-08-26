@@ -4,10 +4,11 @@ import { View } from "react-native";
 
 import type { CategoryId } from "@/components/report/categories";
 import ReportConfirmation from "@/components/report/ReportConfirmation";
-import { COLORS } from "@/theme";
+import { useThemeColors } from "@/theme";
 
 export default function ReportConfirmationScreen() {
   const router = useRouter();
+  const COLORS = useThemeColors();
   const { ref, category, location } = useLocalSearchParams<{
     ref: string;
     category: CategoryId;

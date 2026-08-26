@@ -1,7 +1,8 @@
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useMemo } from "react";
+import { Image, StyleSheet, Text } from "react-native";
 
-import { COLORS, RADIUS, TYPOGRAPHY } from "@/theme";
+import { useThemeColors, RADIUS, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 function getInitials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -11,26 +12,55 @@ function getInitials(name: string): string {
     .join("");
 }
 
-export function Avatar({ name }: { name: string }) {
+type AvatarProps = {
+  name: string;
+  photoUri?: string | null;
+};
+
+export function Avatar({ name, photoUri }: AvatarProps) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+
   return (
-    <View style={styles.avatar}>
-      <Text style={styles.text}>{getInitials(name)}</Text>
-    </View>
+    <LinearGradient
+      colors={[COLORS.primary, COLORS.primaryDark]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.avatar}
+    >
+      {photoUri ? (
+        <Image source={{ uri: photoUri }} style={styles.image} />
+      ) : (
+        <Text style={styles.text}>{getInitials(name)}</Text>
+      )}
+    </LinearGradient>
   );
 }
 
-const styles = StyleSheet.create({
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    color: COLORS.white,
-    fontWeight: "700",
-    fontSize: TYPOGRAPHY.subtitle,
-  },
-});
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    avatar: {
+      width: 56,
+      height: 56,
+      borderRadius: RADIUS.full,
+      overflow: "hidden",
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: COLORS.primary,
+      shadowOpacity: 0.25,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+    },
+    image: {
+      width: "100%",
+      height: "100%",
+      borderRadius: RADIUS.full,
+    },
+    text: {
+      color: COLORS.white,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.subtitle,
+    },
+  });
+}

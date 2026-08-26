@@ -51,3 +51,19 @@ export function getNearestBarangay(
       : closest,
   );
 }
+
+// Nearest-barangay lookup by plain squared distance -- Cordova is small
+// enough (a few km across) that this is accurate enough for labeling a
+// pinned point without needing a real reverse-geocoding API.
+export function findNearestBarangay(
+  latitude: number,
+  longitude: number,
+): Barangay {
+  return CORDOVA_BARANGAYS.reduce((closest, barangay) => {
+    const d =
+      (barangay.latitude - latitude) ** 2 + (barangay.longitude - longitude) ** 2;
+    const closestD =
+      (closest.latitude - latitude) ** 2 + (closest.longitude - longitude) ** 2;
+    return d < closestD ? barangay : closest;
+  });
+}

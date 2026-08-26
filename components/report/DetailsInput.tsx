@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 const MAX_LENGTH = 500;
 
@@ -11,8 +11,12 @@ type DetailsInputProps = {
 };
 
 export default function DetailsInput({ value, onChangeText }: DetailsInputProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, isFocused && styles.wrapFocused]}>
       <TextInput
         style={styles.input}
         value={value}
@@ -23,6 +27,8 @@ export default function DetailsInput({ value, onChangeText }: DetailsInputProps)
         numberOfLines={4}
         maxLength={MAX_LENGTH}
         textAlignVertical="top"
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
       />
       <Text style={styles.counter}>
         {value.length}/{MAX_LENGTH}
@@ -31,12 +37,18 @@ export default function DetailsInput({ value, onChangeText }: DetailsInputProps)
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   wrap: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1.5,
+    borderColor: COLORS.borderMuted,
     padding: SPACING.sm,
     ...SHADOW,
+  },
+  wrapFocused: {
+    borderColor: COLORS.primary,
   },
   input: {
     minHeight: 100,
@@ -50,4 +62,5 @@ const styles = StyleSheet.create({
     color: COLORS.textTertiary,
     paddingHorizontal: SPACING.xs,
   },
-});
+  });
+}

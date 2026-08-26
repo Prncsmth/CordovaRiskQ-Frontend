@@ -1,4 +1,6 @@
-import React from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -14,7 +16,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from "../../theme";
+import { useThemeColors, SPACING, RADIUS, TYPOGRAPHY, type ColorPalette } from "../../theme";
 
 interface PrimaryButtonProps extends Omit<PressableProps, "style"> {
   title: string;
@@ -27,10 +29,14 @@ export default function PrimaryButton({
   loading = false,
   disabled,
   style,
+  onPress,
   onPressIn,
   onPressOut,
   ...props
 }: PrimaryButtonProps) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -39,8 +45,14 @@ export default function PrimaryButton({
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        style={[styles.button, (disabled || loading) && styles.disabled, style]}
+        style={[styles.wrap, (disabled || loading) && styles.disabled, style]}
         disabled={disabled || loading}
+        onPress={(e) => {
+          if (!disabled && !loading) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          }
+          onPress?.(e);
+        }}
         onPressIn={(e) => {
           scale.value = withTiming(0.97, { duration: 100 });
           onPressIn?.(e);
@@ -51,38 +63,68 @@ export default function PrimaryButton({
         }}
         {...props}
       >
-        {loading ? (
-          <ActivityIndicator color={COLORS.white} />
-        ) : (
-          <Text style={styles.text}>{title}</Text>
-        )}
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.button}
+        >
+          <LinearGradient
+            colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={styles.sheen}
+          />
+          {loading ? (
+            <ActivityIndicator color={COLORS.white} />
+          ) : (
+            <Text style={styles.text}>{title}</Text>
+          )}
+        </LinearGradient>
       </Pressable>
     </Animated.View>
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+  wrap: {
     width: "100%",
-    height: 56,
-
-    backgroundColor: COLORS.primary,
-
     borderRadius: RADIUS.md,
+    marginTop: SPACING.sm,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
 
+  button: {
+    height: 56,
+    borderRadius: RADIUS.md,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
+  },
 
-    marginTop: SPACING.sm,
+  sheen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "50%",
   },
 
   disabled: {
     opacity: 0.6,
+    shadowOpacity: 0,
   },
 
   text: {
     color: COLORS.white,
     fontSize: TYPOGRAPHY.body,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
-});
+  });
+}

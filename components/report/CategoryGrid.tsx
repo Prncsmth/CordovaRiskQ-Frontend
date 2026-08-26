@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import * as Haptics from "expo-haptics";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -8,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CATEGORIES, type Category, type CategoryId } from "@/components/report/categories";
-import { COLORS, RADIUS, SHADOW, SPACING, TYPOGRAPHY } from "@/theme";
+import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 type CategoryGridProps = {
   selected: CategoryId | null;
@@ -16,6 +17,8 @@ type CategoryGridProps = {
 };
 
 export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   return (
     <View style={styles.grid}>
       {CATEGORIES.map((category) => (
@@ -24,20 +27,26 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
           category={category}
           isSelected={category.id === selected}
           onSelect={onSelect}
+          styles={styles}
         />
       ))}
     </View>
   );
 }
 
+// Neutral card + a bold colored left-border stripe -- the same "designated
+// color" accent used on the home screen's EvacuationCenterCard, so a
+// category reads as color-coded without tinting the whole card.
 function CategoryCard({
   category,
   isSelected,
   onSelect,
+  styles,
 }: {
   category: Category;
   isSelected: boolean;
   onSelect: (id: CategoryId) => void;
+  styles: ReturnType<typeof createStyles>;
 }) {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -49,13 +58,17 @@ function CategoryCard({
       <Pressable
         style={[
           styles.card,
+          { borderLeftColor: category.color },
           isSelected && {
-            backgroundColor: `${category.color}12`,
-            borderWidth: 1.5,
+            backgroundColor: `${category.color}14`,
             borderColor: category.color,
+            borderLeftColor: category.color,
           },
         ]}
-        onPress={() => onSelect(category.id)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onSelect(category.id);
+        }}
         onPressIn={() => {
           scale.value = withTiming(0.96, { duration: 100 });
         }}
@@ -66,13 +79,13 @@ function CategoryCard({
         <View style={[styles.iconCircle, { backgroundColor: `${category.color}1A` }]}>
           <Ionicons name={category.icon} size={24} color={category.color} />
         </View>
-        <Text style={[styles.label, isSelected && { color: category.color }]}>
+        <Text style={[styles.label, { color: category.color }]}>
           {category.label}
         </Text>
 
         {isSelected && (
           <View style={[styles.checkBadge, { backgroundColor: category.color }]}>
-            <Ionicons name="checkmark" size={12} color={COLORS.white} />
+            <Ionicons name="checkmark" size={12} color="#FFFFFF" />
           </View>
         )}
       </Pressable>
@@ -80,7 +93,8 @@ function CategoryCard({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -92,6 +106,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    borderLeftWidth: 4,
     paddingVertical: SPACING.md,
     paddingHorizontal: SPACING.sm,
     alignItems: "center",
@@ -108,7 +125,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: TYPOGRAPHY.caption,
     fontWeight: "700",
-    color: COLORS.text,
     textAlign: "center",
   },
   checkBadge: {
@@ -123,4 +139,5 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.white,
   },
-});
+  });
+}

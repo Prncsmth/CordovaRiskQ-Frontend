@@ -48,6 +48,13 @@
           "locationWhenInUsePermission": "Allow Cordova RiskQ to use your location to show nearby evacuation centers on the map."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Cordova RiskQ to access your photos so you can set a profile picture.",
+          "cameraPermission": "Allow Cordova RiskQ to use your camera so you can take a profile picture."
+        }
+      ],
       "@rnmapbox/maps",
       "expo-font"
     ],

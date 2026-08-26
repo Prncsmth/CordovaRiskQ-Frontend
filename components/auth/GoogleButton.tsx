@@ -1,18 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Google from "expo-auth-session/providers/google";
+import * as Haptics from "expo-haptics";
 import * as WebBrowser from "expo-web-browser";
 import React, { useEffect } from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-} from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { useAuth } from "@/context/AuthContext";
 import { googleAuth } from "@/services/auth.service";
-import { COLORS, RADIUS, SPACING, TYPOGRAPHY } from "@/theme";
+import {
+  RADIUS,
+  SHADOW,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 // Required once per app so the browser popup properly closes and
 // returns control back to the app after Google redirects.
@@ -39,12 +46,51 @@ const isConfigured = Boolean(
       : webClientId,
 );
 
+function GoogleButtonShell({
+  disabled,
+  onPress,
+  children,
+}: {
+  disabled?: boolean;
+  onPress: () => void;
+  children: React.ReactNode;
+}) {
+  const COLORS = useThemeColors();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Pressable
+        style={[styles.button, disabled && styles.disabled]}
+        disabled={disabled}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }}
+        onPressIn={() => {
+          scale.value = withTiming(0.97, { duration: 100 });
+        }}
+        onPressOut={() => {
+          scale.value = withTiming(1, { duration: 100 });
+        }}
+      >
+        {children}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function GoogleButton({ onError }: GoogleButtonProps) {
+  const COLORS = useThemeColors();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
+
   if (!isConfigured) {
     return (
-      <TouchableOpacity
-        style={[styles.button, styles.disabled]}
-        activeOpacity={0.8}
+      <GoogleButtonShell
         onPress={() =>
           onError?.(
             "Google sign-in isn't configured for this platform yet.",
@@ -58,7 +104,7 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
           style={styles.icon}
         />
         <Text style={styles.text}>Continue with Google</Text>
-      </TouchableOpacity>
+      </GoogleButtonShell>
     );
   }
 
@@ -67,6 +113,8 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
 
 function GoogleAuthButton({ onError }: GoogleButtonProps) {
   const { login } = useAuth();
+  const COLORS = useThemeColors();
+  const styles = React.useMemo(() => createStyles(COLORS), [COLORS]);
   const [loading, setLoading] = React.useState(false);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
@@ -101,10 +149,8 @@ function GoogleAuthButton({ onError }: GoogleButtonProps) {
   }, [response]);
 
   return (
-    <TouchableOpacity
-      style={[styles.button, loading && styles.disabled]}
+    <GoogleButtonShell
       disabled={!request || loading}
-      activeOpacity={0.8}
       onPress={() => promptAsync()}
     >
       {loading ? (
@@ -120,39 +166,47 @@ function GoogleAuthButton({ onError }: GoogleButtonProps) {
           <Text style={styles.text}>Continue with Google</Text>
         </>
       )}
-    </TouchableOpacity>
+    </GoogleButtonShell>
   );
 }
 
-const styles = StyleSheet.create({
-  button: {
-    width: "100%",
-    height: 56,
-    flexDirection: "row",
+function createStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    button: {
+      width: "100%",
+      height: 56,
+      flexDirection: "row",
 
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+      // Was hardcoded COLORS.white -- fixed white would strand the dynamic
+      // (near-white in dark mode) COLORS.text label on a white background.
+      // COLORS.surface keeps the light-mode look (off-white) while giving
+      // dark mode a proper dark card the light text can sit on.
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
 
-    borderRadius: RADIUS.md,
+      borderRadius: RADIUS.md,
 
-    alignItems: "center",
-    justifyContent: "center",
+      alignItems: "center",
+      justifyContent: "center",
 
-    marginTop: SPACING.sm,
-  },
+      marginTop: SPACING.sm,
 
-  disabled: {
-    opacity: 0.6,
-  },
+      ...SHADOW,
+    },
 
-  icon: {
-    marginRight: SPACING.xs,
-  },
+    disabled: {
+      opacity: 0.6,
+    },
 
-  text: {
-    color: COLORS.text,
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "600",
-  },
-});
+    icon: {
+      marginRight: SPACING.xs,
+    },
+
+    text: {
+      color: COLORS.text,
+      fontSize: TYPOGRAPHY.body,
+      fontWeight: "600",
+    },
+  });
+}
