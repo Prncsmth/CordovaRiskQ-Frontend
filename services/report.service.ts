@@ -1,8 +1,16 @@
 // services/report.service.ts
-import { apiPost } from "./api";
+import { apiGet, apiPost } from "./api";
 import type { CategoryId } from "@/components/report/categories";
+import { CATEGORY_LABELS } from "./incident.service";
+import { formatDate } from "@/utils/formatter";
 
-type IncidentApiRow = { id: string };
+type IncidentApiRow = {
+  id: string;
+  category: string;
+  locationLabel: string;
+  status: string;
+  createdAt: string;
+};
 
 export async function createReport(
   token: string,
@@ -22,19 +30,38 @@ export async function createReport(
   return { success: true, ref: response.incident.id.slice(0, 8).toUpperCase() };
 }
 
+export type ReportHistoryStatus = "reviewing" | "resolved" | "cancelled";
+
 export type ReportHistoryItem = {
   id: string;
   category: string;
   location: string;
   date: string;
   ref: string;
-  status: "Resolved" | "Reviewing";
-  statusColor: string;
-  statusBg: string;
+  status: ReportHistoryStatus;
 };
 
-const HISTORY: ReportHistoryItem[] = [];
+function toHistoryStatus(status: string): ReportHistoryStatus {
+  if (status === "completed") return "resolved";
+  if (status === "cancelled") return "cancelled";
+  return "reviewing";
+}
 
-export async function getReportHistory(): Promise<ReportHistoryItem[]> {
-  return HISTORY;
+function toHistoryItem(row: IncidentApiRow): ReportHistoryItem {
+  return {
+    id: row.id,
+    category: CATEGORY_LABELS[row.category] ?? row.category,
+    location: row.locationLabel,
+    date: formatDate(row.createdAt),
+    ref: row.id.slice(0, 8).toUpperCase(),
+    status: toHistoryStatus(row.status),
+  };
+}
+
+export async function getReportHistory(token: string): Promise<ReportHistoryItem[]> {
+  const response = await apiGet<{ success: true; incidents: IncidentApiRow[] }>(
+    "/api/incidents/mine",
+    token,
+  );
+  return response.incidents.map(toHistoryItem);
 }

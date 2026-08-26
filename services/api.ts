@@ -23,6 +23,16 @@ function authHeaders(token?: string): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+// Lets AuthContext force a logout when the backend rejects a stored token --
+// this module is plain (not a component/hook), so it can't call useAuth()
+// itself. AuthProvider registers the handler on mount.
+type UnauthorizedHandler = () => void;
+let onUnauthorized: UnauthorizedHandler | null = null;
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  onUnauthorized = handler;
+}
+
 async function extractErrorMessage(response: Response): Promise<string> {
   const text = await response.text().catch(() => "");
   try {
@@ -36,13 +46,28 @@ async function extractErrorMessage(response: Response): Promise<string> {
   return `Request failed with status ${response.status}`;
 }
 
+// A 401 on a request that carried a token means the stored session is
+// invalid/expired -- distinct from a 401 on an unauthenticated endpoint
+// (e.g. wrong password on login), which never passes a token and so never
+// triggers this.
+async function handleErrorResponse(
+  response: Response,
+  token?: string,
+): Promise<never> {
+  const message = await extractErrorMessage(response);
+  if (response.status === 401 && token) {
+    onUnauthorized?.();
+  }
+  throw new Error(message);
+}
+
 export async function apiGet<T>(path: string, token?: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: authHeaders(token),
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    await handleErrorResponse(response, token);
   }
 
   return response.json() as Promise<T>;
@@ -63,7 +88,7 @@ export async function apiPost<T>(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    await handleErrorResponse(response, token);
   }
 
   return response.json() as Promise<T>;
@@ -84,7 +109,7 @@ export async function apiPut<T>(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    await handleErrorResponse(response, token);
   }
 
   return response.json() as Promise<T>;
@@ -105,7 +130,7 @@ export async function apiPatch<T>(
   });
 
   if (!response.ok) {
-    throw new Error(await extractErrorMessage(response));
+    await handleErrorResponse(response, token);
   }
 
   return response.json() as Promise<T>;

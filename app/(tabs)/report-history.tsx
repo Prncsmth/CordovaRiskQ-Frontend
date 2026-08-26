@@ -6,23 +6,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import { EmptyState } from "@/components/common/EmptyState";
 import ReportHistoryCard from "@/components/report-history/ReportHistoryCard";
+import { useAuth } from "@/context/AuthContext";
 import { getReportHistory, type ReportHistoryItem } from "@/services/report.service";
 import { FONT_FAMILY, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 export default function ReportHistoryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { token } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [reports, setReports] = useState<ReportHistoryItem[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    getReportHistory()
+    if (!token) return;
+
+    getReportHistory(token)
       .then((history) => setReports(history))
       .catch(() => {})
       .finally(() => setLoaded(true));
-  }, []);
+  }, [token]);
 
   return (
     <ScrollView

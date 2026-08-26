@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import type { ReportHistoryItem } from "@/services/report.service";
+import type { ReportHistoryItem, ReportHistoryStatus } from "@/services/report.service";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -17,13 +17,27 @@ type ReportHistoryCardProps = {
   item: ReportHistoryItem;
 };
 
+function getStatusDisplay(status: ReportHistoryStatus, COLORS: ColorPalette) {
+  switch (status) {
+    case "resolved":
+      return { label: "Resolved", color: COLORS.success, bg: COLORS.successBg };
+    case "cancelled":
+      return { label: "Cancelled", color: COLORS.textTertiary, bg: COLORS.borderMuted };
+    case "reviewing":
+    default:
+      return { label: "Reviewing", color: COLORS.warning, bg: COLORS.warningBg };
+  }
+}
+
 export default function ReportHistoryCard({ item }: ReportHistoryCardProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { label, color, bg } = getStatusDisplay(item.status, COLORS);
+
   return (
     <View style={styles.card}>
-      <View style={[styles.iconCircle, { backgroundColor: item.statusBg }]}>
-        <Ionicons name="document-text" size={18} color={item.statusColor} />
+      <View style={[styles.iconCircle, { backgroundColor: bg }]}>
+        <Ionicons name="document-text" size={18} color={color} />
       </View>
 
       <View style={styles.textCol}>
@@ -38,10 +52,8 @@ export default function ReportHistoryCard({ item }: ReportHistoryCardProps) {
         </Text>
       </View>
 
-      <View style={[styles.pill, { backgroundColor: item.statusBg }]}>
-        <Text style={[styles.pillText, { color: item.statusColor }]}>
-          {item.status}
-        </Text>
+      <View style={[styles.pill, { backgroundColor: bg }]}>
+        <Text style={[styles.pillText, { color }]}>{label}</Text>
       </View>
     </View>
   );

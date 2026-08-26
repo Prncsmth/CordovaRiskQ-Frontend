@@ -17,7 +17,7 @@ type IncidentApiRow = {
 // SOS-sourced incidents) to the display label the responder screens already
 // render via `incident.type` — keeps every existing component (IncidentCard,
 // getIncidentVisual, DetailRow, etc.) unchanged.
-const CATEGORY_LABELS: Record<string, string> = {
+export const CATEGORY_LABELS: Record<string, string> = {
   flood: "Flood",
   fire: "Fire",
   medical: "Medical Emergency",

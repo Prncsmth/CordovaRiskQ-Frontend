@@ -1,11 +1,13 @@
 import React, {
     createContext,
+    useCallback,
     useContext,
     useEffect,
     useMemo,
     useState,
 } from "react";
 import * as authStorage from "./authStorage";
+import { setUnauthorizedHandler } from "@/services/api";
 
 const TOKEN_KEY = "auth_token";
 const USER_KEY = "auth_user";
@@ -66,6 +68,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
   const [isLoading, setIsLoading] = useState(true);
 
+  const clearSession = useCallback(async () => {
+    await authStorage.deleteItem(TOKEN_KEY);
+    await authStorage.deleteItem(USER_KEY);
+    setAuthState(INITIAL_AUTH_STATE);
+  }, []);
+
+  // services/api.ts calls this when the backend rejects a stored token
+  // (401) -- forces a logout so the user lands back on the login screen
+  // instead of staying stuck in an "authenticated" state with a dead token.
+  useEffect(() => {
+    setUnauthorizedHandler(clearSession);
+    return () => setUnauthorizedHandler(null);
+  }, [clearSession]);
+
   // On app start, try to restore a previously saved session.
   useEffect(() => {
     async function loadSession() {
@@ -114,11 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           needsOnboarding: needsOnboardingFlag,
         });
       },
-      logout: async () => {
-        await authStorage.deleteItem(TOKEN_KEY);
-        await authStorage.deleteItem(USER_KEY);
-        setAuthState(INITIAL_AUTH_STATE);
-      },
+      logout: clearSession,
       updateUser: async (
         newUser: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
       ) => {
@@ -135,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthState((prev) => ({ ...prev, needsOnboarding: false }));
       },
     }),
-    [authState, isLoading],
+    [authState, isLoading, clearSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
