@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -98,14 +97,9 @@ export default function ContactsScreen() {
       </View>
 
       <View style={styles.hero}>
-        <LinearGradient
-          colors={[COLORS.primary, COLORS.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroIcon}
-        >
+        <View style={[styles.heroIcon, { backgroundColor: COLORS.primary }]}>
           <Ionicons name="call" size={22} color={COLORS.white} />
-        </LinearGradient>
+        </View>
         <Text style={styles.eyebrow}>CORDOVA RESPONSE NETWORK</Text>
         <Text style={styles.title}>Help is closer than you think.</Text>
         <Text style={styles.subtitle}>
@@ -120,14 +114,9 @@ export default function ContactsScreen() {
           router.push("/(tabs)/home");
         }}
       >
-        <LinearGradient
-          colors={[COLORS.primary, COLORS.primaryDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.sosIcon}
-        >
+        <View style={[styles.sosIcon, { backgroundColor: COLORS.primary }]}>
           <Ionicons name="warning" size={18} color={COLORS.white} />
-        </LinearGradient>
+        </View>
         <View style={styles.sosCopy}>
           <Text style={styles.sosTitle}>Immediate danger?</Text>
           <Text style={styles.sosText}>
@@ -261,27 +250,24 @@ function ContactRow({
         {image ? (
           <Image source={image} style={styles.contactIcon} resizeMode="cover" />
         ) : (
-          <LinearGradient
-            colors={gradientColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.contactIcon}
+          <View
+            style={[
+              styles.contactIcon,
+              { backgroundColor: gradientColors[0] },
+            ]}
           >
             <Ionicons name={icon} size={19} color={iconColor} />
-          </LinearGradient>
+          </View>
         )}
         <View style={styles.contactCopy}>
           <Text style={styles.contactName}>{name}</Text>
           <Text style={styles.contactNumber}>{number}</Text>
         </View>
-        <LinearGradient
-          colors={callButtonColors}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.callButton}
+        <View
+          style={[styles.callButton, { backgroundColor: callButtonColors[0] }]}
         >
           <Ionicons name="call" size={15} color={COLORS.white} />
-        </LinearGradient>
+        </View>
       </Pressable>
     </Animated.View>
   );
