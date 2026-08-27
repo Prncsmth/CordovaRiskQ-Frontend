@@ -9,6 +9,7 @@ type AdvisoryBannerProps = {
   time: string;
   title: string;
   message: string;
+  sample?: boolean;
 };
 
 export default function AdvisoryBanner({
@@ -16,6 +17,7 @@ export default function AdvisoryBanner({
   time,
   title,
   message,
+  sample,
 }: AdvisoryBannerProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -29,10 +31,14 @@ export default function AdvisoryBanner({
         <View style={styles.metaRow}>
           <Text style={styles.meta}>ADVISORY · {signalLabel.toUpperCase()}</Text>
           <Text style={styles.time}>{time}</Text>
+          {sample ? (
+            <View style={styles.sampleBadge}>
+              <Text style={styles.sampleBadgeText}>SAMPLE</Text>
+            </View>
+          ) : null}
         </View>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.message}>{message}</Text>
-        <Text style={styles.link}>Read full advisory</Text>
       </View>
     </View>
   );
@@ -75,6 +81,19 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
     },
+    sampleBadge: {
+      marginLeft: "auto",
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 2,
+      backgroundColor: COLORS.borderMuted,
+    },
+    sampleBadgeText: {
+      fontSize: 10,
+      fontWeight: "800",
+      letterSpacing: 0.5,
+      color: COLORS.textSecondary,
+    },
     title: {
       fontFamily: FONT_FAMILY.displaySemibold,
       fontSize: TYPOGRAPHY.body,
@@ -86,13 +105,6 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textSecondary,
       marginTop: 2,
       lineHeight: 18,
-    },
-    link: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "700",
-      color: COLORS.warning,
-      textDecorationLine: "underline",
-      marginTop: SPACING.xs,
     },
   });
 }

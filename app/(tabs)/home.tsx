@@ -93,23 +93,30 @@ export default function HomeScreen() {
       <HomeHeader hasUnread={hasUnread} />
       <GreetingBlock name={firstName} location={MOCK_LOCATION} />
 
+      <View style={styles.sosSection}>
+        <SOSButton onPress={openConfirm} />
+      </View>
+
       <AdvisoryBanner
         signalLabel={MOCK_ADVISORY.signalLabel}
         time={MOCK_ADVISORY.time}
         title={MOCK_ADVISORY.title}
         message={MOCK_ADVISORY.message}
+        sample
       />
 
-      {tideStatus ? (
-        <TideBanner
-          level={tideStatus.floodRiskLevel}
-          detail={formatTideDetail(tideStatus)}
-          temperatureC={MOCK_TEMPERATURE_C}
-          weatherDescription={MOCK_WEATHER_DESCRIPTION}
-          floodMessage={FLOOD_MESSAGE[tideStatus.floodRiskLevel]}
-          updatedLabel={`Updated ${formatTime(tideStatus.updatedAt)}`}
-        />
-      ) : null}
+      <TideBanner
+        level={tideStatus?.floodRiskLevel ?? null}
+        detail={tideStatus ? formatTideDetail(tideStatus) : "Tide data unavailable"}
+        temperatureC={MOCK_TEMPERATURE_C}
+        weatherDescription={MOCK_WEATHER_DESCRIPTION}
+        floodMessage={
+          tideStatus
+            ? FLOOD_MESSAGE[tideStatus.floodRiskLevel]
+            : "Unable to load flood risk data right now"
+        }
+        updatedLabel={tideStatus ? `Updated ${formatTime(tideStatus.updatedAt)}` : "Not available"}
+      />
 
       <HomeActionList
         nearestCenter={nearestCenter}
@@ -119,10 +126,6 @@ export default function HomeScreen() {
         onPressReport={() => router.push("/(tabs)/report")}
         onPressHotlines={() => router.push("/contacts")}
       />
-
-      <View style={styles.sosSection}>
-        <SOSButton onPress={openConfirm} />
-      </View>
     </ScrollView>
   );
 }

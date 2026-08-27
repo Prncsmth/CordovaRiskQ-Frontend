@@ -11,5 +11,9 @@ export type TideStatus = {
 
 export async function getTideStatus(): Promise<TideStatus> {
   const response = await apiGet<{ success: true; tide: TideStatus }>("/api/tide");
-  return response.tide;
+  const tide = response.tide;
+  if (!tide || typeof tide.seaLevelM !== "number") {
+    throw new Error("Malformed tide response from server");
+  }
+  return tide;
 }

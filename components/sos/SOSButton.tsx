@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useState } from "react";
-import { LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { LayoutChangeEvent, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
@@ -67,7 +67,14 @@ export function SOSButton({ onPress }: { onPress?: () => void }) {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.track} onLayout={handleTrackLayout}>
+      <Pressable
+        style={styles.track}
+        onLayout={handleTrackLayout}
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel="Send SOS emergency alert"
+        accessibilityHint="Opens the SOS confirmation. You can also slide the handle to the right."
+      >
         <Animated.View style={[styles.fill, fillStyle]} />
 
         <Animated.Text style={[styles.label, labelStyle]}>
@@ -79,7 +86,7 @@ export function SOSButton({ onPress }: { onPress?: () => void }) {
             <Ionicons name="chevron-forward" size={22} color={COLORS.primary} />
           </Animated.View>
         </GestureDetector>
-      </View>
+      </Pressable>
     </View>
   );
 }

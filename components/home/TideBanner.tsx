@@ -8,7 +8,7 @@ import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type 
 export type TideLevel = "normal" | "watch" | "warning";
 
 type TideBannerProps = {
-  level: TideLevel;
+  level: TideLevel | null;
   detail: string;
   temperatureC: number;
   weatherDescription: string;
@@ -21,6 +21,19 @@ const LEVEL_LABEL: Record<TideLevel, string> = {
   watch: "Watch",
   warning: "Warning",
 };
+
+function getLevelDotColor(COLORS: ColorPalette, level: TideLevel | null): string {
+  if (level === "warning") return COLORS.danger;
+  if (level === "watch") return COLORS.warning;
+  if (level === "normal") return COLORS.tideCardAccent;
+  return COLORS.tideCardMuted;
+}
+
+function getLevelTextColor(COLORS: ColorPalette, level: TideLevel | null): string {
+  if (level === "warning") return COLORS.danger;
+  if (level === "watch") return COLORS.warning;
+  return COLORS.white;
+}
 
 export default function TideBanner({
   level,
@@ -36,7 +49,7 @@ export default function TideBanner({
 
   function handleLayout(event: LayoutChangeEvent) {
     const { width, height } = event.nativeEvent.layout;
-    setCardSize({ width, height });
+    setCardSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
   }
 
   return (
@@ -47,7 +60,9 @@ export default function TideBanner({
         <View style={styles.topRow}>
           <View style={styles.left}>
             <Text style={styles.label}>TIDE LEVEL</Text>
-            <Text style={styles.level}>{LEVEL_LABEL[level]}</Text>
+            <Text style={[styles.level, { color: getLevelTextColor(COLORS, level) }]}>
+              {level ? LEVEL_LABEL[level] : "Unavailable"}
+            </Text>
             <Text style={styles.detail}>{detail}</Text>
           </View>
 
@@ -64,7 +79,7 @@ export default function TideBanner({
 
         <View style={styles.bottomRow}>
           <View style={styles.floodRow}>
-            <View style={styles.dot} />
+            <View style={[styles.dot, { backgroundColor: getLevelDotColor(COLORS, level) }]} />
             <Text style={styles.floodMessage}>{floodMessage}</Text>
           </View>
           <Text style={styles.updated}>{updatedLabel}</Text>
@@ -103,7 +118,6 @@ function createStyles(COLORS: ColorPalette) {
     level: {
       fontFamily: FONT_FAMILY.display,
       fontSize: TYPOGRAPHY.title,
-      color: COLORS.white,
       marginTop: 2,
     },
     detail: {
@@ -149,7 +163,6 @@ function createStyles(COLORS: ColorPalette) {
       width: 6,
       height: 6,
       borderRadius: RADIUS.full,
-      backgroundColor: COLORS.tideCardAccent,
     },
     floodMessage: {
       fontSize: TYPOGRAPHY.small,

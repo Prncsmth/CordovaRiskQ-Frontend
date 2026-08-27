@@ -23,7 +23,7 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
 
   return (
     <View style={styles.row}>
-      <View style={styles.brand}>
+      <View style={styles.brand} accessible accessibilityLabel="Cordova RiskQ">
         <Image
           source={require("@/assets/images/riskq.png")}
           style={styles.logo}
