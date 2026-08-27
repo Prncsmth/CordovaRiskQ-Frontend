@@ -1,118 +1,128 @@
-import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, View } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
   withTiming,
 } from "react-native-reanimated";
 
-import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW_LG, TYPOGRAPHY, type ColorPalette } from "@/theme";
+
+const THUMB_SIZE = 52;
+const TRACK_PADDING = 4;
+const COMPLETE_THRESHOLD = 0.7;
 
 export function SOSButton({ onPress }: { onPress?: () => void }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+  const [trackWidth, setTrackWidth] = useState(0);
+  const translateX = useSharedValue(0);
+  const maxTranslate = Math.max(0, trackWidth - THUMB_SIZE - TRACK_PADDING * 2);
+
+  function handleTrackLayout(event: LayoutChangeEvent) {
+    setTrackWidth(event.nativeEvent.layout.width);
+  }
+
+  function handleComplete() {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    onPress?.();
+  }
+
+  const pan = Gesture.Pan()
+    .onUpdate((event) => {
+      translateX.value = Math.min(Math.max(0, event.translationX), maxTranslate);
+    })
+    .onEnd(() => {
+      if (maxTranslate > 0 && translateX.value > maxTranslate * COMPLETE_THRESHOLD) {
+        translateX.value = withSequence(
+          withTiming(maxTranslate, { duration: 120 }, (finished) => {
+            if (finished) runOnJS(handleComplete)();
+          }),
+          withDelay(400, withSpring(0)),
+        );
+      } else {
+        translateX.value = withSpring(0);
+      }
+    });
+
+  const thumbStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: THUMB_SIZE + translateX.value,
+  }));
+
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, maxTranslate * 0.6], [1, 0], "clamp"),
   }));
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.glow}>
-        <Animated.View style={[styles.button, animatedStyle]}>
-          <Pressable
-            style={styles.pressable}
-            onPress={() => {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-              onPress?.();
-            }}
-            onPressIn={() => {
-              scale.value = withTiming(0.96, { duration: 100 });
-            }}
-            onPressOut={() => {
-              scale.value = withTiming(1, { duration: 100 });
-            }}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          >
-            {/* Orange-to-red, top-to-bottom -- matches the riskq logo's own
-                circle gradient (sampled: warm orange up top fading into a
-                deep red/maroon at the bottom). */}
-            <LinearGradient
-              colors={[COLORS.secondary, COLORS.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={styles.fill}
-            >
-              <LinearGradient
-                colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 0.7 }}
-                style={styles.sheen}
-              />
-              <Text style={styles.text}>SOS</Text>
-            </LinearGradient>
-          </Pressable>
-        </Animated.View>
+      <View style={styles.track} onLayout={handleTrackLayout}>
+        <Animated.View style={[styles.fill, fillStyle]} />
+
+        <Animated.Text style={[styles.label, labelStyle]}>
+          Slide to Send SOS
+        </Animated.Text>
+
+        <GestureDetector gesture={pan}>
+          <Animated.View style={[styles.thumb, thumbStyle]}>
+            <Ionicons name="chevron-forward" size={22} color={COLORS.primary} />
+          </Animated.View>
+        </GestureDetector>
       </View>
-      <Text style={styles.caption}>Tap to alert emergency responders</Text>
     </View>
   );
 }
 
-const BUTTON_SIZE = 150;
-const GLOW_SIZE = 174;
-
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
     wrap: {
-      alignItems: "center",
-    },
-    glow: {
-      width: GLOW_SIZE,
-      height: GLOW_SIZE,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primaryTint,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    button: {
-      width: BUTTON_SIZE,
-      height: BUTTON_SIZE,
       borderRadius: RADIUS.full,
       ...SHADOW_LG,
       shadowColor: COLORS.primary,
-      shadowOpacity: 0.35,
+      shadowOpacity: 0.3,
     },
-    pressable: {
-      width: "100%",
-      height: "100%",
+    track: {
+      height: THUMB_SIZE + TRACK_PADDING * 2,
       borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primary,
+      padding: TRACK_PADDING,
+      justifyContent: "center",
       overflow: "hidden",
     },
     fill: {
-      flex: 1,
+      position: "absolute",
+      left: 0,
+      top: 0,
+      bottom: 0,
+      backgroundColor: "rgba(255, 255, 255, 0.14)",
+      borderRadius: RADIUS.full,
+    },
+    label: {
+      position: "absolute",
+      alignSelf: "center",
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.white,
+      letterSpacing: 0.3,
+    },
+    thumb: {
+      width: THUMB_SIZE,
+      height: THUMB_SIZE,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.white,
       alignItems: "center",
       justifyContent: "center",
-    },
-    sheen: {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      height: "55%",
-    },
-    text: {
-      fontFamily: FONT_FAMILY.display,
-      color: COLORS.white,
-      fontSize: TYPOGRAPHY.heading,
-      letterSpacing: 1,
-    },
-    caption: {
-      marginTop: SPACING.sm,
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textTertiary,
     },
   });
 }

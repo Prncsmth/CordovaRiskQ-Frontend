@@ -1,3 +1,4 @@
+import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
 import {
   Sora_600SemiBold,
   Sora_700Bold,
@@ -167,6 +168,7 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     Sora_600SemiBold,
     Sora_700Bold,
+    ArchivoBlack_400Regular,
   });
 
   if (!fontsLoaded) {

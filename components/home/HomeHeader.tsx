@@ -1,10 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { useThemeColors, RADIUS, SPACING, type ColorPalette } from "@/theme";
+import {
+  FONT_FAMILY,
+  RADIUS,
+  SPACING,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 type HomeHeaderProps = {
   hasUnread: boolean;
@@ -26,13 +32,13 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
 
         <View style={styles.wordmark}>
           <View style={styles.brandLine}>
-            <Text style={styles.brandText}>CORD</Text>
+            <Text style={styles.brandText}>C</Text>
             <Image
               source={require("@/assets/images/cordova-logo.png")}
               style={styles.monogram}
               resizeMode="contain"
             />
-            <Text style={styles.brandText}>VA</Text>
+            <Text style={styles.brandText}>RDOVA</Text>
           </View>
           <View style={styles.riskLine}>
             <Text style={styles.riskText}>RISKQ</Text>
@@ -49,7 +55,7 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons name="notifications" size={24} color={COLORS.primary} />
+        <Ionicons name="notifications" size={26} color={COLORS.primary} />
         {hasUnread ? <View style={styles.dot} /> : null}
       </TouchableOpacity>
     </View>
@@ -71,21 +77,21 @@ function createStyles(COLORS: ColorPalette) {
       flexShrink: 1,
     },
     logo: {
-      width: 34,
-      height: 34,
+      width: 42,
+      height: 42,
     },
     wordmark: {
       flexDirection: "column",
       alignItems: "flex-start",
       justifyContent: "center",
       flexShrink: 1,
-      marginLeft: 2,
+      marginLeft: 4,
     },
     brandLine: {
       flexDirection: "row",
       alignItems: "center",
       alignSelf: "flex-start",
-      marginBottom: -1,
+      marginBottom: -2,
     },
     riskLine: {
       alignSelf: "flex-start",
@@ -93,28 +99,28 @@ function createStyles(COLORS: ColorPalette) {
     },
     brandText: {
       color: COLORS.primary,
-      fontSize: 12.5,
-      fontWeight: "800",
-      letterSpacing: 0.9,
+      fontFamily: FONT_FAMILY.wordmark,
+      fontSize: 20,
+      letterSpacing: -1,
       textTransform: "uppercase",
       includeFontPadding: false,
     },
     riskText: {
-      color: COLORS.primary,
-      fontSize: 12.5,
-      fontWeight: "800",
-      letterSpacing: 0.9,
+      color: COLORS.secondary,
+      fontFamily: FONT_FAMILY.wordmark,
+      fontSize: 20,
+      letterSpacing: -1,
       textTransform: "uppercase",
       includeFontPadding: false,
     },
     monogram: {
-      width: 16,
-      height: 16,
-      marginHorizontal: 2,
+      width: 20,
+      height: 20,
+      marginHorizontal: -1,
     },
     bell: {
-      width: 34,
-      height: 34,
+      width: 36,
+      height: 36,
       alignItems: "center",
       justifyContent: "center",
     },

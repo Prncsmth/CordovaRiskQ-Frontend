@@ -8,6 +8,9 @@ export type ColorPalette = {
 
   tide: string;
   tideTint: string;
+  tideCardBg: string;
+  tideCardMuted: string;
+  tideCardAccent: string;
 
   background: string;
   surface: string;
@@ -59,6 +62,9 @@ export const LIGHT_COLORS: ColorPalette = {
   // accent. Keeps primary red reserved exclusively for danger/SOS.
   tide: "#0E7B86",
   tideTint: "#E3F4F3",
+  tideCardBg: "#285C4A",
+  tideCardMuted: "rgba(255, 255, 255, 0.72)",
+  tideCardAccent: "#6EE7B7",
 
   background: "#FFFFFF",
   surface: "#F5F7F8",
@@ -104,6 +110,9 @@ export const DARK_COLORS: ColorPalette = {
 
   tide: "#4FD1C5",
   tideTint: "#123A3A",
+  tideCardBg: "#1C4236",
+  tideCardMuted: "rgba(255, 255, 255, 0.65)",
+  tideCardAccent: "#5EEAD4",
 
   background: "#0B0B0D",
   surface: "#18191C",

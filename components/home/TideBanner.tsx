@@ -1,15 +1,19 @@
-import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 
-import RippleRings from "@/components/common/RippleRings";
+import PartlyCloudyIcon from "@/components/home/PartlyCloudyIcon";
+import TideCardBackground from "@/components/home/TideCardBackground";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export type TideLevel = "normal" | "watch" | "warning";
 
 type TideBannerProps = {
   level: TideLevel;
-  message: string;
+  detail: string;
+  temperatureC: number;
+  weatherDescription: string;
+  floodMessage: string;
+  updatedLabel: string;
 };
 
 const LEVEL_LABEL: Record<TideLevel, string> = {
@@ -18,39 +22,53 @@ const LEVEL_LABEL: Record<TideLevel, string> = {
   warning: "Warning",
 };
 
-function getLevelStyles(
-  COLORS: ColorPalette,
-): Record<TideLevel, { bg: string; fg: string; icon: keyof typeof Ionicons.glyphMap }> {
-  return {
-    normal: { bg: COLORS.successBg, fg: COLORS.success, icon: "checkmark" },
-    watch: { bg: COLORS.warningBg, fg: COLORS.warning, icon: "alert" },
-    warning: { bg: COLORS.primaryTint, fg: COLORS.danger, icon: "warning" },
-  };
-}
-
-export default function TideBanner({ level, message }: TideBannerProps) {
+export default function TideBanner({
+  level,
+  detail,
+  temperatureC,
+  weatherDescription,
+  floodMessage,
+  updatedLabel,
+}: TideBannerProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { bg, fg, icon } = getLevelStyles(COLORS)[level];
+  const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
+
+  function handleLayout(event: LayoutChangeEvent) {
+    const { width, height } = event.nativeEvent.layout;
+    setCardSize({ width, height });
+  }
 
   return (
-    <View style={[styles.banner, { backgroundColor: bg }]}>
-      <View style={styles.iconWrap}>
-        <RippleRings
-          size={30}
-          ringCount={2}
-          color={`${fg}26`}
-          style={styles.ripple}
-        />
-        <View style={[styles.iconCircle, { backgroundColor: fg }]}>
-          <Ionicons name={icon} size={12} color={COLORS.white} />
+    <View style={styles.wrap}>
+      <View style={styles.card} onLayout={handleLayout}>
+        <TideCardBackground width={cardSize.width} height={cardSize.height} />
+
+        <View style={styles.topRow}>
+          <View style={styles.left}>
+            <Text style={styles.label}>TIDE LEVEL</Text>
+            <Text style={styles.level}>{LEVEL_LABEL[level]}</Text>
+            <Text style={styles.detail}>{detail}</Text>
+          </View>
+
+          <View style={styles.right}>
+            <View style={styles.weatherRow}>
+              <PartlyCloudyIcon size={28} />
+              <Text style={styles.temp}>{temperatureC}°</Text>
+            </View>
+            <Text style={styles.weatherDesc}>{weatherDescription}</Text>
+          </View>
         </View>
-      </View>
-      <View style={styles.textCol}>
-        <Text style={[styles.title, { color: fg }]}>
-          Tide Level: {LEVEL_LABEL[level]}
-        </Text>
-        <Text style={[styles.message, { color: fg }]}>{message}</Text>
+
+        <View style={styles.divider} />
+
+        <View style={styles.bottomRow}>
+          <View style={styles.floodRow}>
+            <View style={styles.dot} />
+            <Text style={styles.floodMessage}>{floodMessage}</Text>
+          </View>
+          <Text style={styles.updated}>{updatedLabel}</Text>
+        </View>
       </View>
     </View>
   );
@@ -58,42 +76,89 @@ export default function TideBanner({ level, message }: TideBannerProps) {
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-    banner: {
-      flexDirection: "row",
-      gap: SPACING.sm,
-      borderRadius: RADIUS.lg,
-      padding: SPACING.sm + 2,
-      borderWidth: 1,
-      borderColor: COLORS.glassBorder,
+    wrap: {
+      borderRadius: RADIUS.xl,
       ...SHADOW,
     },
-    iconWrap: {
-      width: 30,
-      height: 30,
-      alignItems: "center",
-      justifyContent: "center",
+    card: {
+      backgroundColor: COLORS.tideCardBg,
+      borderRadius: RADIUS.xl,
+      padding: SPACING.md,
+      overflow: "hidden",
     },
-    ripple: {
-      position: "absolute",
+    topRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
     },
-    iconCircle: {
-      width: 20,
-      height: 20,
-      borderRadius: RADIUS.full,
-      alignItems: "center",
-      justifyContent: "center",
+    left: {
+      flexShrink: 1,
     },
-    textCol: {
-      flex: 1,
-    },
-    title: {
-      fontFamily: FONT_FAMILY.displaySemibold,
-      fontSize: TYPOGRAPHY.caption,
-    },
-    message: {
+    label: {
       fontSize: TYPOGRAPHY.small,
-      opacity: 0.85,
+      fontWeight: "700",
+      color: COLORS.tideCardMuted,
+      letterSpacing: 0.6,
+    },
+    level: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.title,
+      color: COLORS.white,
       marginTop: 2,
+    },
+    detail: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.tideCardMuted,
+      marginTop: 2,
+    },
+    right: {
+      alignItems: "flex-end",
+    },
+    weatherRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    temp: {
+      fontSize: TYPOGRAPHY.subtitle,
+      fontWeight: "800",
+      color: COLORS.white,
+    },
+    weatherDesc: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.tideCardMuted,
+      marginTop: 2,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: "rgba(255, 255, 255, 0.18)",
+      marginVertical: SPACING.sm,
+    },
+    bottomRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    floodRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      flexShrink: 1,
+    },
+    dot: {
+      width: 6,
+      height: 6,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.tideCardAccent,
+    },
+    floodMessage: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.tideCardMuted,
+      flexShrink: 1,
+    },
+    updated: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.tideCardMuted,
     },
   });
 }
