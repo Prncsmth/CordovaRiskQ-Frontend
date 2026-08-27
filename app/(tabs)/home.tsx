@@ -1,28 +1,52 @@
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import EvacuationCenterCard from "@/components/home/EvacuationCenterCard";
-import HomeHero from "@/components/home/HomeHero";
-import QuickActionsRow from "@/components/home/QuickActionsRow";
-import SafetyTipsList from "@/components/home/SafetyTipsList";
+import AdvisoryBanner from "@/components/home/AdvisoryBanner";
+import GreetingBlock from "@/components/home/GreetingBlock";
+import HomeActionList from "@/components/home/HomeActionList";
+import HomeHeader from "@/components/home/HomeHeader";
+import TideBanner from "@/components/home/TideBanner";
 import { SOSButton } from "@/components/sos/SOSButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
 import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";
-import { useThemeColors, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { getTideStatus, type TideStatus } from "@/services/tide.service";
+import { useThemeColors, SPACING, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
+import { formatTime } from "@/utils/formatter";
 
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
 const MOCK_TEMPERATURE_C = 29;
-const MOCK_WEATHER_DESCRIPTION = "Partly Cloudy";
-const MOCK_TIDE = {
-  level: "normal",
-  message: "No flooding risk detected in your area.",
-} as const;
+const MOCK_WEATHER_DESCRIPTION = "Partly cloudy";
+const MOCK_ADVISORY = {
+  signalLabel: "Signal No. 1",
+  time: "8:00 AM",
+  title: "Tropical Depression Amang nears Cebu",
+  message: "Heavy rain and storm surge expected from 6 PM. Prepare go-bags and stay off the causeway.",
+};
+
+const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
+  normal: "No flood risk detected in your area",
+  watch: "Elevated water levels — stay alert",
+  warning: "Flood risk in low-lying areas — avoid the causeway",
+};
+
+function formatTideDetail(tide: TideStatus): string {
+  const seaLevelText = `${tide.seaLevelM.toFixed(1)} m`;
+  if (!tide.nextExtremeAt || !tide.nextExtremeType) {
+    return seaLevelText;
+  }
+  const trend = tide.nextExtremeType === "low" ? "falling" : "rising";
+  return `${seaLevelText} · ${trend} until ${formatTime(tide.nextExtremeAt)}`;
+}
 
 export default function HomeScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
@@ -30,10 +54,15 @@ export default function HomeScreen() {
   const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
   const [hasUnread, setHasUnread] = useState(false);
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
+  const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
 
   useEffect(() => {
     getNotifications()
       .then((notifications) => setHasUnread(notifications.length > 0))
+      .catch(() => {});
+
+    getTideStatus()
+      .then(setTideStatus)
       .catch(() => {});
 
     Promise.all([getEvacuationCenters(), getCurrentLocation()])
@@ -58,38 +87,41 @@ export default function HomeScreen() {
   return (
     <ScrollView
       style={styles.flex}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.xs }]}
       showsVerticalScrollIndicator={false}
     >
-      <HomeHero
-        hasUnread={hasUnread}
-        name={firstName}
-        location={MOCK_LOCATION}
-        temperatureC={MOCK_TEMPERATURE_C}
-        weatherDescription={MOCK_WEATHER_DESCRIPTION}
-        tideLevel={MOCK_TIDE.level}
-        tideMessage={MOCK_TIDE.message}
+      <HomeHeader hasUnread={hasUnread} />
+      <GreetingBlock name={firstName} location={MOCK_LOCATION} />
+
+      <AdvisoryBanner
+        signalLabel={MOCK_ADVISORY.signalLabel}
+        time={MOCK_ADVISORY.time}
+        title={MOCK_ADVISORY.title}
+        message={MOCK_ADVISORY.message}
       />
 
-      <View style={styles.body}>
-        <View style={styles.sosSection}>
-          <SOSButton onPress={openConfirm} />
-        </View>
+      {tideStatus ? (
+        <TideBanner
+          level={tideStatus.floodRiskLevel}
+          detail={formatTideDetail(tideStatus)}
+          temperatureC={MOCK_TEMPERATURE_C}
+          weatherDescription={MOCK_WEATHER_DESCRIPTION}
+          floodMessage={FLOOD_MESSAGE[tideStatus.floodRiskLevel]}
+          updatedLabel={`Updated ${formatTime(tideStatus.updatedAt)}`}
+        />
+      ) : null}
 
-        <View style={styles.section}>
-          <QuickActionsRow />
-        </View>
+      <HomeActionList
+        nearestCenter={nearestCenter}
+        onPressEvacuation={() =>
+          nearestCenter && router.push(`/evacuation-detail/${nearestCenter.id}`)
+        }
+        onPressReport={() => router.push("/(tabs)/report")}
+        onPressHotlines={() => router.push("/contacts")}
+      />
 
-        {nearestCenter ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionHeading}>Nearest Evacuation Center</Text>
-            <EvacuationCenterCard center={nearestCenter} />
-          </View>
-        ) : null}
-
-        <View style={styles.section}>
-          <SafetyTipsList />
-        </View>
+      <View style={styles.sosSection}>
+        <SOSButton onPress={openConfirm} />
       </View>
     </ScrollView>
   );
@@ -97,34 +129,17 @@ export default function HomeScreen() {
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  content: {
-    paddingBottom: SPACING.xl,
-    gap: SPACING.lg,
-  },
-  body: {
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.lg,
-  },
-  section: {
-    gap: SPACING.xs,
-  },
-  sectionHeading: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginBottom: SPACING.xs,
-    marginLeft: 2,
-  },
-  sosSection: {
-    alignItems: "center",
-    paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xs,
-  },
+    flex: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    content: {
+      paddingHorizontal: SPACING.md,
+      paddingBottom: SPACING.xl,
+      gap: SPACING.md,
+    },
+    sosSection: {
+      marginTop: SPACING.xs,
+    },
   });
 }
