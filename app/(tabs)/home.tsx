@@ -20,8 +20,6 @@ import { haversineDistanceKm } from "@/utils/distance";
 import { formatTime } from "@/utils/formatter";
 
 const MOCK_LOCATION = "Barangay Poblacion, Cordova";
-const MOCK_TEMPERATURE_C = 29;
-const MOCK_WEATHER_DESCRIPTION = "Partly cloudy";
 const MOCK_ADVISORY = {
   signalLabel: "Signal No. 1",
   time: "8:00 AM",
@@ -93,18 +91,16 @@ export default function HomeScreen() {
       <HomeHeader hasUnread={hasUnread} />
       <GreetingBlock name={firstName} location={MOCK_LOCATION} />
 
-      <TideBanner
-        level={tideStatus?.floodRiskLevel ?? null}
-        detail={tideStatus ? formatTideDetail(tideStatus) : "Tide data unavailable"}
-        temperatureC={MOCK_TEMPERATURE_C}
-        weatherDescription={MOCK_WEATHER_DESCRIPTION}
-        floodMessage={
-          tideStatus
-            ? FLOOD_MESSAGE[tideStatus.floodRiskLevel]
-            : "Unable to load flood risk data right now"
-        }
-        updatedLabel={tideStatus ? `Updated ${formatTime(tideStatus.updatedAt)}` : "Not available"}
-      />
+      {tideStatus ? (
+        <TideBanner
+          level={tideStatus.floodRiskLevel}
+          detail={formatTideDetail(tideStatus)}
+          temperatureC={Math.round(tideStatus.airTemperatureC)}
+          weatherDescription={tideStatus.weatherDescription}
+          floodMessage={FLOOD_MESSAGE[tideStatus.floodRiskLevel]}
+          updatedLabel={`Updated ${formatTime(tideStatus.updatedAt)}`}
+        />
+      ) : null}
 
       <AdvisoryBanner
         signalLabel={MOCK_ADVISORY.signalLabel}
