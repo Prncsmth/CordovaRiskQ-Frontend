@@ -7,12 +7,15 @@ import {
   Image,
   Linking,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import * as Haptics from "expo-haptics";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
@@ -85,6 +88,11 @@ export default function EvacuationDetailScreen() {
     100,
     Math.round((center.capacity.current / center.capacity.max) * 100),
   );
+
+  const previewRoute = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push({ pathname: "/evacuation-detail/navigate", params: { id: center.id } });
+  };
 
   const openDirections = () => {
     const label = encodeURIComponent(center.name);
@@ -192,6 +200,11 @@ export default function EvacuationDetailScreen() {
             ))}
           </View>
         </View>
+
+        <Pressable style={styles.previewRouteButton} onPress={previewRoute}>
+          <Ionicons name="navigate-outline" size={18} color={COLORS.primary} />
+          <Text style={styles.previewRouteText}>PREVIEW ROUTE</Text>
+        </Pressable>
 
         <PrimaryButton title="GET DIRECTIONS" onPress={openDirections} />
       </View>
@@ -367,6 +380,25 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
     color: COLORS.text,
+  },
+  previewRouteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.xs,
+    height: 52,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    backgroundColor: COLORS.background,
+    marginTop: SPACING.md,
+    ...SHADOW,
+  },
+  previewRouteText: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "700",
+    color: COLORS.primary,
+    letterSpacing: 0.3,
   },
   });
 }

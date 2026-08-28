@@ -4,6 +4,7 @@ import React, { useMemo, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
+import { useRoute } from "@/hooks/useRoute";
 import {
   RADIUS,
   SHADOW,
@@ -28,10 +29,10 @@ function darken(hex: string, amount: number): string {
 
 const MAP_HEIGHT = 360;
 
-// Live map preview of the responder's route to the incident. The line drawn
-// is the straight-line path between the two points (no turn-by-turn
-// Directions API call) -- good enough to orient a responder at a glance
-// without wiring up a routing backend.
+// Live map preview of the responder's route to the incident. Draws the real
+// driving route via useRoute()/directions.service.ts (Mapbox Directions),
+// falling back to a straight line between the two points while the route is
+// loading or if the request fails.
 export default function IncidentMap({
   responderCoords,
   incidentCoords,
@@ -44,6 +45,7 @@ export default function IncidentMap({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
+  const route = useRoute(responderCoords, incidentCoords, "driving");
 
   const midpoint = {
     latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
@@ -66,7 +68,7 @@ export default function IncidentMap({
           ]}
           polylines={[
             {
-              points: [responderCoords, incidentCoords],
+              points: route ? route.coordinates : [responderCoords, incidentCoords],
               color: COLORS.secondary,
               dashed: false,
               weight: 3,
@@ -84,7 +86,9 @@ export default function IncidentMap({
           style={styles.etaPill}
         >
           <Ionicons name="time-outline" size={14} color={COLORS.white} />
-          <Text style={styles.etaText}>ETA {etaMinutes} mins</Text>
+          <Text style={styles.etaText}>
+            {route ? `${route.durationMin} min drive` : `ETA ${etaMinutes} mins`}
+          </Text>
         </LinearGradient>
       </View>
     </View>

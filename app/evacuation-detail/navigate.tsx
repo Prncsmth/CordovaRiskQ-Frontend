@@ -1,8 +1,10 @@
-// app/responder/navigate.tsx
-// Full-screen turn-by-turn-style map, opened from the "Navigate" button on
-// the On the Way phase. Shows the real driving route from the responder to
-// the citizen's shared incident location (via useRoute()/directions.service.ts,
-// falling back to a straight line while loading or on failure).
+// app/evacuation-detail/navigate.tsx
+// Full-screen route preview, opened from the "Preview Route" button on an
+// evacuation center's detail screen. Shows the real walking route from the
+// citizen's current location to the center (via useRoute()/directions.service.ts,
+// falling back to a straight line while loading or on failure). This is a
+// quick in-app glance, not turn-by-turn navigation -- "GET DIRECTIONS" on the
+// detail screen still opens the device's native Maps app for that.
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -12,13 +14,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
-import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import { useAuth } from "@/context/AuthContext";
+import { getEvacuationCenterById, type EvacuationCenter } from "@/services/evacuation.service";
+import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import { useRoute } from "@/hooks/useRoute";
-import { getIncidentById } from "@/services/incident.service";
-import type { Coordinates } from "@/services/location.service";
-import { getCurrentLocation } from "@/services/location.service";
-import type { Incident } from "@/types/responder";
 import {
     FONT_FAMILY,
     RADIUS,
@@ -30,36 +28,25 @@ import {
     type ColorPalette,
 } from "@/theme";
 
-// Hand-picked darker shade of an arbitrary incident color, for the gradient
-// fill on marker/icon badges -- mirrors the primary/primaryDark two-tone
-// pattern used across the app, but incident colors aren't theme tokens.
-function darken(hex: string, amount: number): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const r = Math.max(0, (num >> 16) - amount);
-  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
-  const b = Math.max(0, (num & 0x0000ff) - amount);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
-
-export default function NavigateScreen() {
+export default function EvacuationNavigateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { token } = useAuth();
-  const [incident, setIncident] = useState<Incident | undefined>(undefined);
-  const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
+  const [center, setCenter] = useState<EvacuationCenter | undefined>(undefined);
+  const [citizenCoords, setCitizenCoords] = useState<Coordinates | undefined>();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
-  const route = useRoute(responderCoords, incident?.incidentCoords, "driving");
+  const centerCoords = center ? { latitude: center.latitude, longitude: center.longitude } : undefined;
+  const route = useRoute(citizenCoords, centerCoords, "walking");
 
   useEffect(() => {
-    if (!token || !id) return;
-    getIncidentById(token, id).then(setIncident);
-    getCurrentLocation().then(setResponderCoords).catch(() => {});
-  }, [token, id]);
+    if (!id) return;
+    getEvacuationCenterById(id).then(setCenter);
+    getCurrentLocation().then(setCitizenCoords).catch(() => {});
+  }, [id]);
 
-  if (!incident || !responderCoords || !incident.incidentCoords) {
+  if (!center || !citizenCoords) {
     return (
       <View style={styles.fallbackScreen}>
         <Stack.Screen
@@ -73,11 +60,9 @@ export default function NavigateScreen() {
     );
   }
 
-  const visual = getIncidentVisual(incident.type);
-  const { incidentCoords } = incident;
   const midpoint = {
-    latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
-    longitude: (responderCoords.longitude + incidentCoords.longitude) / 2,
+    latitude: (citizenCoords.latitude + center.latitude) / 2,
+    longitude: (citizenCoords.longitude + center.longitude) / 2,
   };
 
   return (
@@ -93,12 +78,12 @@ export default function NavigateScreen() {
         zoom={14}
         showLayerSwitcher
         markers={[
-          { id: "responder", ...responderCoords, color: COLORS.secondary, icon: "logo" },
-          { id: "incident", ...incidentCoords, color: visual.color },
+          { id: "citizen", ...citizenCoords, color: COLORS.secondary, icon: "logo" },
+          { id: "center", latitude: center.latitude, longitude: center.longitude, color: COLORS.primary },
         ]}
         polylines={[
           {
-            points: route ? route.coordinates : [responderCoords, incidentCoords],
+            points: route ? route.coordinates : [citizenCoords, { latitude: center.latitude, longitude: center.longitude }],
             color: COLORS.secondary,
             dashed: false,
             weight: 4,
@@ -106,30 +91,28 @@ export default function NavigateScreen() {
         ]}
         onReady={() =>
           mapRef.current?.fitToPoints(
-            [responderCoords, incidentCoords],
+            [citizenCoords, { latitude: center.latitude, longitude: center.longitude }],
             insets.top + 140,
           )
         }
       />
 
-      <View
-        style={[styles.topCard, { top: insets.top + SPACING.sm }]}
-      >
+      <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>
         <View style={styles.topCardHeader}>
           <LinearGradient
-            colors={[visual.color, darken(visual.color, 40)]}
+            colors={[COLORS.primary, COLORS.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.infoIcon, { shadowColor: visual.color }]}
+            style={[styles.infoIcon, { shadowColor: COLORS.primary }]}
           >
-            <Ionicons name={visual.icon} size={16} color={COLORS.white} />
+            <Ionicons name="home" size={16} color={COLORS.white} />
           </LinearGradient>
           <View style={styles.infoTextCol}>
             <Text style={styles.infoTitle} numberOfLines={1}>
-              {incident.type}
+              {center.name}
             </Text>
             <Text style={styles.infoSubtitle} numberOfLines={1}>
-              {incident.location}
+              {center.address}
             </Text>
           </View>
           <Pressable
@@ -148,21 +131,13 @@ export default function NavigateScreen() {
           <View style={styles.statChip}>
             <Ionicons name="time-outline" size={14} color={COLORS.secondary} />
             <Text style={styles.statChipText}>
-              {route ? `${route.durationMin} min drive` : `${incident.etaMinutes ?? 6} min away`}
+              {route ? `${route.durationMin} min walk` : "—"}
             </Text>
           </View>
           <View style={styles.statChip}>
-            <Ionicons
-              name="navigate-outline"
-              size={14}
-              color={COLORS.secondary}
-            />
+            <Ionicons name="navigate-outline" size={14} color={COLORS.secondary} />
             <Text style={styles.statChipText}>
-              {route
-                ? `${route.distanceKm.toFixed(1)} km`
-                : incident.distanceKm != null
-                  ? `${incident.distanceKm.toFixed(1)} km`
-                  : "—"}
+              {route ? `${route.distanceKm.toFixed(1)} km` : `${center.distanceKm.toFixed(1)} km`}
             </Text>
           </View>
         </View>
