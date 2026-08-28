@@ -100,13 +100,26 @@ git commit -m "feat: add weather fields to TideStatus"
 
 - [ ] **Step 1: Confirm the live Stormglass weather response shape**
 
-Before changing code, verify the actual field names/units against the real API (the exact nesting — e.g. whether it's `{"sg": 27.3}` per parameter like the existing sea-level call, under a different source key, or shaped differently — isn't confirmed from this session). With the backend's `.env` `STORMGLASS_API_KEY` value:
+Before changing code, verify the actual field names/units against the real API (the exact nesting — e.g. whether it's `{"sg": 27.3}` per parameter like the existing sea-level call, under a different source key, or shaped differently — isn't confirmed from this session). A direct `curl` to `api.stormglass.io` from this environment is blocked by network policy — verify through the app's own outbound call instead, which is already proven to work (the existing sea-level/extremes calls use the same mechanism):
 
-```bash
-curl "https://api.stormglass.io/v2/weather/point?lat=10.2515&lng=123.9499&params=airTemperature,cloudCover,precipitation&start=$(date -u +%Y-%m-%dT%H:%M:%S)&end=$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%S)" -H "Authorization: <your STORMGLASS_API_KEY>"
-```
+1. Temporarily add `console.log(JSON.stringify(await weatherRes.clone().json()))` right after the existing `Promise.all(...)` fetch call in `fetchFromStormglass()` (add this to the *current* file, before Step 2's rewrite — you'll add the real weather fetch call itself in Step 2, so for this step just add a one-off fetch to the weather URL below and log its raw body).
 
-Expected: a `200` JSON body with a `data` array; each entry has `airTemperature`, `cloudCover`, `precipitation` keys, each an object with at least one numeric source key (e.g. `sg`). If the actual shape differs from what Step 2 below assumes (source key isn't `sg`, or a parameter is missing/nested differently), adjust the `StormglassWeatherResponse` type and the extraction in `fetchFromStormglass()` accordingly before proceeding — this mirrors the same kind of adjustment already noted in this file's comment above `seaLevelPoint.sg`.
+   Minimal one-off addition for this check only (remove it once you've read the output):
+   ```ts
+   const debugWeatherUrl =
+       `${STORMGLASS_BASE_URL}/weather/point` +
+       `?lat=${CORDOVA_CENTER.latitude}&lng=${CORDOVA_CENTER.longitude}` +
+       `&start=${new Date().toISOString()}&end=${new Date(Date.now() + 3600_000).toISOString()}` +
+       `&params=airTemperature,cloudCover,precipitation`;
+   fetch(debugWeatherUrl, { headers: { Authorization: process.env.STORMGLASS_API_KEY! } })
+       .then((r) => r.json())
+       .then((body) => console.log("WEATHER DEBUG:", JSON.stringify(body)));
+   ```
+   Paste this at the top of `refreshTideStatus()` temporarily (runs once on the next poll).
+2. `npm run dev` (or if already running from a prior task, wait for the next poll / restart it) and read the `WEATHER DEBUG: ...` line from the console.
+3. Remove the temporary snippet — it's a one-time check, not part of the shipped code.
+
+Expected: a `data` array; each entry has `airTemperature`, `cloudCover`, `precipitation` keys, each an object with at least one numeric source key (e.g. `sg`). If the actual shape differs from what Step 2 below assumes (source key isn't `sg`, or a parameter is missing/nested differently), adjust the `StormglassWeatherResponse` type and the extraction in `fetchFromStormglass()` accordingly before proceeding — this mirrors the same kind of adjustment already noted in this file's comment above `seaLevelPoint.sg`.
 
 - [ ] **Step 2: Replace `tide.service.ts` with the extended version**
 
