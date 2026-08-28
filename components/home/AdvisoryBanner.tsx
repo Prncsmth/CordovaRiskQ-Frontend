@@ -48,10 +48,10 @@ function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
     card: {
       flexDirection: "row",
-      gap: SPACING.sm,
+      gap: SPACING.sm + 2,
       backgroundColor: COLORS.warningBg,
       borderRadius: RADIUS.lg,
-      padding: SPACING.sm + 2,
+      padding: SPACING.md,
       ...SHADOW,
     },
     iconCircle: {

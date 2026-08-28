@@ -93,18 +93,6 @@ export default function HomeScreen() {
       <HomeHeader hasUnread={hasUnread} />
       <GreetingBlock name={firstName} location={MOCK_LOCATION} />
 
-      <View style={styles.sosSection}>
-        <SOSButton onPress={openConfirm} />
-      </View>
-
-      <AdvisoryBanner
-        signalLabel={MOCK_ADVISORY.signalLabel}
-        time={MOCK_ADVISORY.time}
-        title={MOCK_ADVISORY.title}
-        message={MOCK_ADVISORY.message}
-        sample
-      />
-
       <TideBanner
         level={tideStatus?.floodRiskLevel ?? null}
         detail={tideStatus ? formatTideDetail(tideStatus) : "Tide data unavailable"}
@@ -117,6 +105,18 @@ export default function HomeScreen() {
         }
         updatedLabel={tideStatus ? `Updated ${formatTime(tideStatus.updatedAt)}` : "Not available"}
       />
+
+      <AdvisoryBanner
+        signalLabel={MOCK_ADVISORY.signalLabel}
+        time={MOCK_ADVISORY.time}
+        title={MOCK_ADVISORY.title}
+        message={MOCK_ADVISORY.message}
+        sample
+      />
+
+      <View style={styles.sosSection}>
+        <SOSButton onPress={openConfirm} />
+      </View>
 
       <HomeActionList
         nearestCenter={nearestCenter}
@@ -139,10 +139,10 @@ function createStyles(COLORS: ColorPalette) {
     content: {
       paddingHorizontal: SPACING.md,
       paddingBottom: SPACING.xl,
-      gap: SPACING.md,
+      gap: SPACING.lg,
     },
     sosSection: {
-      marginTop: SPACING.xs,
+      marginVertical: SPACING.xs,
     },
   });
 }

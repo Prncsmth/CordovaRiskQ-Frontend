@@ -98,7 +98,7 @@ function createStyles(COLORS: ColorPalette) {
     card: {
       backgroundColor: COLORS.tideCardBg,
       borderRadius: RADIUS.xl,
-      padding: SPACING.md,
+      padding: SPACING.lg,
       overflow: "hidden",
     },
     topRow: {
@@ -146,7 +146,7 @@ function createStyles(COLORS: ColorPalette) {
     divider: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: "rgba(255, 255, 255, 0.18)",
-      marginVertical: SPACING.sm,
+      marginVertical: SPACING.md,
     },
     bottomRow: {
       flexDirection: "row",

@@ -152,12 +152,13 @@ function createStyles(COLORS: ColorPalette) {
       textTransform: "uppercase",
       letterSpacing: 0.6,
       marginTop: SPACING.md,
+      marginBottom: SPACING.xs,
     },
     row: {
       flexDirection: "row",
       alignItems: "center",
-      gap: SPACING.sm,
-      paddingVertical: SPACING.sm + 2,
+      gap: SPACING.md,
+      paddingVertical: SPACING.md,
     },
     rowDivider: {
       borderBottomWidth: StyleSheet.hairlineWidth,
