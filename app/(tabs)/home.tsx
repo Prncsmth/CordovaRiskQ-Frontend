@@ -91,16 +91,18 @@ export default function HomeScreen() {
       <HomeHeader hasUnread={hasUnread} />
       <GreetingBlock name={firstName} location={MOCK_LOCATION} />
 
-      {tideStatus ? (
-        <TideBanner
-          level={tideStatus.floodRiskLevel}
-          detail={formatTideDetail(tideStatus)}
-          temperatureC={Math.round(tideStatus.airTemperatureC)}
-          weatherDescription={tideStatus.weatherDescription}
-          floodMessage={FLOOD_MESSAGE[tideStatus.floodRiskLevel]}
-          updatedLabel={`Updated ${formatTime(tideStatus.updatedAt)}`}
-        />
-      ) : null}
+      <TideBanner
+        level={tideStatus?.floodRiskLevel ?? null}
+        detail={tideStatus ? formatTideDetail(tideStatus) : "Tide data unavailable"}
+        temperatureC={tideStatus ? Math.round(tideStatus.airTemperatureC) : null}
+        weatherDescription={tideStatus ? tideStatus.weatherDescription : null}
+        floodMessage={
+          tideStatus
+            ? FLOOD_MESSAGE[tideStatus.floodRiskLevel]
+            : "Unable to load flood risk data right now"
+        }
+        updatedLabel={tideStatus ? `Updated ${formatTime(tideStatus.updatedAt)}` : "Not available"}
+      />
 
       <AdvisoryBanner
         signalLabel={MOCK_ADVISORY.signalLabel}

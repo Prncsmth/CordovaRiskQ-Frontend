@@ -10,8 +10,8 @@ export type TideLevel = "normal" | "watch" | "warning";
 type TideBannerProps = {
   level: TideLevel | null;
   detail: string;
-  temperatureC: number;
-  weatherDescription: string;
+  temperatureC: number | null;
+  weatherDescription: string | null;
   floodMessage: string;
   updatedLabel: string;
 };
@@ -69,9 +69,9 @@ export default function TideBanner({
           <View style={styles.right}>
             <View style={styles.weatherRow}>
               <PartlyCloudyIcon size={28} />
-              <Text style={styles.temp}>{temperatureC}°</Text>
+              <Text style={styles.temp}>{temperatureC !== null ? `${temperatureC}°` : "—°"}</Text>
             </View>
-            <Text style={styles.weatherDesc}>{weatherDescription}</Text>
+            <Text style={styles.weatherDesc}>{weatherDescription ?? "Weather unavailable"}</Text>
           </View>
         </View>
 
