@@ -69,7 +69,7 @@ export default function TideBanner({
           <View style={styles.right}>
             <View style={styles.weatherRow}>
               <PartlyCloudyIcon size={28} />
-              <Text style={styles.temp}>{temperatureC !== null ? `${temperatureC}°` : "—°"}</Text>
+              <Text style={styles.temp}>{temperatureC != null ? `${temperatureC}°` : "—°"}</Text>
             </View>
             <Text style={styles.weatherDesc}>{weatherDescription ?? "Weather unavailable"}</Text>
           </View>

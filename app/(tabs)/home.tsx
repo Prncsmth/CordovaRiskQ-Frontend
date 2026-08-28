@@ -82,6 +82,12 @@ export default function HomeScreen() {
       .catch(() => {});
   }, []);
 
+  const STALE_TIDE_THRESHOLD_MS = 16 * 60 * 60 * 1000; // 2x the backend's 8h poll interval
+  const displayTide =
+    tideStatus && Date.now() - new Date(tideStatus.updatedAt).getTime() < STALE_TIDE_THRESHOLD_MS
+      ? tideStatus
+      : null;
+
   return (
     <ScrollView
       style={styles.flex}
@@ -92,16 +98,16 @@ export default function HomeScreen() {
       <GreetingBlock name={firstName} location={MOCK_LOCATION} />
 
       <TideBanner
-        level={tideStatus?.floodRiskLevel ?? null}
-        detail={tideStatus ? formatTideDetail(tideStatus) : "Tide data unavailable"}
-        temperatureC={tideStatus ? Math.round(tideStatus.airTemperatureC) : null}
-        weatherDescription={tideStatus ? tideStatus.weatherDescription : null}
+        level={displayTide?.floodRiskLevel ?? null}
+        detail={displayTide ? formatTideDetail(displayTide) : "Tide data unavailable"}
+        temperatureC={displayTide ? Math.round(displayTide.airTemperatureC) : null}
+        weatherDescription={displayTide ? displayTide.weatherDescription : null}
         floodMessage={
-          tideStatus
-            ? FLOOD_MESSAGE[tideStatus.floodRiskLevel]
+          displayTide
+            ? FLOOD_MESSAGE[displayTide.floodRiskLevel]
             : "Unable to load flood risk data right now"
         }
-        updatedLabel={tideStatus ? `Updated ${formatTime(tideStatus.updatedAt)}` : "Not available"}
+        updatedLabel={displayTide ? `Updated ${formatTime(displayTide.updatedAt)}` : "Not available"}
       />
 
       <AdvisoryBanner

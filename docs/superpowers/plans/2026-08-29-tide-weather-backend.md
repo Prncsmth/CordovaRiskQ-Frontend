@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace Home's hardcoded `MOCK_TEMPERATURE_C`/`MOCK_WEATHER_DESCRIPTION` with real weather data, riding along on the tide feature's existing hourly Stormglass poll and `TideStatus` singleton row rather than standing up a separate resource.
+**Goal:** Replace Home's hardcoded `MOCK_TEMPERATURE_C`/`MOCK_WEATHER_DESCRIPTION` with real weather data, riding along on the tide feature's existing 8-hourly Stormglass poll and `TideStatus` singleton row rather than standing up a separate resource.
 
 **Architecture:** `TideStatus` gains `airTemperatureC`/`weatherDescription` columns; the existing `fetchFromStormglass()` adds a third parallel call to Stormglass's weather endpoint; the existing `GET /api/tide` response carries the new fields with no new route. Frontend extends its existing `TideStatus` type and passes real values into the already-generic `TideBanner` props.
 
@@ -16,7 +16,7 @@
 - Stormglass calls use Node's built-in `fetch` with a 15s timeout (`AbortSignal.timeout(15_000)`), matching the existing sea-level/extremes calls.
 - The existing `FRESHNESS_WINDOW_MS` (1 hour) skip-if-recent guard in `refreshTideStatus()` is untouched — it already covers the weather fields once they're part of the same upsert.
 - `weatherDescription`'s cloud-cover/precipitation thresholds are an explicitly-flagged placeholder, uncalibrated — same status as the existing `deriveFloodRiskLevel` thresholds.
-- `PartlyCloudyIcon` and `TideBanner`'s props/rendering are **not modified** — out of scope per spec, they already accept freeform `temperatureC`/`weatherDescription` values.
+- `PartlyCloudyIcon` is **not modified** — out of scope per spec. `TideBanner`'s `temperatureC`/`weatherDescription` props were later widened to accept `null` (as part of restoring the degraded-state pattern for stale/missing tide data); every other prop and the component's rendering structure stayed the same.
 - Neither repo has an automated test framework — every task is verified via `tsc`/`eslint` plus a concrete runtime check (curl or running the app), matching the tide-level-backend plan's convention.
 - `STORMGLASS_API_KEY` is already set in the backend's `.env` (from the prior tide feature) — no new env var.
 

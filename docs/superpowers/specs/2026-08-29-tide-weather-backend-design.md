@@ -2,11 +2,11 @@
 
 **Date:** 2026-08-29
 **Repos touched:** `CordovaRiskQ-Frontend` (this repo) and `CordovaRiskQ-Bacnkend` (sibling repo, `C:\Users\kianr\CordovaRiskQ-Bacnkend` — Express + Prisma/Postgres + JWT, TypeScript, ESM with `@/` path aliases).
-**Builds on:** [2026-08-27-tide-level-backend-design.md](./2026-08-27-tide-level-backend-design.md), which shipped the `TideStatus` singleton + hourly Stormglass poller + `GET /api/tide` and explicitly deferred weather as out of scope.
+**Builds on:** [2026-08-27-tide-level-backend-design.md](./2026-08-27-tide-level-backend-design.md), which shipped the `TideStatus` singleton + 8-hourly Stormglass poller + `GET /api/tide` and explicitly deferred weather as out of scope.
 
 ## Purpose
 
-The Home screen's tide card (`components/home/TideBanner.tsx`) shows real tide data but still renders hardcoded `MOCK_TEMPERATURE_C`/`MOCK_WEATHER_DESCRIPTION` for its temperature/weather readout. This spec replaces those with real data from the same Stormglass account, riding along on the existing hourly poll rather than standing up a separate resource: one combined poll, one cached row, every client reads the same result.
+The Home screen's tide card (`components/home/TideBanner.tsx`) shows real tide data but still renders hardcoded `MOCK_TEMPERATURE_C`/`MOCK_WEATHER_DESCRIPTION` for its temperature/weather readout. This spec replaces those with real data from the same Stormglass account, riding along on the existing 8-hourly poll rather than standing up a separate resource: one combined poll, one cached row, every client reads the same result.
 
 ## Scope
 
@@ -120,13 +120,13 @@ weatherDescription={tideStatus.weatherDescription}
 
 ## Data flow
 
-1. **Backend poll** (unchanged trigger, extended payload): hourly `refreshTideStatus()` now fetches sea-level + extremes + weather in one `Promise.all`, derives both `floodRiskLevel` and `weatherDescription`, upserts one row with all fields.
+1. **Backend poll** (unchanged trigger, extended payload): 8-hourly `refreshTideStatus()` now fetches sea-level + extremes + weather in one `Promise.all`, derives both `floodRiskLevel` and `weatherDescription`, upserts one row with all fields.
 2. **App load** (unchanged): `home.tsx` → `getTideStatus()` → `GET /api/tide` → one JSON object with tide and weather fields together → passed to `TideBanner`.
 3. **Partial Stormglass failure**: if the weather leg fails but tide would have succeeded (or vice versa), the whole poll is treated as failed — same all-or-nothing semantics as today, so the frontend never sees a row with real tide data next to stale/default weather data or vice versa.
 
 ## Error handling
 
-Unchanged from the parent spec, extended to cover the new fields: a failed poll (any of the three Stormglass calls) is logged and swallowed by `refreshTideStatus()`, the poller keeps running hourly, and `getLatest()` keeps serving the last fully-successful row. `getTideStatus()` on the frontend still only throws on a genuinely malformed response; network/`503` failures are still swallowed by `home.tsx`'s existing `.catch(() => {})`, so the whole `TideBanner` (tide and weather together) simply doesn't render rather than showing a partial or broken card.
+Unchanged from the parent spec, extended to cover the new fields: a failed poll (any of the three Stormglass calls) is logged and swallowed by `refreshTideStatus()`, the poller keeps running every 8 hours, and `getLatest()` keeps serving the last fully-successful row. `getTideStatus()` on the frontend still only throws on a genuinely malformed response; network/`503` failures are still swallowed by `home.tsx`'s existing `.catch(() => {})`. The card itself always renders (a deliberate pre-existing safety pattern, see commit `70de2fc`) — it never disappears or hides itself. Instead, `home.tsx` degrades each `TideBanner` prop independently with per-field fallback text/values when tide data is missing or stale, so the card stays visible and honest rather than showing a partial or misleadingly-confident status.
 
 ## Testing
 
@@ -139,4 +139,4 @@ Manual verification, consistent with the parent spec:
 
 **Frontend**, running the app against the local backend:
 - Home screen's tide card shows a real temperature and weather description instead of the old hardcoded "29° / Partly cloudy".
-- Stop the backend; confirm the whole tide card still simply doesn't render (no partial card, no crash) — same behavior as before this change.
+- Stop the backend; confirm the tide card still renders with its per-field fallback text/values (no crash, no disappearing card) — same degraded-state behavior as before this change.
