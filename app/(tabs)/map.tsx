@@ -5,56 +5,66 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    ActivityIndicator,
+    Keyboard,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, {
-  type MapHandle,
-  type MapMarker,
-  type MapUserLocation,
+    type MapHandle,
+    type MapMarker,
+    type MapUserLocation,
 } from "@/components/map/AppMap";
+import MapFirstTimeGuide from "@/components/tour/MapFirstTimeGuide";
 import {
-  CORDOVA_BARANGAYS,
-  CORDOVA_CENTER,
-  findNearestBarangay,
-  type Barangay,
+    CORDOVA_BARANGAYS,
+    CORDOVA_CENTER,
+    findNearestBarangay,
+    type Barangay,
 } from "@/constants/cordovaBarangays";
+import { useAuth } from "@/context/AuthContext";
+import * as authStorage from "@/context/authStorage";
 import { useReportLocation } from "@/context/ReportLocationContext";
 import {
-  getEvacuationCenters,
-  type EvacuationCenter,
+    getEvacuationCenters,
+    type EvacuationCenter,
 } from "@/services/evacuation.service";
 import {
-  FONT_FAMILY,
-  RADIUS,
-  SHADOW_LG,
-  SPACING,
-  TYPOGRAPHY,
-  useThemeColors,
-  type ColorPalette,
+    FONT_FAMILY,
+    RADIUS,
+    SHADOW_LG,
+    SPACING,
+    TYPOGRAPHY,
+    useThemeColors,
+    type ColorPalette,
 } from "@/theme";
 
 const MIN_ZOOM = 12;
 const MAX_ZOOM = 18;
+const MAP_GUIDE_SEEN_KEY = "map_guide_seen_users";
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { user } = useAuth();
   const mapRef = useRef<MapHandle>(null);
+  const searchTargetRef = useRef<View>(null);
+  const pinTargetRef = useRef<View>(null);
+  const locateTargetRef = useRef<View>(null);
   const hasCenteredOnUser = useRef(false);
   const { setLocation: setReportLocation } = useReportLocation();
   const [centers, setCenters] = useState<EvacuationCenter[]>([]);
   const [locationDenied, setLocationDenied] = useState(false);
-  const [userLocation, setUserLocation] = useState<MapUserLocation | null>(null);
+  const [userLocation, setUserLocation] = useState<MapUserLocation | null>(
+    null,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [isLocating, setIsLocating] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(14);
@@ -63,6 +73,35 @@ export default function MapScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [showMapGuide, setShowMapGuide] = useState(false);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    authStorage
+      .getItem(MAP_GUIDE_SEEN_KEY)
+      .then((raw) => {
+        const seenUsers = raw ? JSON.parse(raw) : {};
+        setShowMapGuide(!seenUsers[user.id]);
+      })
+      .catch(() => setShowMapGuide(true));
+  }, [user?.id]);
+
+  const finishMapGuide = () => {
+    if (user?.id) {
+      authStorage
+        .getItem(MAP_GUIDE_SEEN_KEY)
+        .then((raw) => {
+          const seenUsers = raw ? JSON.parse(raw) : {};
+          return authStorage.setItem(
+            MAP_GUIDE_SEEN_KEY,
+            JSON.stringify({ ...seenUsers, [user.id]: true }),
+          );
+        })
+        .catch(() => {});
+    }
+    setShowMapGuide(false);
+  };
 
   const barangayResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -261,7 +300,11 @@ export default function MapScreen() {
 
         {pinMode && (
           <View style={[styles.pinHint, { top: insets.top + SPACING.sm + 60 }]}>
-            <BlurView intensity={60} tint={COLORS.glassTint} style={styles.pinHintBlur}>
+            <BlurView
+              intensity={60}
+              tint={COLORS.glassTint}
+              style={styles.pinHintBlur}
+            >
               <Ionicons name="location" size={15} color={COLORS.primary} />
               <Text style={styles.pinHintText}>
                 Tap the map to mark the emergency location
@@ -270,8 +313,16 @@ export default function MapScreen() {
           </View>
         )}
 
-        <View style={[styles.searchContainer, { top: SPACING.md }]}>
-          <BlurView intensity={60} tint={COLORS.glassTint} style={styles.searchBar}>
+        <View
+          ref={searchTargetRef}
+          collapsable={false}
+          style={[styles.searchContainer, { top: SPACING.md }]}
+        >
+          <BlurView
+            intensity={60}
+            tint={COLORS.glassTint}
+            style={styles.searchBar}
+          >
             <Ionicons name="search" size={18} color={COLORS.textSecondary} />
             <TextInput
               value={searchQuery}
@@ -319,6 +370,8 @@ export default function MapScreen() {
         </View>
 
         <Pressable
+          ref={pinTargetRef}
+          collapsable={false}
           onPress={handleTogglePinMode}
           style={[
             styles.pinButtonOuter,
@@ -338,8 +391,16 @@ export default function MapScreen() {
               <Ionicons name="location" size={22} color={COLORS.white} />
             </View>
           ) : (
-            <BlurView intensity={60} tint={COLORS.glassTint} style={styles.pinButton}>
-              <Ionicons name="location-outline" size={22} color={COLORS.primary} />
+            <BlurView
+              intensity={60}
+              tint={COLORS.glassTint}
+              style={styles.pinButton}
+            >
+              <Ionicons
+                name="location-outline"
+                size={22}
+                color={COLORS.primary}
+              />
             </BlurView>
           )}
         </Pressable>
@@ -350,7 +411,11 @@ export default function MapScreen() {
             { bottom: insets.bottom + SPACING.lg + 44 + SPACING.sm },
           ]}
         >
-          <BlurView intensity={60} tint={COLORS.glassTint} style={styles.zoomBlur}>
+          <BlurView
+            intensity={60}
+            tint={COLORS.glassTint}
+            style={styles.zoomBlur}
+          >
             <Pressable
               onPress={handleZoomIn}
               disabled={zoomLevel >= MAX_ZOOM}
@@ -360,7 +425,9 @@ export default function MapScreen() {
               <Ionicons
                 name="add"
                 size={20}
-                color={zoomLevel >= MAX_ZOOM ? COLORS.textTertiary : COLORS.text}
+                color={
+                  zoomLevel >= MAX_ZOOM ? COLORS.textTertiary : COLORS.text
+                }
               />
             </Pressable>
             <View style={styles.zoomDivider} />
@@ -373,13 +440,17 @@ export default function MapScreen() {
               <Ionicons
                 name="remove"
                 size={20}
-                color={zoomLevel <= MIN_ZOOM ? COLORS.textTertiary : COLORS.text}
+                color={
+                  zoomLevel <= MIN_ZOOM ? COLORS.textTertiary : COLORS.text
+                }
               />
             </Pressable>
           </BlurView>
         </View>
 
         <Pressable
+          ref={locateTargetRef}
+          collapsable={false}
           onPress={handleLocateMe}
           disabled={isLocating}
           style={[
@@ -388,7 +459,11 @@ export default function MapScreen() {
           ]}
           accessibilityLabel="Locate me"
         >
-          <BlurView intensity={60} tint={COLORS.glassTint} style={styles.locateButton}>
+          <BlurView
+            intensity={60}
+            tint={COLORS.glassTint}
+            style={styles.locateButton}
+          >
             {isLocating ? (
               <ActivityIndicator size="small" color={COLORS.primary} />
             ) : (
@@ -397,190 +472,197 @@ export default function MapScreen() {
           </BlurView>
         </Pressable>
       </View>
+
+      {showMapGuide ? (
+        <MapFirstTimeGuide
+          targetRefs={[searchTargetRef, pinTargetRef, locateTargetRef]}
+          onFinish={finishMapGuide}
+        />
+      ) : null}
     </View>
   );
 }
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.sm,
-  },
-  headerIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextCol: {
-    flex: 1,
-  },
-  title: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.heading,
-    color: COLORS.text,
-  },
-  subtitle: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  mapContainer: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  searchContainer: {
-    // Stops short of the right edge (instead of spanning full width) so it
-    // doesn't cover the map's layer switcher control, which sits in the
-    // top-right corner of the map itself.
-    position: "absolute",
-    left: SPACING.md,
-    right: 64,
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    overflow: "hidden",
-    backgroundColor: COLORS.glassOverlay,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    paddingHorizontal: SPACING.md,
-    height: 44,
-    ...SHADOW_LG,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.text,
-    padding: 0,
-  },
-  searchResults: {
-    marginTop: SPACING.xs,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    paddingVertical: SPACING.xs,
-    ...SHADOW_LG,
-  },
-  pinHint: {
-    position: "absolute",
-    left: SPACING.md,
-    right: 64,
-  },
-  pinHintBlur: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
-    alignSelf: "flex-start",
-    overflow: "hidden",
-    backgroundColor: COLORS.glassOverlay,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    ...SHADOW_LG,
-  },
-  pinHintText: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  pinButtonOuter: {
-    position: "absolute",
-    right: SPACING.md,
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.full,
-    overflow: "hidden",
-    ...SHADOW_LG,
-  },
-  pinButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.glassOverlay,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  pinButtonActive: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.primary,
-  },
-  searchResultRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-  },
-  searchResultIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  searchResultText: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.text,
-  },
-  zoomControls: {
-    position: "absolute",
-    right: SPACING.md,
-    width: 44,
-    borderRadius: RADIUS.md,
-    overflow: "hidden",
-    ...SHADOW_LG,
-  },
-  zoomBlur: {
-    backgroundColor: COLORS.glassOverlay,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
-  zoomButton: {
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  zoomDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-  },
-  locateButtonOuter: {
-    position: "absolute",
-    right: SPACING.md,
-    width: 44,
-    height: 44,
-    borderRadius: RADIUS.full,
-    overflow: "hidden",
-    ...SHADOW_LG,
-  },
-  locateButton: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.glassOverlay,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      paddingBottom: SPACING.sm,
+    },
+    headerIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primaryTint,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    headerTextCol: {
+      flex: 1,
+    },
+    title: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.heading,
+      color: COLORS.text,
+    },
+    subtitle: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      marginTop: 2,
+    },
+    mapContainer: {
+      flex: 1,
+    },
+    map: {
+      flex: 1,
+    },
+    searchContainer: {
+      // Stops short of the right edge (instead of spanning full width) so it
+      // doesn't cover the map's layer switcher control, which sits in the
+      // top-right corner of the map itself.
+      position: "absolute",
+      left: SPACING.md,
+      right: 64,
+    },
+    searchBar: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      overflow: "hidden",
+      backgroundColor: COLORS.glassOverlay,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      paddingHorizontal: SPACING.md,
+      height: 44,
+      ...SHADOW_LG,
+    },
+    searchInput: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.text,
+      padding: 0,
+    },
+    searchResults: {
+      marginTop: SPACING.xs,
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      paddingVertical: SPACING.xs,
+      ...SHADOW_LG,
+    },
+    pinHint: {
+      position: "absolute",
+      left: SPACING.md,
+      right: 64,
+    },
+    pinHintBlur: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+      alignSelf: "flex-start",
+      overflow: "hidden",
+      backgroundColor: COLORS.glassOverlay,
+      borderRadius: RADIUS.full,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+      ...SHADOW_LG,
+    },
+    pinHintText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.text,
+    },
+    pinButtonOuter: {
+      position: "absolute",
+      right: SPACING.md,
+      width: 44,
+      height: 44,
+      borderRadius: RADIUS.full,
+      overflow: "hidden",
+      ...SHADOW_LG,
+    },
+    pinButton: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.glassOverlay,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    pinButtonActive: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.primary,
+    },
+    searchResultRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+    },
+    searchResultIcon: {
+      width: 24,
+      height: 24,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primaryTint,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    searchResultText: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.text,
+    },
+    zoomControls: {
+      position: "absolute",
+      right: SPACING.md,
+      width: 44,
+      borderRadius: RADIUS.md,
+      overflow: "hidden",
+      ...SHADOW_LG,
+    },
+    zoomBlur: {
+      backgroundColor: COLORS.glassOverlay,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
+    zoomButton: {
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    zoomDivider: {
+      height: 1,
+      backgroundColor: COLORS.border,
+    },
+    locateButtonOuter: {
+      position: "absolute",
+      right: SPACING.md,
+      width: 44,
+      height: 44,
+      borderRadius: RADIUS.full,
+      overflow: "hidden",
+      ...SHADOW_LG,
+    },
+    locateButton: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.glassOverlay,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+    },
   });
 }

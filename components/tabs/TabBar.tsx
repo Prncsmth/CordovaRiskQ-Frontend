@@ -2,14 +2,21 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import React, { useMemo } from "react";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSos } from "@/context/SosContext";
-import { RADIUS, SHADOW_LG, SPACING, useThemeColors, type ColorPalette } from "@/theme";
+import { useTour } from "@/context/TourContext";
+import {
+  RADIUS,
+  SHADOW_LG,
+  SPACING,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 
 type TabConfig = {
   name: string;
@@ -43,6 +50,24 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const { stage } = useSos();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
+  const mapTabRef = useRef<View>(null);
+  const historyTabRef = useRef<View>(null);
+  const profileTabRef = useRef<View>(null);
+  const reportTabRef = useRef<TouchableOpacity>(null);
+
+  useEffect(() => {
+    registerTarget("map", mapTabRef);
+    registerTarget("history", historyTabRef);
+    registerTarget("report", reportTabRef);
+    registerTarget("profile", profileTabRef);
+    return () => {
+      unregisterTarget("map", mapTabRef);
+      unregisterTarget("history", historyTabRef);
+      unregisterTarget("report", reportTabRef);
+      unregisterTarget("profile", profileTabRef);
+    };
+  }, [registerTarget, unregisterTarget]);
 
   if (stage === "active") return null;
 
@@ -63,33 +88,50 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         }}
         activeOpacity={0.7}
       >
-        {focused ? <View style={styles.activeDot} /> : null}
-        <Ionicons
-          name={focused ? tab.activeIcon : tab.icon}
-          size={21}
-          color={color}
-        />
-        <Text style={[styles.label, { color }]}>{tab.label}</Text>
+        <View
+          ref={
+            tab.name === "map"
+              ? mapTabRef
+              : tab.name === "report-history"
+                ? historyTabRef
+                : tab.name === "profile"
+                  ? profileTabRef
+                  : undefined
+          }
+          collapsable={false}
+          onLayout={
+            tab.name !== "home" ? () => notifyTargetLayout() : undefined
+          }
+          style={styles.tabContent}
+        >
+          {focused ? <View style={styles.activeDot} /> : null}
+          <Ionicons
+            name={focused ? tab.activeIcon : tab.icon}
+            size={21}
+            color={color}
+          />
+          <Text style={[styles.label, { color }]}>{tab.label}</Text>
+        </View>
       </TouchableOpacity>
     );
   }
 
   return (
-    <View
-      style={[styles.outer, { marginBottom: Math.max(insets.bottom, 16) }]}
-    >
+    <View style={[styles.outer, { marginBottom: Math.max(insets.bottom, 16) }]}>
       <View style={styles.container}>
         <BlurView intensity={70} tint={COLORS.glassTint} style={styles.blur} />
         {LEFT_TABS.map(renderTab)}
 
         <View style={styles.fabSlot}>
           <TouchableOpacity
+            ref={reportTabRef}
             style={styles.fabOuter}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
               navigation.navigate("report");
             }}
             activeOpacity={0.85}
+            onLayout={() => notifyTargetLayout()}
           >
             <LinearGradient
               colors={[COLORS.primary, COLORS.primaryDark]}
@@ -119,75 +161,79 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-  outer: {
-    marginHorizontal: SPACING.md,
-  },
-  container: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingTop: 10,
-    paddingBottom: 8,
-    paddingHorizontal: 8,
-    borderRadius: RADIUS.xl,
-    backgroundColor: COLORS.glassOverlay,
-    borderWidth: 1,
-    borderColor: COLORS.glassBorder,
-    ...SHADOW_LG,
-  },
-  blur: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: RADIUS.xl,
-    overflow: "hidden",
-  },
+    outer: {
+      marginHorizontal: SPACING.md,
+    },
+    container: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      paddingTop: 10,
+      paddingBottom: 8,
+      paddingHorizontal: 8,
+      borderRadius: RADIUS.xl,
+      backgroundColor: COLORS.glassOverlay,
+      borderWidth: 1,
+      borderColor: COLORS.glassBorder,
+      ...SHADOW_LG,
+    },
+    blur: {
+      ...StyleSheet.absoluteFillObject,
+      borderRadius: RADIUS.xl,
+      overflow: "hidden",
+    },
 
-  tab: {
-    flex: 1,
-    alignItems: "center",
-    gap: 4,
-    paddingBottom: 2,
-  },
+    tab: {
+      flex: 1,
+      alignItems: "center",
+    },
 
-  activeDot: {
-    position: "absolute",
-    top: -6,
-    width: 4,
-    height: 4,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
-  },
+    tabContent: {
+      alignItems: "center",
+      gap: 4,
+      paddingBottom: 2,
+    },
 
-  label: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
+    activeDot: {
+      position: "absolute",
+      top: -6,
+      width: 4,
+      height: 4,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primary,
+    },
 
-  fabSlot: {
-    flex: 1,
-    alignItems: "center",
-  },
+    label: {
+      fontSize: 11,
+      fontWeight: "600",
+    },
 
-  fabOuter: {
-    marginTop: -40, // was -30, now moves it up further
-    borderRadius: RADIUS.full,
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
+    fabSlot: {
+      flex: 1,
+      alignItems: "center",
+    },
 
-  fab: {
-    width: 58,
-    height: 58,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 5,
-    borderColor: COLORS.background,
-  },
+    fabOuter: {
+      marginTop: -40, // was -30, now moves it up further
+      borderRadius: RADIUS.full,
+      shadowColor: COLORS.primary,
+      shadowOpacity: 0.35,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
+    },
 
-  fabLabel: {
-    marginTop: 2,
-  },
+    fab: {
+      width: 58,
+      height: 58,
+      borderRadius: RADIUS.full,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 5,
+      borderColor: COLORS.background,
+    },
+
+    fabLabel: {
+      marginTop: 2,
+    },
   });
 }

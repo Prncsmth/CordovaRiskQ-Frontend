@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { type EvacuationCenter } from "@/services/evacuation.service";
+import { useTour } from "@/context/TourContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 const WALK_SPEED_KMH = 5;
@@ -23,14 +24,26 @@ export default function HomeActionList({
 }: HomeActionListProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
+  const anchorRef = useRef<View>(null);
 
   const walkMinutes = nearestCenter
     ? Math.max(1, Math.round((nearestCenter.distanceKm / WALK_SPEED_KMH) * 60))
     : null;
   const isOpen = nearestCenter?.status === "open";
 
+  useEffect(() => {
+    registerTarget("evacuation", anchorRef);
+    return () => unregisterTarget("evacuation", anchorRef);
+  }, [registerTarget, unregisterTarget]);
+
   return (
-    <View style={styles.card}>
+    <View
+      style={styles.card}
+      ref={anchorRef}
+      collapsable={false}
+      onLayout={() => notifyTargetLayout()}
+    >
       {nearestCenter ? (
         <Row
           COLORS={COLORS}

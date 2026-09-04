@@ -7,14 +7,13 @@ import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/services/auth.service";
 import {
-  RADIUS,
-  SPACING,
-  TYPOGRAPHY,
-  useIsDarkTheme,
-  useThemeColors,
-  type ColorPalette,
+    RADIUS,
+    SPACING,
+    TYPOGRAPHY,
+    useIsDarkTheme,
+    useThemeColors,
+    type ColorPalette,
 } from "@/theme";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -49,13 +48,6 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.flex}>
-      <LinearGradient
-        colors={COLORS.heroGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
       <KeyboardSafeView style={styles.transparentFlex}>
         <ScrollView
           contentContainerStyle={styles.container}

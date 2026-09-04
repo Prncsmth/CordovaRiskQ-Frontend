@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+import { useTour } from "@/context/TourContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 type AdvisoryBannerProps = {
@@ -21,9 +22,21 @@ export default function AdvisoryBanner({
 }: AdvisoryBannerProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
+  const anchorRef = useRef<View>(null);
+
+  useEffect(() => {
+    registerTarget("alerts", anchorRef);
+    return () => unregisterTarget("alerts", anchorRef);
+  }, [registerTarget, unregisterTarget]);
 
   return (
-    <View style={styles.card}>
+    <View
+      style={styles.card}
+      ref={anchorRef}
+      collapsable={false}
+      onLayout={() => notifyTargetLayout()}
+    >
       <View style={styles.iconCircle}>
         <Ionicons name="warning" size={16} color={COLORS.white} />
       </View>

@@ -14,14 +14,15 @@ import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import { useAuth } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import { updateProfile } from "@/services/user.service";
 import {
-  FONT_FAMILY,
-  RADIUS,
-  SPACING,
-  TYPOGRAPHY,
-  useThemeColors,
-  type ColorPalette,
+    FONT_FAMILY,
+    RADIUS,
+    SPACING,
+    TYPOGRAPHY,
+    useThemeColors,
+    type ColorPalette,
 } from "@/theme";
 
 const KEYS: { digit: string; letters: string }[] = [
@@ -48,6 +49,14 @@ function formatPhone(digits: string): string {
 }
 
 export default function PhoneNumberScreen() {
+  return (
+    <ThemeProvider forceLight>
+      <PhoneNumberContent />
+    </ThemeProvider>
+  );
+}
+
+function PhoneNumberContent() {
   const router = useRouter();
   const { token, user, completeOnboarding } = useAuth();
   const COLORS = useThemeColors();
@@ -124,7 +133,10 @@ export default function PhoneNumberScreen() {
         {KEYS.map((k) => (
           <View key={k.digit} style={styles.keyCell}>
             <Pressable
-              style={({ pressed }) => [styles.key, pressed && styles.keyPressed]}
+              style={({ pressed }) => [
+                styles.key,
+                pressed && styles.keyPressed,
+              ]}
               onPress={() => appendDigit(k.digit)}
             >
               <Text style={styles.keyDigit}>{k.digit}</Text>
