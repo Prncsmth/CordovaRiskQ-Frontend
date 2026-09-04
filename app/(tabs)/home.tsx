@@ -44,7 +44,7 @@ export default function HomeScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
   const [hasUnread, setHasUnread] = useState(false);
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
@@ -53,9 +53,11 @@ export default function HomeScreen() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
 
   useEffect(() => {
-    getNotifications()
-      .then((notifications) => setHasUnread(notifications.length > 0))
-      .catch(() => {});
+    if (token) {
+      getNotifications(token)
+        .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
+        .catch(() => {});
+    }
 
     getTideStatus()
       .then(setTideStatus)
@@ -89,7 +91,7 @@ export default function HomeScreen() {
         setNearestCenter(nearest);
       })
       .catch(() => {});
-  }, []);
+  }, [token]);
 
   const STALE_TIDE_THRESHOLD_MS = 16 * 60 * 60 * 1000; // 2x the backend's 8h poll interval
   const displayTide =
