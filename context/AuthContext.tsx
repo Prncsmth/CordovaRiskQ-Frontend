@@ -36,18 +36,21 @@ type AuthState = {
   token: string | null;
   user: AuthUser | null;
   needsOnboarding: boolean;
+  needsTerms: boolean;
 };
 
 const INITIAL_AUTH_STATE: AuthState = {
   token: null,
   user: null,
   needsOnboarding: false,
+  needsTerms: false,
 };
 
 type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   needsOnboarding: boolean;
+  needsTerms: boolean;
   token: string | null;
   user: AuthUser | null;
   login: (
@@ -60,6 +63,7 @@ type AuthContextValue = {
     user: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
   ) => Promise<void>;
   completeOnboarding: () => void;
+  completeTerms: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -94,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             token: savedToken,
             user: JSON.parse(savedUser),
             needsOnboarding: false,
+            needsTerms: false,
           });
         }
       } catch {
@@ -111,6 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAuthenticated: authState.token !== null,
       isLoading,
       needsOnboarding: authState.needsOnboarding,
+      needsTerms: authState.needsTerms,
       token: authState.token,
       user: authState.user,
       login: async (
@@ -128,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           token: newToken,
           user,
           needsOnboarding: needsOnboardingFlag,
+          needsTerms: needsOnboardingFlag,
         });
       },
       logout: clearSession,
@@ -145,6 +152,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       completeOnboarding: () => {
         setAuthState((prev) => ({ ...prev, needsOnboarding: false }));
+      },
+      completeTerms: () => {
+        setAuthState((prev) => ({ ...prev, needsTerms: false }));
       },
     }),
     [authState, isLoading, clearSession],

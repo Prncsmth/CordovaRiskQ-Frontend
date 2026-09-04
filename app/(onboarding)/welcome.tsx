@@ -4,7 +4,6 @@ import { Image, StyleSheet, Text, View } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import RippleRings from "@/components/common/RippleRings";
-import StepIndicator from "@/components/onboarding/StepIndicator";
 import {
   FONT_FAMILY,
   SPACING,
@@ -20,8 +19,6 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StepIndicator step={0} totalSteps={2} />
-
       <View style={styles.hero}>
         <RippleRings
           size={260}
@@ -45,7 +42,7 @@ export default function WelcomeScreen() {
 
       <PrimaryButton
         title="Get started"
-        onPress={() => router.push("/(onboarding)/terms")}
+        onPress={() => router.push("/(auth)/login")}
       />
     </View>
   );

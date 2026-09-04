@@ -12,8 +12,7 @@ import {
 } from "react-native";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
-import BackButton from "@/components/common/BackButton";
-import StepIndicator from "@/components/onboarding/StepIndicator";
+import { useAuth } from "@/context/AuthContext";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -55,6 +54,7 @@ const SECTIONS: { heading: string; body: string }[] = [
 
 export default function TermsScreen() {
   const router = useRouter();
+  const { completeTerms, user } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
@@ -93,13 +93,9 @@ export default function TermsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <BackButton onPress={() => router.back()} />
-          <StepIndicator step={1} totalSteps={2} style={styles.stepIndicator} />
-        </View>
         <Text style={styles.title}>Terms & Conditions</Text>
         <Text style={styles.subtitle}>
-          Please review before you sign in.
+          Please review before you continue.
         </Text>
 
         <View style={styles.summaryCard}>
@@ -137,7 +133,14 @@ export default function TermsScreen() {
         <PrimaryButton
           title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
-          onPress={() => router.replace("/(auth)/login")}
+          onPress={() => {
+            completeTerms();
+            router.replace(
+              user?.role === "responder"
+                ? "/responder/welcome"
+                : "/getting-started/welcome",
+            );
+          }}
         />
       </View>
     </View>
@@ -154,16 +157,6 @@ function createStyles(COLORS: ColorPalette) {
     header: {
       paddingTop: 62,
       paddingHorizontal: SPACING.lg,
-    },
-
-    headerRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.md,
-    },
-
-    stepIndicator: {
-      flex: 1,
     },
 
     title: {

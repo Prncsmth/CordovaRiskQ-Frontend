@@ -31,7 +31,7 @@ export const unstable_settings = {
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, needsOnboarding, user } = useAuth();
+  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user } = useAuth();
   const COLORS = useThemeColors();
   const router = useRouter();
   const segments = useSegments();
@@ -44,6 +44,7 @@ function RootLayoutNav() {
     const inResponderGroup = segments[0] === "responder";
     const inCitizenTabsGroup = segments[0] === "(tabs)";
     const onPhoneNumber = segments[0] === "phone-number";
+    const onTerms = segments[0] === "(onboarding)" && segments[1] === "terms";
 
     if (!isAuthenticated) {
       // Cold launch should land on the public onboarding welcome screen so the
@@ -68,6 +69,17 @@ function RootLayoutNav() {
       // pre-account welcome/terms walkthrough.
       if (!onPhoneNumber) {
         router.replace("/phone-number");
+      }
+      return;
+    }
+
+    if (needsTerms) {
+      // Phone number is saved but Terms & Conditions hasn't been accepted
+      // yet -> send there and nowhere else, same non-skippable pattern as
+      // the needsOnboarding/phone-number gate above. Resolved by
+      // completeTerms() inside (onboarding)/terms.tsx.
+      if (!onTerms) {
+        router.replace("/(onboarding)/terms");
       }
       return;
     }
@@ -102,7 +114,7 @@ function RootLayoutNav() {
       // screen -> skip to the right home for this account's role.
       router.replace(homeRoute);
     }
-  }, [isAuthenticated, isLoading, needsOnboarding, segments, user]);
+  }, [isAuthenticated, isLoading, needsOnboarding, needsTerms, segments, user]);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session

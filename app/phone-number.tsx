@@ -3,7 +3,9 @@
 // first-time Google sign-in) -- see the `needsOnboarding` redirect in
 // app/_layout.tsx. Not part of the (onboarding) welcome/terms walkthrough:
 // it needs a token to save against, so it can only run once the user
-// actually has an account.
+// actually has an account. On success it hands off to the needsTerms gate,
+// which forces (onboarding)/terms next -- see that file's post-registration
+// branch.
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -82,11 +84,7 @@ export default function PhoneNumberScreen() {
       }
 
       completeOnboarding();
-      router.replace(
-        user?.role === "responder"
-          ? "/responder/welcome"
-          : "/getting-started/welcome",
-      );
+      router.replace("/(onboarding)/terms");
     } catch (err) {
       Alert.alert(
         "Couldn't save phone number",
