@@ -24,7 +24,7 @@ export default function HomeActionList({
 }: HomeActionListProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { registerTarget, unregisterTarget } = useTour();
+  const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
   const anchorRef = useRef<View>(null);
 
   const walkMinutes = nearestCenter
@@ -34,11 +34,16 @@ export default function HomeActionList({
 
   useEffect(() => {
     registerTarget("evacuation", anchorRef);
-    return () => unregisterTarget("evacuation");
+    return () => unregisterTarget("evacuation", anchorRef);
   }, [registerTarget, unregisterTarget]);
 
   return (
-    <View style={styles.card} ref={anchorRef} collapsable={false}>
+    <View
+      style={styles.card}
+      ref={anchorRef}
+      collapsable={false}
+      onLayout={() => notifyTargetLayout()}
+    >
       {nearestCenter ? (
         <Row
           COLORS={COLORS}

@@ -1,23 +1,26 @@
-import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
-import {
-  Sora_600SemiBold,
-  Sora_700Bold,
-  useFonts,
-} from "@expo-google-fonts/sora";
-import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import SosOverlay from "@/components/sos/SosOverlay";
+import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
 import { ReportLocationProvider } from "@/context/ReportLocationContext";
 import { SosProvider } from "@/context/SosContext";
-import { ThemeProvider as AppThemeProvider, useThemeMode } from "@/context/ThemeContext";
+import {
+    ThemeProvider as AppThemeProvider,
+    useThemeMode,
+} from "@/context/ThemeContext";
 import { TourProvider } from "@/context/TourContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
+import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
 import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider as NavigationThemeProvider,
+    Sora_600SemiBold,
+    Sora_700Bold,
+    useFonts,
+} from "@expo-google-fonts/sora";
+import {
+    DarkTheme,
+    DefaultTheme,
+    ThemeProvider as NavigationThemeProvider,
 } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -33,7 +36,8 @@ export const unstable_settings = {
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user } = useAuth();
+  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user } =
+    useAuth();
   const COLORS = useThemeColors();
   const router = useRouter();
   const segments = useSegments();
@@ -143,14 +147,23 @@ function RootLayoutNav() {
     // before switching it in Settings. Forcing a full remount on every
     // login/logout transition guarantees a fresh render that reads the
     // current theme instead of showing a stale one.
-    <Stack key={isAuthenticated ? "authed" : "guest"} screenOptions={{ headerShown: false }}>
+    <Stack
+      key={isAuthenticated ? "authed" : "guest"}
+      screenOptions={{ headerShown: false, animation: "slide_from_right" }}
+    >
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="responder" />
       <Stack.Screen name="phone-number" />
-      <Stack.Screen name="getting-started/welcome" options={{ gestureEnabled: false }} />
-      <Stack.Screen name="getting-started/tour" options={{ gestureEnabled: false }} />
+      <Stack.Screen
+        name="getting-started/welcome"
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="getting-started/tour"
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen
         name="change-password/index"
         options={{
@@ -168,7 +181,9 @@ function ThemedApp() {
   const { theme } = useThemeMode();
 
   return (
-    <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider
+      value={theme === "dark" ? DarkTheme : DefaultTheme}
+    >
       <TourProvider>
         <SosProvider>
           <RootLayoutNav />

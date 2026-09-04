@@ -54,7 +54,7 @@ const SECTIONS: { heading: string; body: string }[] = [
 
 export default function TermsScreen() {
   const router = useRouter();
-  const { completeTerms, user } = useAuth();
+  const { completeTerms, logout } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
@@ -94,9 +94,7 @@ export default function TermsScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Terms & Conditions</Text>
-        <Text style={styles.subtitle}>
-          Please review before you continue.
-        </Text>
+        <Text style={styles.subtitle}>Please review before you continue.</Text>
 
         <View style={styles.summaryCard}>
           {SUMMARY.map((line) => (
@@ -133,13 +131,10 @@ export default function TermsScreen() {
         <PrimaryButton
           title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
-          onPress={() => {
+          onPress={async () => {
             completeTerms();
-            router.replace(
-              user?.role === "responder"
-                ? "/responder/welcome"
-                : "/getting-started/welcome",
-            );
+            await logout();
+            router.replace("/(onboarding)/registration-complete");
           }}
         />
       </View>

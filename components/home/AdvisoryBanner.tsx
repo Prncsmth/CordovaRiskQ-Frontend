@@ -22,16 +22,21 @@ export default function AdvisoryBanner({
 }: AdvisoryBannerProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { registerTarget, unregisterTarget } = useTour();
+  const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
   const anchorRef = useRef<View>(null);
 
   useEffect(() => {
     registerTarget("alerts", anchorRef);
-    return () => unregisterTarget("alerts");
+    return () => unregisterTarget("alerts", anchorRef);
   }, [registerTarget, unregisterTarget]);
 
   return (
-    <View style={styles.card} ref={anchorRef} collapsable={false}>
+    <View
+      style={styles.card}
+      ref={anchorRef}
+      collapsable={false}
+      onLayout={() => notifyTargetLayout()}
+    >
       <View style={styles.iconCircle}>
         <Ionicons name="warning" size={16} color={COLORS.white} />
       </View>

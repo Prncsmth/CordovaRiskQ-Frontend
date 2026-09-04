@@ -12,17 +12,26 @@ import { StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import RippleRings from "@/components/common/RippleRings";
 import { useAuth } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 import {
-  FONT_FAMILY,
-  RADIUS,
-  SHADOW_LG,
-  SPACING,
-  TYPOGRAPHY,
-  useThemeColors,
-  type ColorPalette,
+    FONT_FAMILY,
+    RADIUS,
+    SHADOW_LG,
+    SPACING,
+    TYPOGRAPHY,
+    useThemeColors,
+    type ColorPalette,
 } from "@/theme";
 
 export default function ResponderWelcomeScreen() {
+  return (
+    <ThemeProvider forceLight>
+      <ResponderWelcomeContent />
+    </ThemeProvider>
+  );
+}
+
+function ResponderWelcomeContent() {
   const router = useRouter();
   const { user } = useAuth();
   const COLORS = useThemeColors();

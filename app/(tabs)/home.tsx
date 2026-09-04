@@ -1,6 +1,11 @@
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AdvisoryBanner from "@/components/home/AdvisoryBanner";
@@ -12,11 +17,14 @@ import { SOSButton } from "@/components/sos/SOSButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
 import { useTour } from "@/context/TourContext";
-import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
+import {
+  getEvacuationCenters,
+  type EvacuationCenter,
+} from "@/services/evacuation.service";
 import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";
 import { getTideStatus, type TideStatus } from "@/services/tide.service";
-import { useThemeColors, SPACING, type ColorPalette } from "@/theme";
+import { SPACING, useThemeColors, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
 import { formatTime } from "@/utils/formatter";
 
@@ -25,7 +33,8 @@ const MOCK_ADVISORY = {
   signalLabel: "Signal No. 1",
   time: "8:00 AM",
   title: "Tropical Depression Amang nears Cebu",
-  message: "Heavy rain and storm surge expected from 6 PM. Prepare go-bags and stay off the causeway.",
+  message:
+    "Heavy rain and storm surge expected from 6 PM. Prepare go-bags and stay off the causeway.",
 };
 
 const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
@@ -50,17 +59,44 @@ export default function HomeScreen() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
   const { user } = useAuth();
-  const { registerTarget, unregisterTarget, notifyHomeReady } = useTour();
+  const {
+    registerTarget,
+    unregisterTarget,
+    notifyHomeReady,
+    registerScrollContainer,
+    unregisterScrollContainer,
+    notifyTargetLayout,
+  } = useTour();
   const sosAnchorRef = useRef<View>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
   const [hasUnread, setHasUnread] = useState(false);
-  const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
+  const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(
+    null,
+  );
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
+  const homeOpacity = useSharedValue(0);
+  const homeTranslateY = useSharedValue(18);
+
+  useEffect(() => {
+    homeOpacity.value = withTiming(1, { duration: 420 });
+    homeTranslateY.value = withTiming(0, { duration: 420 });
+  }, [homeOpacity, homeTranslateY]);
+
+  const homeEntranceStyle = useAnimatedStyle(() => ({
+    opacity: homeOpacity.value,
+    transform: [{ translateY: homeTranslateY.value }],
+  }));
 
   useEffect(() => {
     registerTarget("sos", sosAnchorRef);
-    return () => unregisterTarget("sos");
+    return () => unregisterTarget("sos", sosAnchorRef);
   }, [registerTarget, unregisterTarget]);
+
+  useEffect(() => {
+    registerScrollContainer(scrollViewRef);
+    return () => unregisterScrollContainer(scrollViewRef);
+  }, [registerScrollContainer, unregisterScrollContainer]);
 
   // Runs once on mount only. notifyHomeReady's identity changes as the
   // persisted-completion map finishes loading in TourContext, but a fresh
@@ -104,14 +140,20 @@ export default function HomeScreen() {
 
   const STALE_TIDE_THRESHOLD_MS = 16 * 60 * 60 * 1000; // 2x the backend's 8h poll interval
   const displayTide =
-    tideStatus && Date.now() - new Date(tideStatus.updatedAt).getTime() < STALE_TIDE_THRESHOLD_MS
+    tideStatus &&
+    Date.now() - new Date(tideStatus.updatedAt).getTime() <
+      STALE_TIDE_THRESHOLD_MS
       ? tideStatus
       : null;
 
   return (
-    <ScrollView
-      style={styles.flex}
-      contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.xs }]}
+    <Animated.ScrollView
+      ref={scrollViewRef}
+      style={[styles.flex, homeEntranceStyle]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: insets.top + SPACING.xs },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <HomeHeader hasUnread={hasUnread} />
@@ -119,15 +161,23 @@ export default function HomeScreen() {
 
       <TideBanner
         level={displayTide?.floodRiskLevel ?? null}
-        detail={displayTide ? formatTideDetail(displayTide) : "Tide data unavailable"}
-        temperatureC={displayTide ? Math.round(displayTide.airTemperatureC) : null}
+        detail={
+          displayTide ? formatTideDetail(displayTide) : "Tide data unavailable"
+        }
+        temperatureC={
+          displayTide ? Math.round(displayTide.airTemperatureC) : null
+        }
         weatherDescription={displayTide ? displayTide.weatherDescription : null}
         floodMessage={
           displayTide
             ? FLOOD_MESSAGE[displayTide.floodRiskLevel]
             : "Unable to load flood risk data right now"
         }
-        updatedLabel={displayTide ? `Updated ${formatTime(displayTide.updatedAt)}` : "Not available"}
+        updatedLabel={
+          displayTide
+            ? `Updated ${formatTime(displayTide.updatedAt)}`
+            : "Not available"
+        }
       />
 
       <AdvisoryBanner
@@ -138,7 +188,12 @@ export default function HomeScreen() {
         sample
       />
 
-      <View style={styles.sosSection} ref={sosAnchorRef} collapsable={false}>
+      <View
+        style={styles.sosSection}
+        ref={sosAnchorRef}
+        collapsable={false}
+        onLayout={notifyTargetLayout}
+      >
         <SOSButton onPress={openConfirm} />
       </View>
 
@@ -150,7 +205,7 @@ export default function HomeScreen() {
         onPressReport={() => router.push("/(tabs)/report")}
         onPressHotlines={() => router.push("/contacts")}
       />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

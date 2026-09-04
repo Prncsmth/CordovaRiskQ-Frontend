@@ -3,35 +3,46 @@
 // progress row, and Skip/Back/Next/Finish. Positions itself above or
 // below the current target (or roughly centered when there's no target,
 // i.e. step 0) based on available screen space.
-import React, { useEffect, useMemo } from "react";
+// The tooltip card for the first-time guide: title, body copy, and
+// Skip/Back/Next/Finish. Positions itself above or below the current target
+// (or roughly centered when there's no target, i.e. step 0).
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useMemo } from "react";
 import {
-  Pressable,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
+    Pressable,
+    StyleSheet,
+    Text,
+    useWindowDimensions,
+    View,
 } from "react-native";
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+    useAnimatedStyle,
+    useSharedValue,
+    withTiming,
 } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { TourStepConfig } from "@/context/TourContext";
 import {
-  FONT_FAMILY,
-  RADIUS,
-  SHADOW_LG,
-  SPACING,
-  TYPOGRAPHY,
-  useThemeColors,
-  type ColorPalette,
+    FONT_FAMILY,
+    RADIUS,
+    SHADOW_LG,
+    SPACING,
+    TYPOGRAPHY,
+    useThemeColors,
+    type ColorPalette,
 } from "@/theme";
 import type { Rect } from "./types";
 
 const TARGET_GAP = SPACING.md;
+// Rough estimate of the card's own rendered height, used only to keep a
+// top-anchored card from being clamped so low it would overflow the
+// bottom edge. Approximate on purpose -- measuring the card's real height
+// would need its own onLayout + a second render pass, not worth it for a
+// safety clamp.
+const ESTIMATED_CARD_HEIGHT = 220;
 
 type TourTooltipProps = {
   step: TourStepConfig;
@@ -57,6 +68,7 @@ export default function TourTooltip({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { height: screenHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(12);
@@ -76,11 +88,36 @@ export default function TourTooltip({
   const isFirstStep = stepIndex === 0;
   const isLastStep = stepIndex === totalSteps - 1;
 
+  // Safe viewport the card is allowed to render in -- keeps it clear of the
+  // status bar above and the bottom tab bar / home indicator below, even
+  // for a target measured near a screen edge.
+  const topSafeBound = insets.top + SPACING.md;
+  const bottomSafeBound = insets.bottom + SPACING.md;
+
   const positionStyle = targetRect
     ? targetRect.y > screenHeight / 2
-      ? { bottom: screenHeight - targetRect.y + TARGET_GAP }
-      : { top: targetRect.y + targetRect.height + TARGET_GAP }
+      ? {
+          bottom: Math.max(
+            screenHeight - targetRect.y + TARGET_GAP,
+            bottomSafeBound,
+          ),
+        }
+      : {
+          top: Math.min(
+            Math.max(
+              targetRect.y + targetRect.height + TARGET_GAP,
+              topSafeBound,
+            ),
+            screenHeight - bottomSafeBound - ESTIMATED_CARD_HEIGHT,
+          ),
+        }
     : { top: "40%" as const };
+  const targetIsBelowTooltip = Boolean(
+    targetRect && targetRect.y > screenHeight / 2,
+  );
+  const arrowLeft = targetRect
+    ? targetRect.x + targetRect.width / 2 - SPACING.lg - 14
+    : undefined;
 
   function handlePress(action: () => void) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -89,26 +126,33 @@ export default function TourTooltip({
 
   return (
     <Animated.View style={[styles.wrap, positionStyle, animatedStyle]}>
+      {targetRect ? (
+        <Ionicons
+          name={targetIsBelowTooltip ? "arrow-down" : "arrow-up"}
+          size={28}
+          color={COLORS.background}
+          style={[
+            styles.targetArrow,
+            targetIsBelowTooltip ? styles.arrowBelow : styles.arrowAbove,
+            { left: arrowLeft },
+          ]}
+        />
+      ) : null}
       <View style={styles.headerRow}>
-        <View style={styles.progressRow}>
-          {Array.from({ length: totalSteps }).map((_, i) => (
-            <View key={i} style={[styles.dot, i === stepIndex && styles.dotActive]} />
-          ))}
-        </View>
         <Pressable onPress={() => handlePress(onSkip)} hitSlop={8}>
           <Text style={styles.skipText}>Skip</Text>
         </Pressable>
       </View>
 
-      <Text style={styles.stepLabel}>
-        Step {stepIndex + 1} of {totalSteps}
-      </Text>
       <Text style={styles.title}>{step.title}</Text>
       <Text style={styles.body}>{step.body}</Text>
 
       <View style={styles.actionsRow}>
         {!isFirstStep ? (
-          <Pressable style={styles.backButton} onPress={() => handlePress(onBack)}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => handlePress(onBack)}
+          >
             <Text style={styles.backButtonText}>Back</Text>
           </Pressable>
         ) : (
@@ -125,7 +169,9 @@ export default function TourTooltip({
             end={{ x: 1, y: 1 }}
             style={styles.nextButtonGradient}
           >
-            <Text style={styles.nextButtonText}>{isLastStep ? "Finish" : "Next"}</Text>
+            <Text style={styles.nextButtonText}>
+              {isLastStep ? "Finish" : "Next"}
+            </Text>
           </LinearGradient>
         </Pressable>
       </View>
@@ -149,32 +195,20 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "space-between",
     },
-    progressRow: {
-      flexDirection: "row",
-      gap: 6,
-    },
-    dot: {
-      width: 6,
-      height: 6,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.borderMuted,
-    },
-    dotActive: {
-      backgroundColor: COLORS.primary,
-      width: 16,
-    },
     skipText: {
       fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.textSecondary,
     },
-    stepLabel: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "700",
-      color: COLORS.primary,
-      textTransform: "uppercase",
-      letterSpacing: 0.6,
-      marginTop: SPACING.md,
+    targetArrow: {
+      position: "absolute",
+      zIndex: 2,
+    },
+    arrowBelow: {
+      top: "100%",
+    },
+    arrowAbove: {
+      top: -24,
     },
     title: {
       fontFamily: FONT_FAMILY.display,

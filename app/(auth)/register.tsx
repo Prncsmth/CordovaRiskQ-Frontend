@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -13,12 +12,12 @@ import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import { useAuth } from "@/context/AuthContext";
 import { registerUser } from "@/services/auth.service";
 import {
-  RADIUS,
-  SPACING,
-  TYPOGRAPHY,
-  useIsDarkTheme,
-  useThemeColors,
-  type ColorPalette,
+    RADIUS,
+    SPACING,
+    TYPOGRAPHY,
+    useIsDarkTheme,
+    useThemeColors,
+    type ColorPalette,
 } from "@/theme";
 
 export default function RegisterScreen() {
@@ -60,13 +59,6 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.flex}>
-      <LinearGradient
-        colors={COLORS.heroGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-        pointerEvents="none"
-      />
       <KeyboardSafeView style={styles.transparentFlex}>
         <ScrollView
           contentContainerStyle={[
@@ -77,9 +69,15 @@ export default function RegisterScreen() {
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
-          <BackButton onPress={() => router.push("/login")} style={styles.back} />
+          <BackButton
+            onPress={() => router.push("/login")}
+            style={styles.back}
+          />
 
-          <AuthHeader title="Sign up" subtitle="Create an account to continue" />
+          <AuthHeader
+            title="Sign up"
+            subtitle="Create an account to continue"
+          />
 
           <AuthInput
             label="Full Name"

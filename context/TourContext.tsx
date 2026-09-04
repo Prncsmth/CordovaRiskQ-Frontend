@@ -15,12 +15,21 @@ import React, {
   useState,
 } from "react";
 
+import type { NativeMethods } from "react-native";
+
 import { useAuth } from "./AuthContext";
 import * as authStorage from "./authStorage";
 
 const TOUR_COMPLETED_KEY = "tour_completed_users";
 
-export type TourTargetId = "sos" | "alerts" | "evacuation" | "profile";
+export type TourTargetId =
+  | "sos"
+  | "alerts"
+  | "evacuation"
+  | "map"
+  | "report"
+  | "history"
+  | "profile";
 
 export type TourStepConfig = {
   id: string;
@@ -32,10 +41,26 @@ export type TourStepConfig = {
 // Minimal structural type for the anchor refs: any native component ref
 // (View, TouchableOpacity, ...) that exposes measureInWindow satisfies
 // this, so anchors in different components don't need matching ref types.
+// measureLayout is optional -- used to scroll an anchor into view relative
+// to a registered scroll container before the final measureInWindow call;
+// every real RN host component has it, but it's not load-bearing for the
+// type contract itself.
 export type Measurable = {
   measureInWindow: (
     callback: (x: number, y: number, width: number, height: number) => void,
   ) => void;
+  measureLayout?: (
+    relativeToNativeNode: number | NativeMethods,
+    onSuccess: (x: number, y: number, width: number, height: number) => void,
+    onFail?: () => void,
+  ) => void;
+};
+
+// The one scrollable container (Home's ScrollView) that anchors may live
+// inside. Registered separately from the id-keyed target registry since
+// there's exactly one of it, app-wide, at any time.
+export type ScrollContainer = {
+  scrollTo: (options: { x?: number; y?: number; animated?: boolean }) => void;
 };
 
 export const TOUR_STEPS: TourStepConfig[] = [
@@ -69,6 +94,24 @@ export const TOUR_STEPS: TourStepConfig[] = [
     body: "Update your phone number, manage notifications, and adjust your account settings here.",
     targetId: "profile",
   },
+  {
+    id: "map",
+    title: "Map",
+    body: "View locations and nearby areas that may help you plan your next move.",
+    targetId: "map",
+  },
+  {
+    id: "report",
+    title: "Report an Incident",
+    body: "Use this button to quickly report an incident to the response team.",
+    targetId: "report",
+  },
+  {
+    id: "history",
+    title: "Report History",
+    body: "Review the emergency reports you have submitted and their updates.",
+    targetId: "history",
+  },
 ];
 
 type TourContextValue = {
@@ -81,9 +124,30 @@ type TourContextValue = {
   finish: () => void;
   startManualTour: () => void;
   notifyHomeReady: () => void;
-  registerTarget: (id: TourTargetId, ref: React.RefObject<Measurable | null>) => void;
-  unregisterTarget: (id: TourTargetId) => void;
-  getTargetRef: (id: TourTargetId) => React.RefObject<Measurable | null> | undefined;
+  registerTarget: (
+    id: TourTargetId,
+    ref: React.RefObject<Measurable | null>,
+  ) => void;
+  unregisterTarget: (
+    id: TourTargetId,
+    ref: React.RefObject<Measurable | null>,
+  ) => void;
+  getTargetRef: (
+    id: TourTargetId,
+  ) => React.RefObject<Measurable | null> | undefined;
+  registerScrollContainer: (
+    ref: React.RefObject<ScrollContainer | null>,
+  ) => void;
+  unregisterScrollContainer: (
+    ref: React.RefObject<ScrollContainer | null>,
+  ) => void;
+  getScrollContainer: () => React.RefObject<ScrollContainer | null> | null;
+  // Bumped whenever any registered anchor's onLayout fires, so the overlay
+  // can re-measure the current step's target when layout shifts (async
+  // data loading above it, orientation change, etc.), not just on step
+  // change.
+  layoutTick: number;
+  notifyTargetLayout: () => void;
 };
 
 const TourContext = createContext<TourContextValue | undefined>(undefined);
@@ -93,7 +157,12 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedMap, setCompletedMap] = useState<Record<string, boolean>>({});
-  const targetsRef = useRef(new Map<TourTargetId, React.RefObject<Measurable | null>>());
+  const [layoutTick, setLayoutTick] = useState(0);
+  const targetsRef = useRef(
+    new Map<TourTargetId, React.RefObject<Measurable | null>>(),
+  );
+  const scrollContainerRef =
+    useRef<React.RefObject<ScrollContainer | null> | null>(null);
 
   // Loads whatever was persisted for the current user id. A brand-new
   // account's id can never already be a key in this map, so it's safe for
@@ -159,11 +228,14 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     setIsVisible(true);
   }, []);
 
-  // Called once by home.tsx on mount. Auto-shows only for a citizen account
-  // that just came through a fresh registration/first-time Google sign-in
-  // this session and hasn't completed the tour before.
+  // Called once by home.tsx on mount. In development, always show the guide
+  // so it can be previewed without creating a fresh account each time. A
+  // production build keeps the normal first-registration behavior.
   const notifyHomeReady = useCallback(() => {
-    if (user?.role === "citizen" && isFreshAccount && !completedMap[user.id]) {
+    const shouldShowForFreshAccount =
+      user?.role === "citizen" && isFreshAccount && !completedMap[user.id];
+
+    if (shouldShowForFreshAccount) {
       setCurrentStep(0);
       setIsVisible(true);
     }
@@ -176,14 +248,45 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const unregisterTarget = useCallback((id: TourTargetId) => {
-    targetsRef.current.delete(id);
-  }, []);
+  // Only deletes if this exact ref is still the registered one -- guards
+  // against a duplicate-mount race (e.g. Settings' manual replay pushing a
+  // second Home instance) where an older instance's unmount cleanup would
+  // otherwise delete a newer, still-live registration.
+  const unregisterTarget = useCallback(
+    (id: TourTargetId, ref: React.RefObject<Measurable | null>) => {
+      if (targetsRef.current.get(id) === ref) {
+        targetsRef.current.delete(id);
+      }
+    },
+    [],
+  );
 
   const getTargetRef = useCallback(
     (id: TourTargetId) => targetsRef.current.get(id),
     [],
   );
+
+  const registerScrollContainer = useCallback(
+    (ref: React.RefObject<ScrollContainer | null>) => {
+      scrollContainerRef.current = ref;
+    },
+    [],
+  );
+
+  const unregisterScrollContainer = useCallback(
+    (ref: React.RefObject<ScrollContainer | null>) => {
+      if (scrollContainerRef.current === ref) {
+        scrollContainerRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const getScrollContainer = useCallback(() => scrollContainerRef.current, []);
+
+  const notifyTargetLayout = useCallback(() => {
+    setLayoutTick((tick) => tick + 1);
+  }, []);
 
   const value = useMemo<TourContextValue>(
     () => ({
@@ -199,6 +302,11 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       registerTarget,
       unregisterTarget,
       getTargetRef,
+      registerScrollContainer,
+      unregisterScrollContainer,
+      getScrollContainer,
+      layoutTick,
+      notifyTargetLayout,
     }),
     [
       isVisible,
@@ -212,6 +320,11 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
       registerTarget,
       unregisterTarget,
       getTargetRef,
+      registerScrollContainer,
+      unregisterScrollContainer,
+      getScrollContainer,
+      layoutTick,
+      notifyTargetLayout,
     ],
   );
 
