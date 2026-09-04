@@ -57,8 +57,6 @@ export default function NotificationsScreen() {
 
   useEffect(() => {
     if (!token) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsLoading(false);
       return;
     }
 
@@ -161,11 +159,9 @@ function NotificationRow({
         style={[styles.row, !isLast && styles.rowDivider]}
         onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
         onPressIn={() => {
-          // eslint-disable-next-line react-hooks/immutability
           scale.value = withTiming(0.98, { duration: 100 });
         }}
         onPressOut={() => {
-          // eslint-disable-next-line react-hooks/immutability
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
