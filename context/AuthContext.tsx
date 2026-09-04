@@ -37,6 +37,7 @@ type AuthState = {
   user: AuthUser | null;
   needsOnboarding: boolean;
   needsTerms: boolean;
+  isFreshAccount: boolean;
 };
 
 const INITIAL_AUTH_STATE: AuthState = {
@@ -44,6 +45,7 @@ const INITIAL_AUTH_STATE: AuthState = {
   user: null,
   needsOnboarding: false,
   needsTerms: false,
+  isFreshAccount: false,
 };
 
 type AuthContextValue = {
@@ -51,6 +53,7 @@ type AuthContextValue = {
   isLoading: boolean;
   needsOnboarding: boolean;
   needsTerms: boolean;
+  isFreshAccount: boolean;
   token: string | null;
   user: AuthUser | null;
   login: (
@@ -64,6 +67,7 @@ type AuthContextValue = {
   ) => Promise<void>;
   completeOnboarding: () => void;
   completeTerms: () => void;
+  clearFreshAccount: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -99,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             user: JSON.parse(savedUser),
             needsOnboarding: false,
             needsTerms: false,
+            isFreshAccount: false,
           });
         }
       } catch {
@@ -117,6 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       needsOnboarding: authState.needsOnboarding,
       needsTerms: authState.needsTerms,
+      isFreshAccount: authState.isFreshAccount,
       token: authState.token,
       user: authState.user,
       login: async (
@@ -135,6 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user,
           needsOnboarding: needsOnboardingFlag,
           needsTerms: needsOnboardingFlag,
+          isFreshAccount: needsOnboardingFlag,
         });
       },
       logout: clearSession,
@@ -155,6 +162,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       completeTerms: () => {
         setAuthState((prev) => ({ ...prev, needsTerms: false }));
+      },
+      clearFreshAccount: () => {
+        setAuthState((prev) => ({ ...prev, isFreshAccount: false }));
       },
     }),
     [authState, isLoading, clearSession],
