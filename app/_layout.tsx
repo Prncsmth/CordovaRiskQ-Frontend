@@ -4,12 +4,14 @@ import {
   Sora_700Bold,
   useFonts,
 } from "@expo-google-fonts/sora";
+import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import SosOverlay from "@/components/sos/SosOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
 import { ReportLocationProvider } from "@/context/ReportLocationContext";
 import { SosProvider } from "@/context/SosContext";
 import { ThemeProvider as AppThemeProvider, useThemeMode } from "@/context/ThemeContext";
+import { TourProvider } from "@/context/TourContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
 import {
@@ -167,11 +169,14 @@ function ThemedApp() {
 
   return (
     <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
-      <SosProvider>
-        <RootLayoutNav />
-        <SosOverlay />
-        <StatusBar style={theme === "dark" ? "light" : "dark"} />
-      </SosProvider>
+      <TourProvider>
+        <SosProvider>
+          <RootLayoutNav />
+          <SosOverlay />
+          <FirstTimeGuideOverlay />
+          <StatusBar style={theme === "dark" ? "light" : "dark"} />
+        </SosProvider>
+      </TourProvider>
     </NavigationThemeProvider>
   );
 }
