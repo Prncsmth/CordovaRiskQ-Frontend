@@ -9,6 +9,7 @@ import HomeActionList from "@/components/home/HomeActionList";
 import HomeHeader from "@/components/home/HomeHeader";
 import TideBanner from "@/components/home/TideBanner";
 import { SOSButton } from "@/components/sos/SOSButton";
+import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
@@ -19,7 +20,7 @@ import { useThemeColors, SPACING, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
 import { formatTime } from "@/utils/formatter";
 
-const MOCK_LOCATION = "Barangay Poblacion, Cordova";
+const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
 const MOCK_ADVISORY = {
   signalLabel: "Signal No. 1",
   time: "8:00 AM",
@@ -53,6 +54,7 @@ export default function HomeScreen() {
   const [hasUnread, setHasUnread] = useState(false);
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
+  const [location, setLocation] = useState<string | null>(null);
 
   useEffect(() => {
     getNotifications()
@@ -64,13 +66,18 @@ export default function HomeScreen() {
       .catch(() => {});
 
     Promise.all([getEvacuationCenters(), getCurrentLocation()])
-      .then(([centers, location]) => {
+      .then(([centers, fix]) => {
+        if (fix) {
+          const nearestBarangay = getNearestBarangay(fix.latitude, fix.longitude);
+          setLocation(`Barangay ${nearestBarangay.name}, Cordova`);
+        }
+
         if (centers.length === 0) return;
 
-        const withDistance = location
+        const withDistance = fix
           ? centers.map((center) => ({
               ...center,
-              distanceKm: haversineDistanceKm(location, center),
+              distanceKm: haversineDistanceKm(fix, center),
             }))
           : centers;
 
@@ -95,7 +102,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <HomeHeader hasUnread={hasUnread} />
-      <GreetingBlock name={firstName} location={MOCK_LOCATION} />
+      <GreetingBlock name={firstName} location={location ?? FALLBACK_LOCATION} />
 
       <TideBanner
         level={displayTide?.floodRiskLevel ?? null}
