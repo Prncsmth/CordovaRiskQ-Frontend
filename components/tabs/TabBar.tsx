@@ -45,7 +45,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { registerTarget, unregisterTarget } = useTour();
-  const profileTabRef = useRef<TouchableOpacity>(null);
+  const profileTabRef = useRef<React.ComponentRef<typeof TouchableOpacity>>(null);
 
   useEffect(() => {
     registerTarget("profile", profileTabRef);
@@ -65,7 +65,6 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
       <TouchableOpacity
         key={tab.name}
         ref={tab.name === "profile" ? profileTabRef : undefined}
-        collapsable={false}
         style={styles.tab}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

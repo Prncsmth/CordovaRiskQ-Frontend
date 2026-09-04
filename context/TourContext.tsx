@@ -81,9 +81,9 @@ type TourContextValue = {
   finish: () => void;
   startManualTour: () => void;
   notifyHomeReady: () => void;
-  registerTarget: (id: TourTargetId, ref: React.RefObject<Measurable>) => void;
+  registerTarget: (id: TourTargetId, ref: React.RefObject<Measurable | null>) => void;
   unregisterTarget: (id: TourTargetId) => void;
-  getTargetRef: (id: TourTargetId) => React.RefObject<Measurable> | undefined;
+  getTargetRef: (id: TourTargetId) => React.RefObject<Measurable | null> | undefined;
 };
 
 const TourContext = createContext<TourContextValue | undefined>(undefined);
@@ -93,7 +93,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedMap, setCompletedMap] = useState<Record<string, boolean>>({});
-  const targetsRef = useRef(new Map<TourTargetId, React.RefObject<Measurable>>());
+  const targetsRef = useRef(new Map<TourTargetId, React.RefObject<Measurable | null>>());
 
   // Loads whatever was persisted for the current user id. A brand-new
   // account's id can never already be a key in this map, so it's safe for
@@ -170,7 +170,7 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   }, [user, isFreshAccount, completedMap]);
 
   const registerTarget = useCallback(
-    (id: TourTargetId, ref: React.RefObject<Measurable>) => {
+    (id: TourTargetId, ref: React.RefObject<Measurable | null>) => {
       targetsRef.current.set(id, ref);
     },
     [],
