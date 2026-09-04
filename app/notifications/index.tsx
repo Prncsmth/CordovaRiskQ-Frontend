@@ -12,9 +12,12 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import { useAuth } from "@/context/AuthContext";
 import {
   getNotifications,
+  markAllNotificationsRead,
   type AppNotification,
+  type NotificationType,
 } from "@/services/notification.service";
 import {
   useThemeColors,
@@ -25,14 +28,22 @@ import {
   TYPOGRAPHY,
   type ColorPalette,
 } from "@/theme";
+import { formatRelativeTime } from "@/utils/formatter";
 
-function iconForNotification(title: string): keyof typeof Ionicons.glyphMap {
-  const lower = title.toLowerCase();
-  if (lower.includes("tide")) return "water-outline";
-  if (lower.includes("evacuation")) return "home-outline";
-  if (lower.includes("report")) return "document-text-outline";
-  if (lower.includes("weather")) return "rainy-outline";
-  return "notifications-outline";
+const ICON_BY_TYPE: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
+  announcement: "megaphone-outline",
+  incident_status: "document-text-outline",
+  tide_risk: "water-outline",
+};
+
+function isToday(dateString: string): boolean {
+  const date = new Date(dateString);
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
 }
 
 export default function NotificationsScreen() {
@@ -40,17 +51,28 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { token } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getNotifications()
-      .then(setNotifications)
-      .finally(() => setIsLoading(false));
-  }, []);
+    if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsLoading(false);
+      return;
+    }
 
-  const today = notifications.filter((n) => n.group === "today");
-  const earlier = notifications.filter((n) => n.group === "earlier");
+    getNotifications(token)
+      .then((result) => {
+        setNotifications(result);
+        return markAllNotificationsRead(token);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [token]);
+
+  const today = notifications.filter((n) => isToday(n.createdAt));
+  const earlier = notifications.filter((n) => !isToday(n.createdAt));
 
   return (
     <ScrollView
@@ -139,9 +161,11 @@ function NotificationRow({
         style={[styles.row, !isLast && styles.rowDivider]}
         onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
         onPressIn={() => {
+          // eslint-disable-next-line react-hooks/immutability
           scale.value = withTiming(0.98, { duration: 100 });
         }}
         onPressOut={() => {
+          // eslint-disable-next-line react-hooks/immutability
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
@@ -152,7 +176,7 @@ function NotificationRow({
           style={styles.iconCircle}
         >
           <Ionicons
-            name={iconForNotification(item.title)}
+            name={ICON_BY_TYPE[item.type]}
             size={17}
             color={COLORS.primary}
           />
@@ -163,7 +187,7 @@ function NotificationRow({
             {item.body}
           </Text>
         </View>
-        <Text style={styles.timestamp}>{item.timestamp}</Text>
+        <Text style={styles.timestamp}>{formatRelativeTime(item.createdAt)}</Text>
       </Pressable>
     </Animated.View>
   );
