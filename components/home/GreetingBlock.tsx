@@ -39,9 +39,9 @@ function createStyles(COLORS: ColorPalette) {
       gap: SPACING.xs,
     },
     greeting: {
-      fontSize: TYPOGRAPHY.small,
+      fontSize: TYPOGRAPHY.subtitle,
       fontWeight: "700",
-      color: COLORS.textSecondary,
+      color: COLORS.text,
       letterSpacing: 0.6,
     },
     locationRow: {
@@ -50,9 +50,9 @@ function createStyles(COLORS: ColorPalette) {
       gap: 6,
     },
     location: {
-      fontSize: TYPOGRAPHY.subtitle,
+      fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
-      color: COLORS.text,
+      color: COLORS.textSecondary,
     },
   });
 }
