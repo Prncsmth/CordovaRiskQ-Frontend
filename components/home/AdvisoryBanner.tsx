@@ -5,19 +5,17 @@ import { StyleSheet, Text, View } from "react-native";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 type AdvisoryBannerProps = {
-  signalLabel: string;
+  priority: "Normal" | "Urgent";
   time: string;
   title: string;
   message: string;
-  sample?: boolean;
 };
 
 export default function AdvisoryBanner({
-  signalLabel,
+  priority,
   time,
   title,
   message,
-  sample,
 }: AdvisoryBannerProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -29,13 +27,8 @@ export default function AdvisoryBanner({
       </View>
       <View style={styles.textCol}>
         <View style={styles.metaRow}>
-          <Text style={styles.meta}>ADVISORY · {signalLabel.toUpperCase()}</Text>
+          <Text style={styles.meta}>ANNOUNCEMENT · {priority === "Urgent" ? "URGENT" : "NOTICE"}</Text>
           <Text style={styles.time}>{time}</Text>
-          {sample ? (
-            <View style={styles.sampleBadge}>
-              <Text style={styles.sampleBadgeText}>SAMPLE</Text>
-            </View>
-          ) : null}
         </View>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.message}>{message}</Text>
@@ -80,19 +73,6 @@ function createStyles(COLORS: ColorPalette) {
     time: {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
-    },
-    sampleBadge: {
-      marginLeft: "auto",
-      borderRadius: RADIUS.full,
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: 2,
-      backgroundColor: COLORS.borderMuted,
-    },
-    sampleBadgeText: {
-      fontSize: 10,
-      fontWeight: "800",
-      letterSpacing: 0.5,
-      color: COLORS.textSecondary,
     },
     title: {
       fontFamily: FONT_FAMILY.displaySemibold,
