@@ -12,6 +12,7 @@ import { SOSButton } from "@/components/sos/SOSButton";
 import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
+import { getActiveAnnouncement, type Announcement } from "@/services/advisory.service";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
 import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";
@@ -21,12 +22,6 @@ import { haversineDistanceKm } from "@/utils/distance";
 import { formatTime } from "@/utils/formatter";
 
 const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
-const MOCK_ADVISORY = {
-  signalLabel: "Signal No. 1",
-  time: "8:00 AM",
-  title: "Tropical Depression Amang nears Cebu",
-  message: "Heavy rain and storm surge expected from 6 PM. Prepare go-bags and stay off the causeway.",
-};
 
 const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
   normal: "No flood risk detected in your area",
@@ -55,6 +50,7 @@ export default function HomeScreen() {
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
   const [location, setLocation] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
 
   useEffect(() => {
     getNotifications()
@@ -67,10 +63,16 @@ export default function HomeScreen() {
 
     Promise.all([getEvacuationCenters(), getCurrentLocation()])
       .then(([centers, fix]) => {
+        let barangayName: string | undefined;
         if (fix) {
           const nearestBarangay = getNearestBarangay(fix.latitude, fix.longitude);
+          barangayName = nearestBarangay.name;
           setLocation(`Barangay ${nearestBarangay.name}, Cordova`);
         }
+
+        getActiveAnnouncement(barangayName)
+          .then(setAnnouncement)
+          .catch(() => {});
 
         if (centers.length === 0) return;
 
@@ -117,13 +119,14 @@ export default function HomeScreen() {
         updatedLabel={displayTide ? `Updated ${formatTime(displayTide.updatedAt)}` : "Not available"}
       />
 
-      <AdvisoryBanner
-        signalLabel={MOCK_ADVISORY.signalLabel}
-        time={MOCK_ADVISORY.time}
-        title={MOCK_ADVISORY.title}
-        message={MOCK_ADVISORY.message}
-        sample
-      />
+      {announcement ? (
+        <AdvisoryBanner
+          priority={announcement.priority}
+          time={formatTime(announcement.createdAt)}
+          title={announcement.title}
+          message={announcement.content}
+        />
+      ) : null}
 
       <View style={styles.sosSection}>
         <SOSButton onPress={openConfirm} />
