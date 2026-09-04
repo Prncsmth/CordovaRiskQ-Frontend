@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
 import { useAuth } from "@/context/AuthContext";
+import { useTour } from "@/context/TourContext";
 import { useThemeMode } from "@/context/ThemeContext";
 import {
   useThemeColors,
@@ -58,6 +59,7 @@ export default function SettingsScreen() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { theme, toggleTheme } = useThemeMode();
   const { user, logout } = useAuth();
+  const tour = useTour();
   const isResponder = user?.role === "responder";
 
   const [pushNotifications, setPushNotifications] = useState(true);
@@ -151,6 +153,19 @@ export default function SettingsScreen() {
       label: "Emergency Contacts",
       onPress: () => router.push("/contacts"),
     },
+    ...(isResponder
+      ? []
+      : [
+          {
+            key: "view-tutorial",
+            icon: "play-circle-outline",
+            label: "View App Tutorial",
+            onPress: () => {
+              tour.startManualTour();
+              router.push("/(tabs)/home");
+            },
+          } satisfies NavRow,
+        ]),
   ];
 
   return (
