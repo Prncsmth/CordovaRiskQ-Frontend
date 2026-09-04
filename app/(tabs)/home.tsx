@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -11,6 +11,7 @@ import TideBanner from "@/components/home/TideBanner";
 import { SOSButton } from "@/components/sos/SOSButton";
 import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
+import { useTour } from "@/context/TourContext";
 import { getEvacuationCenters, type EvacuationCenter } from "@/services/evacuation.service";
 import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";
@@ -49,10 +50,29 @@ export default function HomeScreen() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
   const { user } = useAuth();
+  const { registerTarget, unregisterTarget, notifyHomeReady } = useTour();
+  const sosAnchorRef = useRef<View>(null);
   const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
   const [hasUnread, setHasUnread] = useState(false);
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(null);
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
+
+  useEffect(() => {
+    registerTarget("sos", sosAnchorRef);
+    return () => unregisterTarget("sos");
+  }, [registerTarget, unregisterTarget]);
+
+  // Runs once on mount only. notifyHomeReady's identity changes as the
+  // persisted-completion map finishes loading in TourContext, but a fresh
+  // account's id can never already be in that map -- so the show/hide
+  // decision is identical before and after the load resolves, and a single
+  // mount-time call is correct. Depending on notifyHomeReady here would
+  // risk re-showing (and resetting to step 0) the tour mid-session if the
+  // user had already advanced past step 0 by the time it re-fires.
+  useEffect(() => {
+    notifyHomeReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     getNotifications()
@@ -118,7 +138,7 @@ export default function HomeScreen() {
         sample
       />
 
-      <View style={styles.sosSection}>
+      <View style={styles.sosSection} ref={sosAnchorRef} collapsable={false}>
         <SOSButton onPress={openConfirm} />
       </View>
 

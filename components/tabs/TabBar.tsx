@@ -4,11 +4,12 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSos } from "@/context/SosContext";
+import { useTour } from "@/context/TourContext";
 import { RADIUS, SHADOW_LG, SPACING, useThemeColors, type ColorPalette } from "@/theme";
 
 type TabConfig = {
@@ -43,6 +44,13 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const { stage } = useSos();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { registerTarget, unregisterTarget } = useTour();
+  const profileTabRef = useRef<TouchableOpacity>(null);
+
+  useEffect(() => {
+    registerTarget("profile", profileTabRef);
+    return () => unregisterTarget("profile");
+  }, [registerTarget, unregisterTarget]);
 
   if (stage === "active") return null;
 
@@ -56,6 +64,8 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
     return (
       <TouchableOpacity
         key={tab.name}
+        ref={tab.name === "profile" ? profileTabRef : undefined}
+        collapsable={false}
         style={styles.tab}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
