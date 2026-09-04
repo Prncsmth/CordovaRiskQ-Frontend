@@ -127,7 +127,7 @@ function PulseRings({ styles }: { styles: ReturnType<typeof createStyles> }) {
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
     container: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       zIndex: 100,
       elevation: 100,
     },
