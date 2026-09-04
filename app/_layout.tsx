@@ -12,6 +12,7 @@ import { SosProvider } from "@/context/SosContext";
 import { ThemeProvider as AppThemeProvider, useThemeMode } from "@/context/ThemeContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
+import { registerForPushNotifications } from "@/services/push.service";
 import {
   DarkTheme,
   DefaultTheme,
@@ -31,7 +32,7 @@ export const unstable_settings = {
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user } = useAuth();
+  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user, token } = useAuth();
   const COLORS = useThemeColors();
   const router = useRouter();
   const segments = useSegments();
@@ -115,6 +116,12 @@ function RootLayoutNav() {
       router.replace(homeRoute);
     }
   }, [isAuthenticated, isLoading, needsOnboarding, needsTerms, segments, user]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      registerForPushNotifications(token).catch(() => {});
+    }
+  }, [isAuthenticated, token]);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session
