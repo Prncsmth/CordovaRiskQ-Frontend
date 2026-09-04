@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -52,13 +52,17 @@ export default function HomeScreen() {
   const [location, setLocation] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
 
-  useEffect(() => {
-    if (token) {
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+
       getNotifications(token)
         .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
         .catch(() => {});
-    }
+    }, [token]),
+  );
 
+  useEffect(() => {
     getTideStatus()
       .then(setTideStatus)
       .catch(() => {});
@@ -91,7 +95,7 @@ export default function HomeScreen() {
         setNearestCenter(nearest);
       })
       .catch(() => {});
-  }, [token]);
+  }, []);
 
   const STALE_TIDE_THRESHOLD_MS = 16 * 60 * 60 * 1000; // 2x the backend's 8h poll interval
   const displayTide =

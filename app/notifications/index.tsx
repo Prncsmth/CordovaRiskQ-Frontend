@@ -86,7 +86,7 @@ export default function NotificationsScreen() {
         <Text style={styles.headerTitle}>Notifications</Text>
       </View>
 
-      {isLoading ? (
+      {isLoading && token ? (
         <ActivityIndicator color={COLORS.primary} style={styles.loading} />
       ) : notifications.length === 0 ? (
         <View style={styles.emptyState}>
@@ -172,7 +172,7 @@ function NotificationRow({
           style={styles.iconCircle}
         >
           <Ionicons
-            name={ICON_BY_TYPE[item.type]}
+            name={ICON_BY_TYPE[item.type] ?? "notifications-outline"}
             size={17}
             color={COLORS.primary}
           />
