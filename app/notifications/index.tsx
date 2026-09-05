@@ -12,6 +12,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import { EmptyState } from "@/components/common/EmptyState";
 import { useAuth } from "@/context/AuthContext";
 import {
   getNotifications,
@@ -35,6 +36,19 @@ const ICON_BY_TYPE: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   incident_status: "document-text-outline",
   tide_risk: "water-outline",
 };
+
+const FALLBACK_ROUTE_BY_TYPE: Record<NotificationType, "/(tabs)/report-history" | "/(tabs)/home"> = {
+  incident_status: "/(tabs)/report-history",
+  announcement: "/(tabs)/home",
+  tide_risk: "/(tabs)/home",
+};
+
+function getNotificationRoute(item: AppNotification) {
+  if (item.type === "incident_status" && item.referenceId) {
+    return `/report-detail/${item.referenceId}` as const;
+  }
+  return FALLBACK_ROUTE_BY_TYPE[item.type] ?? "/(tabs)/home";
+}
 
 function isToday(dateString: string): boolean {
   const date = new Date(dateString);
@@ -82,26 +96,19 @@ export default function NotificationsScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={styles.backButton} />
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={{ width: 36 }} />
       </View>
 
       {isLoading && token ? (
         <ActivityIndicator color={COLORS.primary} style={styles.loading} />
       ) : notifications.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIcon}>
-            <Ionicons
-              name="notifications-off-outline"
-              size={26}
-              color={COLORS.textTertiary}
-            />
-          </View>
-          <Text style={styles.emptyTitle}>You&apos;re all caught up</Text>
-          <Text style={styles.emptyText}>
-            New alerts and updates will show up here.
-          </Text>
-        </View>
+        <EmptyState
+          icon="notifications-off-outline"
+          message="You're all caught up"
+          subtitle="New alerts and updates will show up here."
+        />
       ) : (
         <>
           {today.length > 0 ? (
@@ -146,6 +153,7 @@ function NotificationRow({
   item: AppNotification;
   isLast: boolean;
 }) {
+  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const scale = useSharedValue(1);
@@ -157,7 +165,10 @@ function NotificationRow({
     <Animated.View style={animatedStyle}>
       <Pressable
         style={[styles.row, !isLast && styles.rowDivider]}
-        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push(getNotificationRoute(item));
+        }}
         onPressIn={() => {
           scale.value = withTiming(0.98, { duration: 100 });
         }}
@@ -202,11 +213,7 @@ function createStyles(COLORS: ColorPalette) {
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    position: "absolute",
-    left: 0,
+    justifyContent: "space-between",
   },
   headerTitle: {
     fontFamily: FONT_FAMILY.displaySemibold,
@@ -271,29 +278,6 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.textTertiary,
     alignSelf: "flex-start",
     marginTop: 2,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: SPACING.xxl,
-    gap: SPACING.xs,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.xs,
-  },
-  emptyTitle: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  emptyText: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
   },
   });
 }

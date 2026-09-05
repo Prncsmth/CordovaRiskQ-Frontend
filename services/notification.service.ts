@@ -9,6 +9,7 @@ export type AppNotification = {
   title: string;
   body: string;
   read: boolean;
+  referenceId: string | null;
   createdAt: string;
 };
 
