@@ -15,8 +15,6 @@ import React, {
   useState,
 } from "react";
 
-import type { NativeMethods } from "react-native";
-
 import { useAuth } from "./AuthContext";
 import * as authStorage from "./authStorage";
 
@@ -44,13 +42,19 @@ export type TourStepConfig = {
 // measureLayout is optional -- used to scroll an anchor into view relative
 // to a registered scroll container before the final measureInWindow call;
 // every real RN host component has it, but it's not load-bearing for the
-// type contract itself.
+// type contract itself. Its first param is typed `any` rather than
+// NativeMethods on purpose: different host components (View, ScrollView,
+// TouchableOpacity) each declare a different, narrower type for this
+// argument depending on RN version (e.g. NativeMethods vs
+// ReactNativeElement), and this type only needs to describe "some ref
+// I'll cast at the call site" -- pinning it to any one of those would make
+// Measurable stop structurally matching the others.
 export type Measurable = {
   measureInWindow: (
     callback: (x: number, y: number, width: number, height: number) => void,
   ) => void;
   measureLayout?: (
-    relativeToNativeNode: number | NativeMethods,
+    relativeToNativeNode: any,
     onSuccess: (x: number, y: number, width: number, height: number) => void,
     onFail?: () => void,
   ) => void;
