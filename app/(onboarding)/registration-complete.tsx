@@ -25,10 +25,13 @@ import {
 
 export default function RegistrationCompleteScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  // finishRegistration() (terms.tsx) already logged the account out by the
+  // time this screen shows, so `user` is null here -- justRegisteredName is
+  // the snapshot AuthContext took of the name before clearing it.
+  const { justRegisteredName } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
+  const firstName = justRegisteredName?.trim().split(/\s+/)[0] || "there";
   const iconOpacity = useSharedValue(0);
   const iconScale = useSharedValue(0.7);
   const contentOpacity = useSharedValue(0);

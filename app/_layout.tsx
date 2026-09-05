@@ -36,8 +36,14 @@ export const unstable_settings = {
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user } =
-    useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    needsOnboarding,
+    needsTerms,
+    justRegistered,
+    user,
+  } = useAuth();
   const COLORS = useThemeColors();
   const router = useRouter();
   const segments = useSegments();
@@ -51,8 +57,28 @@ function RootLayoutNav() {
     const inCitizenTabsGroup = segments[0] === "(tabs)";
     const onPhoneNumber = segments[0] === "phone-number";
     const onTerms = segments[0] === "(onboarding)" && segments[1] === "terms";
+    const onRegistrationComplete =
+      segments[0] === "(onboarding)" && segments[1] === "registration-complete";
 
     if (!isAuthenticated) {
+      if (justRegistered) {
+        // (onboarding)/terms.tsx just finished the account (finishRegistration())
+        // and logged it out -- send it to registration-complete, same
+        // non-skippable pattern as the needsOnboarding/needsTerms gates
+        // below. This redirect intentionally lives here (run after the
+        // isAuthenticated-keyed <Stack> below has remounted) rather than as a
+        // router.replace() call from terms.tsx itself -- calling it from
+        // there raced the remount and expo-router threw "action not handled
+        // by any navigator". inAuthGroup is also allowed through: justRegistered
+        // only clears once login() actually succeeds, so registration-complete's
+        // "Go to Login" button needs to be able to reach (auth)/login without
+        // being bounced straight back here.
+        if (!onRegistrationComplete && !inAuthGroup) {
+          router.replace("/(onboarding)/registration-complete");
+        }
+        return;
+      }
+
       // Cold launch should land on the public onboarding welcome screen so the
       // first screen in Expo Go is the welcome flow instead of the auth form.
       // Logged-out deep links or a stale route outside the auth group are still
@@ -120,7 +146,15 @@ function RootLayoutNav() {
       // screen -> skip to the right home for this account's role.
       router.replace(homeRoute);
     }
-  }, [isAuthenticated, isLoading, needsOnboarding, needsTerms, segments, user]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    needsOnboarding,
+    needsTerms,
+    justRegistered,
+    segments,
+    user,
+  ]);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session
