@@ -8,14 +8,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import { useAuth } from "@/context/AuthContext";
 import { useRoute } from "@/hooks/useRoute";
-import { getIncidentById } from "@/services/incident.service";
+import { getIncidentById, updateIncidentStatus } from "@/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import type { Incident } from "@/types/responder";
@@ -41,6 +41,17 @@ function darken(hex: string, amount: number): string {
   return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
 }
 
+// "Arriving" time-of-day shown in the trip stats bar -- now + the route's
+// remaining drive time, formatted the way a dashboard clock would show it.
+function formatArrivalTime(minutesFromNow: number): string {
+  const arrival = new Date(Date.now() + minutesFromNow * 60_000);
+  let hours = arrival.getHours();
+  const minutes = arrival.getMinutes();
+  const period = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes.toString().padStart(2, "0")} ${period}`;
+}
+
 export default function NavigateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -48,6 +59,7 @@ export default function NavigateScreen() {
   const { token } = useAuth();
   const [incident, setIncident] = useState<Incident | undefined>(undefined);
   const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
+  const [isArriving, setIsArriving] = useState(false);
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
@@ -66,7 +78,7 @@ export default function NavigateScreen() {
           options={{ headerShown: false, presentation: "fullScreenModal" }}
         />
         <Text style={styles.fallbackText}>Location data unavailable.</Text>
-        <Pressable onPress={() => router.back()} style={styles.fallbackClose}>
+        <Pressable onPress={() => router.dismissTo("/responder")} style={styles.fallbackClose}>
           <Text style={styles.fallbackCloseText}>Close</Text>
         </Pressable>
       </View>
@@ -78,6 +90,43 @@ export default function NavigateScreen() {
   const midpoint = {
     latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
     longitude: (responderCoords.longitude + incidentCoords.longitude) / 2,
+  };
+
+  const durationMin = route?.durationMin ?? incident.etaMinutes ?? 6;
+  const distanceKm = route?.distanceKm ?? incident.distanceKm;
+
+  // Layout the floating stack top-to-bottom below the safe area: incident
+  // card, then the trip stats bar, then the locate button beside it.
+  const infoCardTop = insets.top + SPACING.sm;
+  const statsBarTop = infoCardTop + 74 + SPACING.sm;
+  const locateButtonTop = statsBarTop + 58;
+
+  const handleLocate = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 16);
+  };
+
+  const handleShare = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Share.share({
+      message: `I'm on my way to ${incident.type} at ${incident.location} -- ETA ${durationMin} min.`,
+    }).catch(() => {});
+  };
+
+  const handleArrive = async () => {
+    if (!token || isArriving) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsArriving(true);
+    try {
+      await updateIncidentStatus(token, incident.id, "arrived");
+      router.replace({ pathname: "/responder/[id]", params: { id: incident.id } });
+    } catch (err) {
+      Alert.alert(
+        "Something went wrong",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+      setIsArriving(false);
+    }
   };
 
   return (
@@ -113,7 +162,7 @@ export default function NavigateScreen() {
       />
 
       <View
-        style={[styles.topCard, { top: insets.top + SPACING.sm }]}
+        style={[styles.topCard, { top: infoCardTop }]}
       >
         <View style={styles.topCardHeader}>
           <LinearGradient
@@ -135,7 +184,7 @@ export default function NavigateScreen() {
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.back();
+              router.dismissTo("/responder");
             }}
             hitSlop={10}
             style={styles.closeButton}
@@ -143,28 +192,88 @@ export default function NavigateScreen() {
             <Ionicons name="close" size={20} color={COLORS.textSecondary} />
           </Pressable>
         </View>
+      </View>
 
-        <View style={styles.statRow}>
-          <View style={styles.statChip}>
-            <Ionicons name="time-outline" size={14} color={COLORS.secondary} />
-            <Text style={styles.statChipText}>
-              {route ? `${route.durationMin} min drive` : `${incident.etaMinutes ?? 6} min away`}
+      <View style={[styles.statsBar, { top: statsBarTop }]}>
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>Trip Time</Text>
+          <Text style={styles.statsValue}>{durationMin} min</Text>
+        </View>
+        <View style={styles.statsDivider} />
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>Distance</Text>
+          <Text style={styles.statsValue}>
+            {distanceKm != null ? `${distanceKm.toFixed(1)} km` : "—"}
+          </Text>
+        </View>
+        <View style={styles.statsDivider} />
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>Arriving</Text>
+          <Text style={styles.statsValue}>{formatArrivalTime(durationMin)}</Text>
+        </View>
+      </View>
+
+      <Pressable
+        onPress={handleLocate}
+        hitSlop={8}
+        style={[styles.locateButton, { top: locateButtonTop }]}
+      >
+        <Ionicons name="locate" size={16} color={COLORS.textSecondary} />
+      </Pressable>
+
+      <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + SPACING.md }]}>
+        <View style={styles.sheetHandle} />
+        <View style={styles.sheetRow}>
+          <LinearGradient
+            colors={[visual.color, darken(visual.color, 40)]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.infoIcon, { shadowColor: visual.color }]}
+          >
+            <Ionicons name={visual.icon} size={16} color={COLORS.white} />
+          </LinearGradient>
+          <View style={styles.infoTextCol}>
+            <Text style={styles.infoTitle} numberOfLines={1}>
+              {incident.type}
+            </Text>
+            <Text style={styles.infoSubtitle} numberOfLines={1}>
+              {distanceKm != null
+                ? `${distanceKm.toFixed(1)} km remaining · about ${durationMin} min`
+                : `About ${durationMin} min away`}
             </Text>
           </View>
-          <View style={styles.statChip}>
-            <Ionicons
-              name="navigate-outline"
-              size={14}
-              color={COLORS.secondary}
-            />
-            <Text style={styles.statChipText}>
-              {route
-                ? `${route.distanceKm.toFixed(1)} km`
-                : incident.distanceKm != null
-                  ? `${incident.distanceKm.toFixed(1)} km`
-                  : "—"}
-            </Text>
-          </View>
+        </View>
+
+        <View style={styles.sheetActions}>
+          <Pressable onPress={handleShare} style={styles.shareButton}>
+            <Ionicons name="paper-plane-outline" size={17} color={COLORS.text} />
+            <Text style={styles.shareButtonText}>Share Trip</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleArrive}
+            disabled={isArriving}
+            style={[styles.arriveButtonWrap, isArriving && styles.arriveButtonDisabled]}
+          >
+            <LinearGradient
+              colors={[COLORS.success, darken(COLORS.success, 40)]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.arriveButton}
+            >
+              <LinearGradient
+                colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.arriveSheen}
+              />
+              <View style={styles.arriveContentRow}>
+                <Ionicons name="checkmark" size={19} color={COLORS.white} />
+                <Text style={styles.arriveButtonText}>
+                  {isArriving ? "Arriving…" : "Arrive"}
+                </Text>
+              </View>
+            </LinearGradient>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -231,24 +340,137 @@ function createStyles(COLORS: ColorPalette) {
     justifyContent: "center",
     ...SHADOW,
   },
-  statRow: {
+  statsBar: {
+    position: "absolute",
+    left: SPACING.md,
+    right: SPACING.md,
+    top: 0,
     flexDirection: "row",
-    gap: SPACING.sm,
-    marginTop: SPACING.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    ...SHADOW,
   },
-  statChip: {
+  statsCol: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: SPACING.sm,
+  },
+  statsDivider: {
+    width: 1,
+    backgroundColor: COLORS.borderMuted,
+    marginVertical: SPACING.xs,
+  },
+  statsLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    color: COLORS.textTertiary,
+    textTransform: "uppercase",
+  },
+  statsValue: {
+    fontFamily: FONT_FAMILY.displaySemibold,
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.tide,
+    marginTop: 3,
+  },
+  locateButton: {
+    position: "absolute",
+    right: SPACING.md,
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOW,
+  },
+  bottomSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    paddingTop: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    ...SHADOW_LG,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.border,
+    alignSelf: "center",
+    marginBottom: SPACING.md,
+  },
+  sheetRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: COLORS.tideTint,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 5,
+    gap: SPACING.sm,
   },
-  statChipText: {
-    fontSize: TYPOGRAPHY.small,
+  sheetActions: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+    marginTop: SPACING.md,
+  },
+  shareButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.xs + 2,
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  shareButtonText: {
+    fontSize: TYPOGRAPHY.body,
     fontWeight: "700",
-    color: COLORS.tide,
+    color: COLORS.text,
+  },
+  arriveButtonWrap: {
+    flex: 1,
+    borderRadius: RADIUS.md,
+    shadowColor: COLORS.success,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  arriveButton: {
+    flexDirection: "row",
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  arriveSheen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "55%",
+  },
+  arriveContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs + 2,
+  },
+  arriveButtonDisabled: {
+    opacity: 0.6,
+  },
+  arriveButtonText: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   fallbackScreen: {
     flex: 1,

@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -25,12 +25,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
 import RippleRings from "@/components/common/RippleRings";
-import IncidentMap from "@/components/responder/IncidentMap";
+import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import RButton from "@/components/responder/RButton";
 import TeamMemberRow from "@/components/responder/TeamMemberRow";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { useAuth } from "@/context/AuthContext";
+import { useRoute } from "@/hooks/useRoute";
 import {
   acceptIncident,
   getIncidentById,
@@ -247,7 +248,7 @@ export default function IncidentDetailScreen() {
 
       {phase !== "on_the_way" && (
         <View style={styles.header}>
-          <BackButton onPress={() => router.back()} />
+          <BackButton onPress={() => router.dismissTo("/responder")} />
           <Text style={styles.headerTitle}>
             {phase === "pending" ? "New Incident" : `Incident #${incident.id}`}
           </Text>
@@ -281,6 +282,7 @@ export default function IncidentDetailScreen() {
 
       {phase === "arrived" && (
         <ArrivedView
+          incident={incident}
           onStartAssistance={() =>
             Alert.alert("Start Assistance", "Coming soon.")
           }
@@ -470,66 +472,151 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 /* ---------- Phase 3: On the Way ---------- */
 function OnTheWayView({
   incident,
-  onArrive,
 }: {
   incident: Incident;
   onArrive: () => void;
 }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
   const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
+  const mapRef = useRef<MapHandle>(null);
+  const route = useRoute(responderCoords, incident.incidentCoords, "driving");
 
   useEffect(() => {
     getCurrentLocation().then(setResponderCoords).catch(() => {});
   }, []);
 
+  if (!incident.incidentCoords || !responderCoords) {
+    return (
+      <View style={styles.mapScreen}>
+        <Text style={styles.notFound}>Location data unavailable.</Text>
+      </View>
+    );
+  }
+
+  const { incidentCoords } = incident;
+  const midpoint = {
+    latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
+    longitude: (responderCoords.longitude + incidentCoords.longitude) / 2,
+  };
+  const durationMin = route?.durationMin ?? incident.etaMinutes ?? 6;
+  const distanceKm = route?.distanceKm ?? incident.distanceKm;
+
+  const handleLocate = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 16);
+  };
+
   return (
     <View style={styles.mapScreen}>
-      {incident.incidentCoords && responderCoords ? (
-        <View style={styles.mapContainer}>
-          <IncidentMap
-            responderCoords={responderCoords}
-            incidentCoords={incident.incidentCoords}
-            etaMinutes={incident.etaMinutes ?? 6}
-          />
-        </View>
-      ) : (
-        <Text style={styles.notFound}>Location data unavailable.</Text>
-      )}
+      <AppMap
+        ref={mapRef}
+        style={styles.map}
+        center={midpoint}
+        zoom={14}
+        showLayerSwitcher
+        markers={[
+          { id: "responder", ...responderCoords, color: COLORS.secondary, icon: "logo" },
+          { id: "incident", ...incidentCoords, color: visual.color },
+        ]}
+        polylines={[
+          {
+            points: route ? route.coordinates : [responderCoords, incidentCoords],
+            color: COLORS.secondary,
+            dashed: false,
+            weight: 4,
+          },
+        ]}
+        onReady={() =>
+          mapRef.current?.fitToPoints(
+            [responderCoords, incidentCoords],
+            insets.top + 140,
+          )
+        }
+      />
 
-      <View style={styles.mapHeaderCard}>
-        <GradientIconCircle
-          color={visual.color}
-          size={40}
-          iconSize={18}
-          icon={visual.icon}
-          COLORS={COLORS}
-        />
-        <View>
-          <Text style={styles.summaryTitle}>{incident.type}</Text>
-          <Text style={styles.summarySubtitle}>
-            {incident.distanceKm != null
-              ? `You're ${incident.distanceKm.toFixed(1)} km away`
-              : "Distance unavailable"}
-          </Text>
-        </View>
-      </View>
+      <Pressable
+        onPress={handleLocate}
+        hitSlop={8}
+        style={[styles.locateButton, { top: insets.top + SPACING.sm }]}
+      >
+        <Ionicons name="locate" size={20} color={COLORS.textSecondary} />
+      </Pressable>
 
-      <View style={styles.actionDock}>
-        <RButton
-          label="Navigate"
-          icon="navigate"
-          variant="primary"
-          onPress={() =>
+      <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + SPACING.md }]}>
+        <View style={styles.sheetHandle} />
+
+        <View style={styles.sheetContentRow}>
+          <View style={styles.thumbnailTile}>
+            <LinearGradient
+              colors={[visual.color, darken(visual.color, 40)]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.thumbnailFill}
+            >
+              <Ionicons name={visual.icon} size={36} color={COLORS.white} />
+            </LinearGradient>
+            <View style={styles.thumbnailCaption}>
+              <Text style={styles.thumbnailCaptionText}>
+                {distanceKm != null ? `${distanceKm.toFixed(1)} km away` : "En route"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.sheetTextCol}>
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.dismissTo("/responder");
+              }}
+              style={styles.backChip}
+            >
+              <Ionicons name="arrow-back" size={14} color={COLORS.textSecondary} />
+              <Text style={styles.backChipText}>Back</Text>
+            </Pressable>
+            <Text style={[styles.categoryLabel, { color: visual.color }]}>
+              INCIDENT · {incident.urgency.toUpperCase()}
+            </Text>
+            <Text style={styles.sheetTitle} numberOfLines={1}>
+              {incident.type}
+            </Text>
+            <Text style={styles.sheetDescription} numberOfLines={2}>
+              {incident.location}
+            </Text>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push({
               pathname: "/responder/navigate",
               params: { id: incident.id },
-            })
-          }
-          style={{ flex: 1 }}
-        />
+            });
+          }}
+          style={styles.navigateButtonWrap}
+        >
+          <LinearGradient
+            colors={[COLORS.primary, COLORS.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.navigateButton}
+          >
+            <LinearGradient
+              colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.navigateSheen}
+            />
+            <View style={styles.navigateContentRow}>
+              <Ionicons name="navigate" size={18} color={COLORS.white} />
+              <Text style={styles.navigateButtonText}>Navigate</Text>
+            </View>
+          </LinearGradient>
+        </Pressable>
       </View>
     </View>
   );
@@ -537,35 +624,69 @@ function OnTheWayView({
 
 /* ---------- Phase 4: Arrived ---------- */
 function ArrivedView({
+  incident,
   onStartAssistance,
   onCancelIncident,
 }: {
+  incident: Incident;
   onStartAssistance: () => void;
   onCancelIncident: () => void;
 }) {
+  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const visual = getIncidentVisual(incident.type);
+
   return (
     <View style={styles.body}>
       <View style={styles.centeredBody}>
-        <Text style={styles.arrivedText}>
-          You have arrived at the incident location.
+        <View style={styles.pulseWrap}>
+          <RippleRings
+            size={120}
+            ringCount={2}
+            animated
+            color={`${COLORS.success}33`}
+            style={styles.pulseRings}
+          />
+          <GradientIconCircle
+            color={COLORS.success}
+            size={88}
+            iconSize={40}
+            icon="checkmark"
+            COLORS={COLORS}
+          />
+        </View>
+        <Text style={styles.arrivedText}>You've Arrived</Text>
+        <Text style={styles.arrivedSubtext}>
+          You're on scene. Let your team know when you're ready to help.
         </Text>
-        <GradientIconCircle
-          color={COLORS.success}
-          size={88}
-          iconSize={40}
-          icon="checkmark"
-          style={{ marginBottom: SPACING.lg }}
-          COLORS={COLORS}
-        />
+
+        <View style={[styles.summaryCard, styles.arrivedSummaryCard]}>
+          <GradientIconCircle
+            color={visual.color}
+            size={40}
+            iconSize={18}
+            icon={visual.icon}
+            COLORS={COLORS}
+          />
+          <View>
+            <Text style={styles.summaryTitle}>{incident.type}</Text>
+            <Text style={styles.summarySubtitle}>{incident.location}</Text>
+          </View>
+        </View>
       </View>
 
       <Text style={styles.sectionLabel}>Actions</Text>
-      <ActionRow
-        icon="people-outline"
+      <RButton
         label="Start Assistance"
+        icon="people"
+        variant="primary"
         onPress={onStartAssistance}
+      />
+      <ActionRow
+        icon="home-outline"
+        label="Back to Home"
+        onPress={() => router.dismissTo("/responder")}
       />
       <ActionRow
         icon="close-circle-outline"
@@ -665,37 +786,146 @@ function createStyles(COLORS: ColorPalette) {
     position: "relative",
     backgroundColor: COLORS.surface,
   },
-  mapHeaderCard: {
-    position: "absolute",
-    top: SPACING.sm,
-    left: SPACING.md,
-    right: SPACING.md,
-    zIndex: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    gap: SPACING.sm,
-    ...SHADOW_LG,
-  },
-  mapContainer: {
+  map: {
     position: "absolute",
     top: 0,
+    left: 0,
     right: 0,
     bottom: 0,
-    left: 0,
-    zIndex: 0,
   },
-  actionDock: {
+  locateButton: {
     position: "absolute",
-    left: SPACING.md,
     right: SPACING.md,
-    bottom: SPACING.sm,
-    zIndex: 2,
+    width: 44,
+    height: 44,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.background,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOW,
+  },
+  bottomSheet: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    paddingTop: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+    ...SHADOW_LG,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.border,
+    alignSelf: "center",
+    marginBottom: SPACING.md,
+  },
+  sheetContentRow: {
+    flexDirection: "row",
+    gap: SPACING.md,
+  },
+  thumbnailTile: {
+    width: 112,
+    height: 132,
+    borderRadius: RADIUS.md,
+    overflow: "hidden",
+  },
+  thumbnailFill: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  thumbnailCaption: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 6,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  thumbnailCaptionText: {
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
+    color: COLORS.white,
+  },
+  sheetTextCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  backChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
+    marginBottom: SPACING.sm,
+  },
+  backChipText: {
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
+    color: COLORS.textSecondary,
+  },
+  categoryLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  sheetTitle: {
+    fontFamily: FONT_FAMILY.display,
+    fontSize: TYPOGRAPHY.subtitle,
+    color: COLORS.text,
+    marginTop: 2,
+  },
+  sheetDescription: {
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  navigateButtonWrap: {
+    borderRadius: RADIUS.full,
+    marginTop: SPACING.md,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  navigateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: RADIUS.full,
+    overflow: "hidden",
+  },
+  navigateSheen: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "55%",
+  },
+  navigateContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs + 2,
+  },
+  navigateButtonText: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "700",
+    color: COLORS.white,
   },
   centeredBody: {
     alignItems: "center",
@@ -827,10 +1057,21 @@ function createStyles(COLORS: ColorPalette) {
   },
   arrivedText: {
     fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.subtitle,
+    fontSize: TYPOGRAPHY.heading,
     color: COLORS.text,
     textAlign: "center",
+  },
+  arrivedSubtext: {
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
+    textAlign: "center",
+    marginTop: 4,
     marginBottom: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+  },
+  arrivedSummaryCard: {
+    alignSelf: "stretch",
+    marginBottom: SPACING.xl,
   },
   actionRow: {
     flexDirection: "row",
