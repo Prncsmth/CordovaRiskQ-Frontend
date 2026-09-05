@@ -1,8 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import type { ReportHistoryItem, ReportHistoryStatus } from "@/services/report.service";
+import { getReportStatusDisplay } from "@/components/report/reportStatusDisplay";
+import type { ReportHistoryItem } from "@/services/report.service";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -17,25 +19,17 @@ type ReportHistoryCardProps = {
   item: ReportHistoryItem;
 };
 
-function getStatusDisplay(status: ReportHistoryStatus, COLORS: ColorPalette) {
-  switch (status) {
-    case "resolved":
-      return { label: "Resolved", color: COLORS.success, bg: COLORS.successBg };
-    case "cancelled":
-      return { label: "Cancelled", color: COLORS.textTertiary, bg: COLORS.borderMuted };
-    case "reviewing":
-    default:
-      return { label: "Reviewing", color: COLORS.warning, bg: COLORS.warningBg };
-  }
-}
-
 export default function ReportHistoryCard({ item }: ReportHistoryCardProps) {
+  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { label, color, bg } = getStatusDisplay(item.status, COLORS);
+  const { label, color, bg } = getReportStatusDisplay(item.status, COLORS);
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={styles.card}
+      onPress={() => router.push(`/report-detail/${item.id}`)}
+    >
       <View style={[styles.iconCircle, { backgroundColor: bg }]}>
         <Ionicons name="document-text" size={18} color={color} />
       </View>
@@ -55,7 +49,7 @@ export default function ReportHistoryCard({ item }: ReportHistoryCardProps) {
       <View style={[styles.pill, { backgroundColor: bg }]}>
         <Text style={[styles.pillText, { color }]}>{label}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
