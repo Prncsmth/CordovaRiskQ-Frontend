@@ -11,6 +11,7 @@ import {
 import { TourProvider } from "@/context/TourContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
+import { registerForPushNotifications } from "@/services/push.service";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
 import {
     Sora_600SemiBold,
@@ -21,7 +22,7 @@ import {
     DarkTheme,
     DefaultTheme,
     ThemeProvider as NavigationThemeProvider,
-} from "@react-navigation/native";
+} from "expo-router/react-navigation";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
@@ -36,7 +37,7 @@ export const unstable_settings = {
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user } =
+  const { isAuthenticated, isLoading, needsOnboarding, needsTerms, user, token } =
     useAuth();
   const COLORS = useThemeColors();
   const router = useRouter();
@@ -121,6 +122,12 @@ function RootLayoutNav() {
       router.replace(homeRoute);
     }
   }, [isAuthenticated, isLoading, needsOnboarding, needsTerms, segments, user]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      registerForPushNotifications(token).catch(() => {});
+    }
+  }, [isAuthenticated, token]);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session

@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -14,9 +14,11 @@ import HomeActionList from "@/components/home/HomeActionList";
 import HomeHeader from "@/components/home/HomeHeader";
 import TideBanner from "@/components/home/TideBanner";
 import { SOSButton } from "@/components/sos/SOSButton";
+import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
 import { useTour } from "@/context/TourContext";
+import { getActiveAnnouncement, type Announcement } from "@/services/advisory.service";
 import {
   getEvacuationCenters,
   type EvacuationCenter,
@@ -28,14 +30,7 @@ import { SPACING, useThemeColors, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
 import { formatTime } from "@/utils/formatter";
 
-const MOCK_LOCATION = "Barangay Poblacion, Cordova";
-const MOCK_ADVISORY = {
-  signalLabel: "Signal No. 1",
-  time: "8:00 AM",
-  title: "Tropical Depression Amang nears Cebu",
-  message:
-    "Heavy rain and storm surge expected from 6 PM. Prepare go-bags and stay off the causeway.",
-};
+const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
 
 const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
   normal: "No flood risk detected in your area",
@@ -58,7 +53,7 @@ export default function HomeScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const {
     registerTarget,
     unregisterTarget,
@@ -75,6 +70,8 @@ export default function HomeScreen() {
     null,
   );
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
+  const [location, setLocation] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const homeOpacity = useSharedValue(0);
   const homeTranslateY = useSharedValue(18);
 
@@ -110,23 +107,40 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    getNotifications()
-      .then((notifications) => setHasUnread(notifications.length > 0))
-      .catch(() => {});
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
 
+      getNotifications(token)
+        .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
+        .catch(() => {});
+    }, [token]),
+  );
+
+  useEffect(() => {
     getTideStatus()
       .then(setTideStatus)
       .catch(() => {});
 
     Promise.all([getEvacuationCenters(), getCurrentLocation()])
-      .then(([centers, location]) => {
+      .then(([centers, fix]) => {
+        let barangayName: string | undefined;
+        if (fix) {
+          const nearestBarangay = getNearestBarangay(fix.latitude, fix.longitude);
+          barangayName = nearestBarangay.name;
+          setLocation(`Barangay ${nearestBarangay.name}, Cordova`);
+        }
+
+        getActiveAnnouncement(barangayName)
+          .then(setAnnouncement)
+          .catch(() => {});
+
         if (centers.length === 0) return;
 
-        const withDistance = location
+        const withDistance = fix
           ? centers.map((center) => ({
               ...center,
-              distanceKm: haversineDistanceKm(location, center),
+              distanceKm: haversineDistanceKm(fix, center),
             }))
           : centers;
 
@@ -157,7 +171,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <HomeHeader hasUnread={hasUnread} />
-      <GreetingBlock name={firstName} location={MOCK_LOCATION} />
+      <GreetingBlock name={firstName} location={location ?? FALLBACK_LOCATION} />
 
       <TideBanner
         level={displayTide?.floodRiskLevel ?? null}
@@ -180,13 +194,14 @@ export default function HomeScreen() {
         }
       />
 
-      <AdvisoryBanner
-        signalLabel={MOCK_ADVISORY.signalLabel}
-        time={MOCK_ADVISORY.time}
-        title={MOCK_ADVISORY.title}
-        message={MOCK_ADVISORY.message}
-        sample
-      />
+      {announcement ? (
+        <AdvisoryBanner
+          priority={announcement.priority}
+          time={formatTime(announcement.createdAt)}
+          title={announcement.title}
+          message={announcement.content}
+        />
+      ) : null}
 
       <View
         style={styles.sosSection}

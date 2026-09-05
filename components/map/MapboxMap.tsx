@@ -143,7 +143,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   if (!mapbox) {
     return (
       <View style={[styles.fallback, style]}>
-        <PlaceholderThumb style={StyleSheet.absoluteFillObject} />
+        <PlaceholderThumb style={StyleSheet.absoluteFill} />
         <ActivityIndicator color={COLORS.primary} />
       </View>
     );

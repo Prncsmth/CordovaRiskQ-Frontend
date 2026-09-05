@@ -153,7 +153,7 @@ function createStyles(COLORS: ColorPalette) {
     backgroundColor: COLORS.surface,
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   topCard: {
     position: "absolute",
