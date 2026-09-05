@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 
-import PartlyCloudyIcon from "@/components/home/PartlyCloudyIcon";
 import TideCardBackground from "@/components/home/TideCardBackground";
+import WeatherIcon from "@/components/home/WeatherIcon";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export type TideLevel = "normal" | "watch" | "warning";
@@ -46,6 +46,8 @@ export default function TideBanner({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [cardSize, setCardSize] = useState({ width: 0, height: 0 });
+  const hour = new Date().getHours();
+  const isNight = hour < 6 || hour >= 18;
 
   function handleLayout(event: LayoutChangeEvent) {
     const { width, height } = event.nativeEvent.layout;
@@ -68,7 +70,7 @@ export default function TideBanner({
 
           <View style={styles.right}>
             <View style={styles.weatherRow}>
-              <PartlyCloudyIcon size={28} />
+              <WeatherIcon weatherDescription={weatherDescription ?? ""} isNight={isNight} size={28} />
               <Text style={styles.temp}>{temperatureC != null ? `${temperatureC}°` : "—°"}</Text>
             </View>
             <Text style={styles.weatherDesc}>{weatherDescription ?? "Weather unavailable"}</Text>

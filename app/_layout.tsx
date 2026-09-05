@@ -11,6 +11,7 @@ import {
 import { TourProvider } from "@/context/TourContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
+import { registerForPushNotifications } from "@/services/push.service";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
 import {
     Sora_600SemiBold,
@@ -21,7 +22,7 @@ import {
     DarkTheme,
     DefaultTheme,
     ThemeProvider as NavigationThemeProvider,
-} from "@react-navigation/native";
+} from "expo-router/react-navigation";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
@@ -43,6 +44,7 @@ function RootLayoutNav() {
     needsTerms,
     justRegistered,
     user,
+    token,
   } = useAuth();
   const COLORS = useThemeColors();
   const router = useRouter();
@@ -155,6 +157,12 @@ function RootLayoutNav() {
     segments,
     user,
   ]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      registerForPushNotifications(token).catch(() => {});
+    }
+  }, [isAuthenticated, token]);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session

@@ -118,7 +118,7 @@ function createStyles(COLORS: ColorPalette) {
     backgroundColor: COLORS.surface,
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   etaPill: {
     position: "absolute",

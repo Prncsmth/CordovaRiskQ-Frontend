@@ -7,9 +7,8 @@
     "icon": "./assets/images/icon.png",
     "scheme": "cordovariskq",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "edgeToEdgeEnabled": true,
     "ios": {
-      "supportsTablet": true,
       "bundleIdentifier": "com.cordovariskq.app"
     },
     "android": {
@@ -20,7 +19,6 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -56,7 +54,9 @@
         }
       ],
       "@rnmapbox/maps",
-      "expo-font"
+      "expo-font",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

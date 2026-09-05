@@ -1,43 +1,26 @@
 // services/notification.service.ts
+import { apiGet, apiPatch } from "./api";
+
+export type NotificationType = "announcement" | "incident_status" | "tide_risk";
+
 export type AppNotification = {
   id: string;
+  type: NotificationType;
   title: string;
   body: string;
-  timestamp: string;
-  group: "today" | "earlier";
+  read: boolean;
+  referenceId: string | null;
+  createdAt: string;
 };
 
-const NOTIFICATIONS: AppNotification[] = [
-  {
-    id: "1",
-    title: "Tide Advisory",
-    body: "Water levels rising along coastal barangays. Stay alert.",
-    timestamp: "2h ago",
-    group: "today",
-  },
-  {
-    id: "2",
-    title: "Evacuation Notice",
-    body: "Barangay Poblacion placed under precautionary evacuation.",
-    timestamp: "5h ago",
-    group: "today",
-  },
-  {
-    id: "3",
-    title: "Report Update",
-    body: "Your incident report #RQ-20411 has been reviewed.",
-    timestamp: "Yesterday",
-    group: "earlier",
-  },
-  {
-    id: "4",
-    title: "Weather Alert",
-    body: "Heavy rainfall expected this weekend.",
-    timestamp: "2d ago",
-    group: "earlier",
-  },
-];
+export async function getNotifications(token: string): Promise<AppNotification[]> {
+  const response = await apiGet<{ success: true; notifications: AppNotification[] }>(
+    "/api/notifications",
+    token,
+  );
+  return response.notifications;
+}
 
-export async function getNotifications(): Promise<AppNotification[]> {
-  return NOTIFICATIONS;
+export async function markAllNotificationsRead(token: string): Promise<void> {
+  await apiPatch("/api/notifications/read-all", {}, token);
 }

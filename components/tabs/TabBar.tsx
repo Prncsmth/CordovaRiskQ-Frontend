@@ -1,6 +1,6 @@
 // components/tabs/TabBar.tsx
 import { Ionicons } from "@expo/vector-icons";
-import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
@@ -177,7 +177,7 @@ function createStyles(COLORS: ColorPalette) {
       ...SHADOW_LG,
     },
     blur: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       borderRadius: RADIUS.xl,
       overflow: "hidden",
     },

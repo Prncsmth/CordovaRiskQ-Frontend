@@ -12,9 +12,13 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import { EmptyState } from "@/components/common/EmptyState";
+import { useAuth } from "@/context/AuthContext";
 import {
   getNotifications,
+  markAllNotificationsRead,
   type AppNotification,
+  type NotificationType,
 } from "@/services/notification.service";
 import {
   useThemeColors,
@@ -25,14 +29,35 @@ import {
   TYPOGRAPHY,
   type ColorPalette,
 } from "@/theme";
+import { formatRelativeTime } from "@/utils/formatter";
 
-function iconForNotification(title: string): keyof typeof Ionicons.glyphMap {
-  const lower = title.toLowerCase();
-  if (lower.includes("tide")) return "water-outline";
-  if (lower.includes("evacuation")) return "home-outline";
-  if (lower.includes("report")) return "document-text-outline";
-  if (lower.includes("weather")) return "rainy-outline";
-  return "notifications-outline";
+const ICON_BY_TYPE: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
+  announcement: "megaphone-outline",
+  incident_status: "document-text-outline",
+  tide_risk: "water-outline",
+};
+
+const FALLBACK_ROUTE_BY_TYPE: Record<NotificationType, "/(tabs)/report-history" | "/(tabs)/home"> = {
+  incident_status: "/(tabs)/report-history",
+  announcement: "/(tabs)/home",
+  tide_risk: "/(tabs)/home",
+};
+
+function getNotificationRoute(item: AppNotification) {
+  if (item.type === "incident_status" && item.referenceId) {
+    return `/report-detail/${item.referenceId}` as const;
+  }
+  return FALLBACK_ROUTE_BY_TYPE[item.type] ?? "/(tabs)/home";
+}
+
+function isToday(dateString: string): boolean {
+  const date = new Date(dateString);
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
 }
 
 export default function NotificationsScreen() {
@@ -40,17 +65,26 @@ export default function NotificationsScreen() {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { token } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getNotifications()
-      .then(setNotifications)
-      .finally(() => setIsLoading(false));
-  }, []);
+    if (!token) {
+      return;
+    }
 
-  const today = notifications.filter((n) => n.group === "today");
-  const earlier = notifications.filter((n) => n.group === "earlier");
+    getNotifications(token)
+      .then((result) => {
+        setNotifications(result);
+        return markAllNotificationsRead(token);
+      })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [token]);
+
+  const today = notifications.filter((n) => isToday(n.createdAt));
+  const earlier = notifications.filter((n) => !isToday(n.createdAt));
 
   return (
     <ScrollView
@@ -62,26 +96,19 @@ export default function NotificationsScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={styles.backButton} />
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={{ width: 36 }} />
       </View>
 
-      {isLoading ? (
+      {isLoading && token ? (
         <ActivityIndicator color={COLORS.primary} style={styles.loading} />
       ) : notifications.length === 0 ? (
-        <View style={styles.emptyState}>
-          <View style={styles.emptyIcon}>
-            <Ionicons
-              name="notifications-off-outline"
-              size={26}
-              color={COLORS.textTertiary}
-            />
-          </View>
-          <Text style={styles.emptyTitle}>You&apos;re all caught up</Text>
-          <Text style={styles.emptyText}>
-            New alerts and updates will show up here.
-          </Text>
-        </View>
+        <EmptyState
+          icon="notifications-off-outline"
+          message="You're all caught up"
+          subtitle="New alerts and updates will show up here."
+        />
       ) : (
         <>
           {today.length > 0 ? (
@@ -126,6 +153,7 @@ function NotificationRow({
   item: AppNotification;
   isLast: boolean;
 }) {
+  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const scale = useSharedValue(1);
@@ -137,7 +165,10 @@ function NotificationRow({
     <Animated.View style={animatedStyle}>
       <Pressable
         style={[styles.row, !isLast && styles.rowDivider]}
-        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push(getNotificationRoute(item));
+        }}
         onPressIn={() => {
           scale.value = withTiming(0.98, { duration: 100 });
         }}
@@ -152,7 +183,7 @@ function NotificationRow({
           style={styles.iconCircle}
         >
           <Ionicons
-            name={iconForNotification(item.title)}
+            name={ICON_BY_TYPE[item.type] ?? "notifications-outline"}
             size={17}
             color={COLORS.primary}
           />
@@ -163,7 +194,7 @@ function NotificationRow({
             {item.body}
           </Text>
         </View>
-        <Text style={styles.timestamp}>{item.timestamp}</Text>
+        <Text style={styles.timestamp}>{formatRelativeTime(item.createdAt)}</Text>
       </Pressable>
     </Animated.View>
   );
@@ -182,11 +213,7 @@ function createStyles(COLORS: ColorPalette) {
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    position: "absolute",
-    left: 0,
+    justifyContent: "space-between",
   },
   headerTitle: {
     fontFamily: FONT_FAMILY.displaySemibold,
@@ -251,29 +278,6 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.textTertiary,
     alignSelf: "flex-start",
     marginTop: 2,
-  },
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: SPACING.xxl,
-    gap: SPACING.xs,
-  },
-  emptyIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.xs,
-  },
-  emptyTitle: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  emptyText: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
   },
   });
 }

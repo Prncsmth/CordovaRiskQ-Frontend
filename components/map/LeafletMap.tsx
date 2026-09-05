@@ -364,7 +364,7 @@ const LeafletMap = forwardRef<MapHandle, MapEngineProps>(function LeafletMap(
       />
       {!loaded && (
         <View style={styles.loadingOverlay} pointerEvents="none">
-          <PlaceholderThumb style={StyleSheet.absoluteFillObject} />
+          <PlaceholderThumb style={StyleSheet.absoluteFill} />
           <ActivityIndicator color={COLORS.primary} />
         </View>
       )}
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },

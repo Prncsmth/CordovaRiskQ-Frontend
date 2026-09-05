@@ -106,7 +106,7 @@ function createStyles(COLORS: ColorPalette) {
       justifyContent: "flex-end",
     },
     backdrop: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       backgroundColor: COLORS.scrim,
     },
     sheet: {

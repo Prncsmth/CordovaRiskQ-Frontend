@@ -26,9 +26,11 @@
 ## Task 1: AuthContext — `isFreshAccount` flag
 
 **Files:**
+
 - Modify: `context/AuthContext.tsx`
 
 **Interfaces:**
+
 - Produces: `AuthContextValue.isFreshAccount: boolean`, `AuthContextValue.clearFreshAccount: () => void` — consumed by `TourContext` in Task 2.
 
 - [ ] **Step 1: Add `isFreshAccount` to `AuthState` and `INITIAL_AUTH_STATE`**
@@ -128,28 +130,28 @@ type AuthContextValue = {
 In the `loadSession()` function inside the startup `useEffect`, change:
 
 ```ts
-        if (savedToken && savedUser) {
-          setAuthState({
-            token: savedToken,
-            user: JSON.parse(savedUser),
-            needsOnboarding: false,
-            needsTerms: false,
-          });
-        }
+if (savedToken && savedUser) {
+  setAuthState({
+    token: savedToken,
+    user: JSON.parse(savedUser),
+    needsOnboarding: false,
+    needsTerms: false,
+  });
+}
 ```
 
 to:
 
 ```ts
-        if (savedToken && savedUser) {
-          setAuthState({
-            token: savedToken,
-            user: JSON.parse(savedUser),
-            needsOnboarding: false,
-            needsTerms: false,
-            isFreshAccount: false,
-          });
-        }
+if (savedToken && savedUser) {
+  setAuthState({
+    token: savedToken,
+    user: JSON.parse(savedUser),
+    needsOnboarding: false,
+    needsTerms: false,
+    isFreshAccount: false,
+  });
+}
 ```
 
 - [ ] **Step 4: Expose `isFreshAccount` from the context value**
@@ -257,9 +259,11 @@ EOF
 ## Task 2: TourContext — state, persistence, target registry
 
 **Files:**
+
 - Create: `context/TourContext.tsx`
 
 **Interfaces:**
+
 - Consumes: `useAuth()` → `user: { id: string; role: "citizen" | "responder" } | null`, `isFreshAccount: boolean`, `clearFreshAccount: () => void` (Task 1). `authStorage.getItem`/`setItem` from `context/authStorage.ts` (existing, unchanged).
 - Produces: `TourProvider` component, `useTour()` hook returning `TourContextValue` (below) — consumed by Tasks 3, 5, 6.
 
@@ -393,7 +397,9 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
   const [isVisible, setIsVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [completedMap, setCompletedMap] = useState<Record<string, boolean>>({});
-  const targetsRef = useRef(new Map<TourTargetId, React.RefObject<Measurable>>());
+  const targetsRef = useRef(
+    new Map<TourTargetId, React.RefObject<Measurable>>(),
+  );
 
   // Loads whatever was persisted for the current user id. A brand-new
   // account's id can never already be a key in this map, so it's safe for
@@ -557,12 +563,14 @@ EOF
 ## Task 3: Tour overlay UI components
 
 **Files:**
+
 - Create: `components/tour/types.ts`
 - Create: `components/tour/TourSpotlight.tsx`
 - Create: `components/tour/TourTooltip.tsx`
 - Create: `components/tour/FirstTimeGuideOverlay.tsx`
 
 **Interfaces:**
+
 - Consumes: `useTour()`, `TourStepConfig` from `context/TourContext.tsx` (Task 2).
 - Produces: `FirstTimeGuideOverlay` default export — mounted in Task 4's `app/_layout.tsx`.
 
@@ -615,8 +623,12 @@ export default function TourSpotlight({
 }: TourSpotlightProps) {
   const COLORS = useThemeColors();
 
-  const holeX = useSharedValue(targetRect ? targetRect.x - SPOTLIGHT_PADDING : 0);
-  const holeY = useSharedValue(targetRect ? targetRect.y - SPOTLIGHT_PADDING : 0);
+  const holeX = useSharedValue(
+    targetRect ? targetRect.x - SPOTLIGHT_PADDING : 0,
+  );
+  const holeY = useSharedValue(
+    targetRect ? targetRect.y - SPOTLIGHT_PADDING : 0,
+  );
   const holeW = useSharedValue(
     targetRect ? targetRect.width + SPOTLIGHT_PADDING * 2 : 0,
   );
@@ -626,8 +638,12 @@ export default function TourSpotlight({
 
   useEffect(() => {
     if (!targetRect) return;
-    holeX.value = withTiming(targetRect.x - SPOTLIGHT_PADDING, { duration: 260 });
-    holeY.value = withTiming(targetRect.y - SPOTLIGHT_PADDING, { duration: 260 });
+    holeX.value = withTiming(targetRect.x - SPOTLIGHT_PADDING, {
+      duration: 260,
+    });
+    holeY.value = withTiming(targetRect.y - SPOTLIGHT_PADDING, {
+      duration: 260,
+    });
     holeW.value = withTiming(targetRect.width + SPOTLIGHT_PADDING * 2, {
       duration: 260,
     });
@@ -645,15 +661,27 @@ export default function TourSpotlight({
 
   if (!targetRect) {
     return (
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.scrim }]} />
+      <View
+        style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.scrim }]}
+      />
     );
   }
 
   return (
-    <Svg style={StyleSheet.absoluteFill} width={screenWidth} height={screenHeight}>
+    <Svg
+      style={StyleSheet.absoluteFill}
+      width={screenWidth}
+      height={screenHeight}
+    >
       <Defs>
         <Mask id="tour-spotlight-mask">
-          <SvgRect x={0} y={0} width={screenWidth} height={screenHeight} fill="white" />
+          <SvgRect
+            x={0}
+            y={0}
+            width={screenWidth}
+            height={screenHeight}
+            fill="white"
+          />
           <AnimatedRect
             animatedProps={animatedProps}
             rx={SPOTLIGHT_RADIUS}
@@ -772,7 +800,10 @@ export default function TourTooltip({
       <View style={styles.headerRow}>
         <View style={styles.progressRow}>
           {Array.from({ length: totalSteps }).map((_, i) => (
-            <View key={i} style={[styles.dot, i === stepIndex && styles.dotActive]} />
+            <View
+              key={i}
+              style={[styles.dot, i === stepIndex && styles.dotActive]}
+            />
           ))}
         </View>
         <Pressable onPress={() => handlePress(onSkip)} hitSlop={8}>
@@ -788,7 +819,10 @@ export default function TourTooltip({
 
       <View style={styles.actionsRow}>
         {!isFirstStep ? (
-          <Pressable style={styles.backButton} onPress={() => handlePress(onBack)}>
+          <Pressable
+            style={styles.backButton}
+            onPress={() => handlePress(onBack)}
+          >
             <Text style={styles.backButtonText}>Back</Text>
           </Pressable>
         ) : (
@@ -805,7 +839,9 @@ export default function TourTooltip({
             end={{ x: 1, y: 1 }}
             style={styles.nextButtonGradient}
           >
-            <Text style={styles.nextButtonText}>{isLastStep ? "Finish" : "Next"}</Text>
+            <Text style={styles.nextButtonText}>
+              {isLastStep ? "Finish" : "Next"}
+            </Text>
           </LinearGradient>
         </Pressable>
       </View>
@@ -924,8 +960,16 @@ import TourTooltip from "./TourTooltip";
 import type { Rect } from "./types";
 
 export default function FirstTimeGuideOverlay() {
-  const { isVisible, currentStep, steps, next, back, skip, finish, getTargetRef } =
-    useTour();
+  const {
+    isVisible,
+    currentStep,
+    steps,
+    next,
+    back,
+    skip,
+    finish,
+    getTargetRef,
+  } = useTour();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
 
@@ -1012,9 +1056,11 @@ EOF
 ## Task 4: Mount `TourProvider` + `FirstTimeGuideOverlay` in root layout
 
 **Files:**
+
 - Modify: `app/_layout.tsx`
 
 **Interfaces:**
+
 - Consumes: `TourProvider` from `context/TourContext.tsx` (Task 2), `FirstTimeGuideOverlay` from `components/tour/FirstTimeGuideOverlay.tsx` (Task 3).
 
 - [ ] **Step 1: Add imports**
@@ -1042,7 +1088,9 @@ function ThemedApp() {
   const { theme } = useThemeMode();
 
   return (
-    <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider
+      value={theme === "dark" ? DarkTheme : DefaultTheme}
+    >
       <SosProvider>
         <RootLayoutNav />
         <SosOverlay />
@@ -1060,7 +1108,9 @@ function ThemedApp() {
   const { theme } = useThemeMode();
 
   return (
-    <NavigationThemeProvider value={theme === "dark" ? DarkTheme : DefaultTheme}>
+    <NavigationThemeProvider
+      value={theme === "dark" ? DarkTheme : DefaultTheme}
+    >
       <TourProvider>
         <SosProvider>
           <RootLayoutNav />
@@ -1109,12 +1159,14 @@ EOF
 ## Task 5: Wire the 4 anchor targets + trigger on Home
 
 **Files:**
+
 - Modify: `app/(tabs)/home.tsx`
 - Modify: `components/home/AdvisoryBanner.tsx`
 - Modify: `components/home/HomeActionList.tsx`
 - Modify: `components/tabs/TabBar.tsx`
 
 **Interfaces:**
+
 - Consumes: `useTour()` → `registerTarget`, `unregisterTarget`, `notifyHomeReady` (Task 2).
 
 This task makes the auto-trigger path fully end-to-end testable for the first time — all 5 tour steps will have a real anchor (or, for step 0, none by design).
@@ -1218,17 +1270,17 @@ export default function HomeScreen() {
 Then wrap the `<SOSButton />` with the ref. Change:
 
 ```tsx
-      <View style={styles.sosSection}>
-        <SOSButton onPress={openConfirm} />
-      </View>
+<View style={styles.sosSection}>
+  <SOSButton onPress={openConfirm} />
+</View>
 ```
 
 to:
 
 ```tsx
-      <View style={styles.sosSection} ref={sosAnchorRef} collapsable={false}>
-        <SOSButton onPress={openConfirm} />
-      </View>
+<View style={styles.sosSection} ref={sosAnchorRef} collapsable={false}>
+  <SOSButton onPress={openConfirm} />
+</View>
 ```
 
 - [ ] **Step 2: Register the `alerts` target in `AdvisoryBanner.tsx`**
@@ -1314,7 +1366,15 @@ import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { type EvacuationCenter } from "@/services/evacuation.service";
-import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import {
+  useThemeColors,
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SPACING,
+  TYPOGRAPHY,
+  type ColorPalette,
+} from "@/theme";
 ```
 
 to:
@@ -1327,7 +1387,15 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { type EvacuationCenter } from "@/services/evacuation.service";
 import { useTour } from "@/context/TourContext";
-import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import {
+  useThemeColors,
+  FONT_FAMILY,
+  RADIUS,
+  SHADOW,
+  SPACING,
+  TYPOGRAPHY,
+  type ColorPalette,
+} from "@/theme";
 ```
 
 Then, inside `HomeActionList`, register the root card. Change:
@@ -1396,7 +1464,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSos } from "@/context/SosContext";
-import { RADIUS, SHADOW_LG, SPACING, useThemeColors, type ColorPalette } from "@/theme";
+import {
+  RADIUS,
+  SHADOW_LG,
+  SPACING,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 ```
 
 to:
@@ -1413,7 +1487,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSos } from "@/context/SosContext";
 import { useTour } from "@/context/TourContext";
-import { RADIUS, SHADOW_LG, SPACING, useThemeColors, type ColorPalette } from "@/theme";
+import {
+  RADIUS,
+  SHADOW_LG,
+  SPACING,
+  useThemeColors,
+  type ColorPalette,
+} from "@/theme";
 ```
 
 Then, inside `TabBar`, register the ref **before** the `stage === "active"` early return (hooks must run unconditionally every render):
@@ -1530,9 +1610,11 @@ EOF
 ## Task 6: Settings "View App Tutorial" + final QA
 
 **Files:**
+
 - Modify: `app/settings/index.tsx`
 
 **Interfaces:**
+
 - Consumes: `useTour()` → `startManualTour` (Task 2).
 
 - [ ] **Step 1: Add the manual-replay row**
@@ -1548,81 +1630,81 @@ alongside the existing `useAuth`/`useThemeMode` imports.
 Inside `SettingsScreen()`, get the tour hook. Change:
 
 ```tsx
-  const { theme, toggleTheme } = useThemeMode();
-  const { user, logout } = useAuth();
-  const isResponder = user?.role === "responder";
+const { theme, toggleTheme } = useThemeMode();
+const { user, logout } = useAuth();
+const isResponder = user?.role === "responder";
 ```
 
 to:
 
 ```tsx
-  const { theme, toggleTheme } = useThemeMode();
-  const { user, logout } = useAuth();
-  const tour = useTour();
-  const isResponder = user?.role === "responder";
+const { theme, toggleTheme } = useThemeMode();
+const { user, logout } = useAuth();
+const tour = useTour();
+const isResponder = user?.role === "responder";
 ```
 
 Then add the row to `supportRows`, citizen-only (the tour's anchors — Profile tab, SOS slider, evacuation card — only exist in the citizen tab layout). Change:
 
 ```tsx
-  const supportRows: NavRow[] = [
-    {
-      key: "faqs",
-      icon: "help-circle-outline",
-      label: "FAQs",
-      onPress: () => router.push("/faqs"),
-    },
-    {
-      key: "contact-support",
-      icon: "chatbubbles-outline",
-      label: "Contact Support",
-      onPress: () => router.push("/contact-support"),
-    },
-    {
-      key: "emergency-contacts",
-      icon: "call-outline",
-      label: "Emergency Contacts",
-      onPress: () => router.push("/contacts"),
-    },
-  ];
+const supportRows: NavRow[] = [
+  {
+    key: "faqs",
+    icon: "help-circle-outline",
+    label: "FAQs",
+    onPress: () => router.push("/faqs"),
+  },
+  {
+    key: "contact-support",
+    icon: "chatbubbles-outline",
+    label: "Contact Support",
+    onPress: () => router.push("/contact-support"),
+  },
+  {
+    key: "emergency-contacts",
+    icon: "call-outline",
+    label: "Emergency Contacts",
+    onPress: () => router.push("/contacts"),
+  },
+];
 ```
 
 to:
 
 ```tsx
-  const supportRows: NavRow[] = [
-    {
-      key: "faqs",
-      icon: "help-circle-outline",
-      label: "FAQs",
-      onPress: () => router.push("/faqs"),
-    },
-    {
-      key: "contact-support",
-      icon: "chatbubbles-outline",
-      label: "Contact Support",
-      onPress: () => router.push("/contact-support"),
-    },
-    {
-      key: "emergency-contacts",
-      icon: "call-outline",
-      label: "Emergency Contacts",
-      onPress: () => router.push("/contacts"),
-    },
-    ...(isResponder
-      ? []
-      : [
-          {
-            key: "view-tutorial",
-            icon: "play-circle-outline",
-            label: "View App Tutorial",
-            onPress: () => {
-              tour.startManualTour();
-              router.push("/(tabs)/home");
-            },
-          } satisfies NavRow,
-        ]),
-  ];
+const supportRows: NavRow[] = [
+  {
+    key: "faqs",
+    icon: "help-circle-outline",
+    label: "FAQs",
+    onPress: () => router.push("/faqs"),
+  },
+  {
+    key: "contact-support",
+    icon: "chatbubbles-outline",
+    label: "Contact Support",
+    onPress: () => router.push("/contact-support"),
+  },
+  {
+    key: "emergency-contacts",
+    icon: "call-outline",
+    label: "Emergency Contacts",
+    onPress: () => router.push("/contacts"),
+  },
+  ...(isResponder
+    ? []
+    : [
+        {
+          key: "view-tutorial",
+          icon: "play-circle-outline",
+          label: "View App Tutorial",
+          onPress: () => {
+            tour.startManualTour();
+            router.push("/(tabs)/home");
+          },
+        } satisfies NavRow,
+      ]),
+];
 ```
 
 - [ ] **Step 2: Type-check**
