@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   LayoutChangeEvent,
@@ -53,8 +52,7 @@ const SECTIONS: { heading: string; body: string }[] = [
 ];
 
 export default function TermsScreen() {
-  const router = useRouter();
-  const { completeTerms, logout } = useAuth();
+  const { user, finishRegistration } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
@@ -132,9 +130,18 @@ export default function TermsScreen() {
           title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
           onPress={async () => {
-            completeTerms();
-            await logout();
-            router.replace("/(onboarding)/registration-complete");
+            // finishRegistration() logs the account out (isAuthenticated ->
+            // false) and marks it pending for the tour in one atomic
+            // AuthContext update, then returns -- it does NOT navigate.
+            // app/_layout.tsx's Stack remounts its whole navigator tree
+            // whenever isAuthenticated flips (it's keyed on that value), so
+            // calling router.replace() here ourselves would race that
+            // remount and can throw "action not handled by any navigator".
+            // RootLayoutNav's effect reads justRegistered and sends the user
+            // to registration-complete itself, after the remount settles.
+            if (user) {
+              await finishRegistration(user.id, user.name);
+            }
           }}
         />
       </View>
