@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppMap from "@/components/map/AppMap";
 import BackButton from "@/components/common/BackButton";
 import { getReportStatusDisplay } from "@/components/report/reportStatusDisplay";
+import InfoRow from "@/components/report-detail/InfoRow";
 import { useAuth } from "@/context/AuthContext";
 import { getReportDetailById, type ReportDetail } from "@/services/report.service";
 import {
@@ -126,17 +127,6 @@ export default function ReportDetailScreen() {
         </View>
       </View>
     </ScrollView>
-  );
-}
-
-function InfoRow({ label, value, last }: { label: string; value: string; last?: boolean }) {
-  const COLORS = useThemeColors();
-  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  return (
-    <View style={[styles.infoRow, last && styles.infoRowLast]}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
-    </View>
   );
 }
 
@@ -260,25 +250,6 @@ function createStyles(COLORS: ColorPalette) {
       borderColor: COLORS.borderMuted,
       paddingHorizontal: SPACING.md,
       ...SHADOW,
-    },
-    infoRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingVertical: SPACING.sm + 2,
-      borderBottomWidth: 1,
-      borderBottomColor: COLORS.borderMuted,
-    },
-    infoRowLast: {
-      borderBottomWidth: 0,
-    },
-    infoLabel: {
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textTertiary,
-    },
-    infoValue: {
-      fontSize: TYPOGRAPHY.caption,
-      fontWeight: "600",
-      color: COLORS.text,
     },
   });
 }

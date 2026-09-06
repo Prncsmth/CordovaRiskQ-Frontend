@@ -4,15 +4,7 @@ import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-    ActivityIndicator,
-    Keyboard,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-} from "react-native";
+import { Keyboard, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, {
@@ -20,6 +12,10 @@ import AppMap, {
     type MapMarker,
     type MapUserLocation,
 } from "@/components/map/AppMap";
+import LocateButton from "@/components/map/LocateButton";
+import PinButton from "@/components/map/PinButton";
+import SearchBar from "@/components/map/SearchBar";
+import ZoomControls from "@/components/map/ZoomControls";
 import MapFirstTimeGuide from "@/components/tour/MapFirstTimeGuide";
 import {
     CORDOVA_BARANGAYS,
@@ -313,164 +309,40 @@ export default function MapScreen() {
           </View>
         )}
 
-        <View
+        <SearchBar
           ref={searchTargetRef}
-          collapsable={false}
-          style={[styles.searchContainer, { top: SPACING.md }]}
-        >
-          <BlurView
-            intensity={60}
-            tint={COLORS.glassTint}
-            style={styles.searchBar}
-          >
-            <Ionicons name="search" size={18} color={COLORS.textSecondary} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search barangay..."
-              placeholderTextColor={COLORS.textSecondary}
-              style={styles.searchInput}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <Pressable
-                hitSlop={8}
-                onPress={() => setSearchQuery("")}
-                accessibilityLabel="Clear search"
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={18}
-                  color={COLORS.textSecondary}
-                />
-              </Pressable>
-            )}
-          </BlurView>
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onClear={() => setSearchQuery("")}
+          results={barangayResults}
+          onSelectResult={handleSelectBarangay}
+        />
 
-          {barangayResults.length > 0 && (
-            <View style={styles.searchResults}>
-              {barangayResults.map((barangay) => (
-                <Pressable
-                  key={barangay.id}
-                  onPress={() => handleSelectBarangay(barangay)}
-                  style={styles.searchResultRow}
-                >
-                  <View style={styles.searchResultIcon}>
-                    <Ionicons
-                      name="location-outline"
-                      size={14}
-                      color={COLORS.primary}
-                    />
-                  </View>
-                  <Text style={styles.searchResultText}>{barangay.name}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </View>
-
-        <Pressable
+        <PinButton
           ref={pinTargetRef}
-          collapsable={false}
+          active={pinMode}
           onPress={handleTogglePinMode}
-          style={[
-            styles.pinButtonOuter,
-            {
-              bottom:
-                insets.bottom + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm,
-            },
-          ]}
-          accessibilityLabel={
-            pinMode
-              ? "Cancel pinning emergency location"
-              : "Pin emergency location"
-          }
-        >
-          {pinMode ? (
-            <View style={styles.pinButtonActive}>
-              <Ionicons name="location" size={22} color={COLORS.white} />
-            </View>
-          ) : (
-            <BlurView
-              intensity={60}
-              tint={COLORS.glassTint}
-              style={styles.pinButton}
-            >
-              <Ionicons
-                name="location-outline"
-                size={22}
-                color={COLORS.primary}
-              />
-            </BlurView>
-          )}
-        </Pressable>
+          style={{
+            bottom:
+              insets.bottom + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm,
+          }}
+        />
 
-        <View
-          style={[
-            styles.zoomControls,
-            { bottom: insets.bottom + SPACING.lg + 44 + SPACING.sm },
-          ]}
-        >
-          <BlurView
-            intensity={60}
-            tint={COLORS.glassTint}
-            style={styles.zoomBlur}
-          >
-            <Pressable
-              onPress={handleZoomIn}
-              disabled={zoomLevel >= MAX_ZOOM}
-              style={styles.zoomButton}
-              accessibilityLabel="Zoom in"
-            >
-              <Ionicons
-                name="add"
-                size={20}
-                color={
-                  zoomLevel >= MAX_ZOOM ? COLORS.textTertiary : COLORS.text
-                }
-              />
-            </Pressable>
-            <View style={styles.zoomDivider} />
-            <Pressable
-              onPress={handleZoomOut}
-              disabled={zoomLevel <= MIN_ZOOM}
-              style={styles.zoomButton}
-              accessibilityLabel="Zoom out"
-            >
-              <Ionicons
-                name="remove"
-                size={20}
-                color={
-                  zoomLevel <= MIN_ZOOM ? COLORS.textTertiary : COLORS.text
-                }
-              />
-            </Pressable>
-          </BlurView>
-        </View>
+        <ZoomControls
+          zoomLevel={zoomLevel}
+          minZoom={MIN_ZOOM}
+          maxZoom={MAX_ZOOM}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          style={{ bottom: insets.bottom + SPACING.lg + 44 + SPACING.sm }}
+        />
 
-        <Pressable
+        <LocateButton
           ref={locateTargetRef}
-          collapsable={false}
+          isLocating={isLocating}
           onPress={handleLocateMe}
-          disabled={isLocating}
-          style={[
-            styles.locateButtonOuter,
-            { bottom: insets.bottom + SPACING.lg },
-          ]}
-          accessibilityLabel="Locate me"
-        >
-          <BlurView
-            intensity={60}
-            tint={COLORS.glassTint}
-            style={styles.locateButton}
-          >
-            {isLocating ? (
-              <ActivityIndicator size="small" color={COLORS.primary} />
-            ) : (
-              <Ionicons name="locate" size={22} color={COLORS.primary} />
-            )}
-          </BlurView>
-        </Pressable>
+          style={{ bottom: insets.bottom + SPACING.lg }}
+        />
       </View>
 
       {showMapGuide ? (
@@ -523,42 +395,6 @@ function createStyles(COLORS: ColorPalette) {
     map: {
       flex: 1,
     },
-    searchContainer: {
-      // Stops short of the right edge (instead of spanning full width) so it
-      // doesn't cover the map's layer switcher control, which sits in the
-      // top-right corner of the map itself.
-      position: "absolute",
-      left: SPACING.md,
-      right: 64,
-    },
-    searchBar: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-      overflow: "hidden",
-      backgroundColor: COLORS.glassOverlay,
-      borderRadius: RADIUS.md,
-      borderWidth: 1,
-      borderColor: COLORS.glassBorder,
-      paddingHorizontal: SPACING.md,
-      height: 44,
-      ...SHADOW_LG,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: TYPOGRAPHY.body,
-      color: COLORS.text,
-      padding: 0,
-    },
-    searchResults: {
-      marginTop: SPACING.xs,
-      backgroundColor: COLORS.background,
-      borderRadius: RADIUS.md,
-      borderWidth: 1,
-      borderColor: COLORS.borderMuted,
-      paddingVertical: SPACING.xs,
-      ...SHADOW_LG,
-    },
     pinHint: {
       position: "absolute",
       left: SPACING.md,
@@ -582,87 +418,6 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.text,
-    },
-    pinButtonOuter: {
-      position: "absolute",
-      right: SPACING.md,
-      width: 44,
-      height: 44,
-      borderRadius: RADIUS.full,
-      overflow: "hidden",
-      ...SHADOW_LG,
-    },
-    pinButton: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: COLORS.glassOverlay,
-      borderWidth: 1,
-      borderColor: COLORS.glassBorder,
-    },
-    pinButtonActive: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: COLORS.primary,
-    },
-    searchResultRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-    },
-    searchResultIcon: {
-      width: 24,
-      height: 24,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primaryTint,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    searchResultText: {
-      fontSize: TYPOGRAPHY.body,
-      color: COLORS.text,
-    },
-    zoomControls: {
-      position: "absolute",
-      right: SPACING.md,
-      width: 44,
-      borderRadius: RADIUS.md,
-      overflow: "hidden",
-      ...SHADOW_LG,
-    },
-    zoomBlur: {
-      backgroundColor: COLORS.glassOverlay,
-      borderWidth: 1,
-      borderColor: COLORS.glassBorder,
-    },
-    zoomButton: {
-      height: 44,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    zoomDivider: {
-      height: 1,
-      backgroundColor: COLORS.border,
-    },
-    locateButtonOuter: {
-      position: "absolute",
-      right: SPACING.md,
-      width: 44,
-      height: 44,
-      borderRadius: RADIUS.full,
-      overflow: "hidden",
-      ...SHADOW_LG,
-    },
-    locateButton: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: COLORS.glassOverlay,
-      borderWidth: 1,
-      borderColor: COLORS.glassBorder,
     },
   });
 }

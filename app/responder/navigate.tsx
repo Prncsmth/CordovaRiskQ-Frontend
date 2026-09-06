@@ -12,7 +12,9 @@ import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
+import { darken } from "@/components/responder/incident-detail/colorUtils";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
+import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useRoute } from "@/hooks/useRoute";
 import { getIncidentById, updateIncidentStatus } from "@/services/incident.service";
@@ -29,17 +31,6 @@ import {
     useThemeColors,
     type ColorPalette,
 } from "@/theme";
-
-// Hand-picked darker shade of an arbitrary incident color, for the gradient
-// fill on marker/icon badges -- mirrors the primary/primaryDark two-tone
-// pattern used across the app, but incident colors aren't theme tokens.
-function darken(hex: string, amount: number): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const r = Math.max(0, (num >> 16) - amount);
-  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
-  const b = Math.max(0, (num & 0x0000ff) - amount);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
 
 // "Arriving" time-of-day shown in the trip stats bar -- now + the route's
 // remaining drive time, formatted the way a dashboard clock would show it.
@@ -107,7 +98,6 @@ export default function NavigateScreen() {
   };
 
   const handleShare = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Share.share({
       message: `I'm on my way to ${incident.type} at ${incident.location} -- ETA ${durationMin} min.`,
     }).catch(() => {});
@@ -115,7 +105,6 @@ export default function NavigateScreen() {
 
   const handleArrive = async () => {
     if (!token || isArriving) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsArriving(true);
     try {
       await updateIncidentStatus(token, incident.id, "arrived");
@@ -245,35 +234,21 @@ export default function NavigateScreen() {
         </View>
 
         <View style={styles.sheetActions}>
-          <Pressable onPress={handleShare} style={styles.shareButton}>
-            <Ionicons name="paper-plane-outline" size={17} color={COLORS.text} />
-            <Text style={styles.shareButtonText}>Share Trip</Text>
-          </Pressable>
-          <Pressable
+          <RButton
+            label="Share Trip"
+            icon="paper-plane-outline"
+            variant="secondary"
+            onPress={handleShare}
+            style={styles.sheetButton}
+          />
+          <RButton
+            label={isArriving ? "Arriving…" : "Arrive"}
+            icon="checkmark"
+            variant="success"
             onPress={handleArrive}
             disabled={isArriving}
-            style={[styles.arriveButtonWrap, isArriving && styles.arriveButtonDisabled]}
-          >
-            <LinearGradient
-              colors={[COLORS.success, darken(COLORS.success, 40)]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.arriveButton}
-            >
-              <LinearGradient
-                colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.arriveSheen}
-              />
-              <View style={styles.arriveContentRow}>
-                <Ionicons name="checkmark" size={19} color={COLORS.white} />
-                <Text style={styles.arriveButtonText}>
-                  {isArriving ? "Arriving…" : "Arrive"}
-                </Text>
-              </View>
-            </LinearGradient>
-          </Pressable>
+            style={styles.sheetButton}
+          />
         </View>
       </View>
     </View>
@@ -418,59 +393,9 @@ function createStyles(COLORS: ColorPalette) {
     gap: SPACING.sm,
     marginTop: SPACING.md,
   },
-  shareButton: {
+  sheetButton: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: SPACING.xs + 2,
-    paddingVertical: 14,
-    borderRadius: RADIUS.md,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  shareButtonText: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  arriveButtonWrap: {
-    flex: 1,
-    borderRadius: RADIUS.md,
-    shadowColor: COLORS.success,
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  arriveButton: {
-    flexDirection: "row",
-    paddingVertical: 14,
-    borderRadius: RADIUS.md,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  arriveSheen: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: "55%",
-  },
-  arriveContentRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs + 2,
-  },
-  arriveButtonDisabled: {
-    opacity: 0.6,
-  },
-  arriveButtonText: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.white,
+    marginBottom: 0,
   },
   fallbackScreen: {
     flex: 1,

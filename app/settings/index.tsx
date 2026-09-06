@@ -3,23 +3,12 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  View,
-} from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
+import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import NavSettingRow, { type NavRow } from "@/components/settings/NavSettingRow";
+import ToggleSettingRow, { type ToggleRow } from "@/components/settings/ToggleSettingRow";
 import { useAuth } from "@/context/AuthContext";
 import { useTour } from "@/context/TourContext";
 import { useThemeMode } from "@/context/ThemeContext";
@@ -34,23 +23,6 @@ import {
 } from "@/theme";
 
 const APP_VERSION = "1.0.0";
-
-type ToggleRow = {
-  key: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  description: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-};
-
-type NavRow = {
-  key: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-  danger?: boolean;
-};
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -245,92 +217,6 @@ export default function SettingsScreen() {
   );
 }
 
-function ToggleSettingRow({ row }: { row: ToggleRow }) {
-  const COLORS = useThemeColors();
-  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  return (
-    <View style={styles.row}>
-      <LinearGradient
-        colors={COLORS.iconTileGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.iconCircle}
-      >
-        <Ionicons name={row.icon} size={18} color={COLORS.primary} />
-      </LinearGradient>
-      <View style={styles.textCol}>
-        <Text style={styles.label}>{row.label}</Text>
-        <Text style={styles.description}>{row.description}</Text>
-      </View>
-      <Switch
-        value={row.value}
-        onValueChange={(value) => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          row.onValueChange(value);
-        }}
-        trackColor={{ true: COLORS.primary }}
-        thumbColor={COLORS.white}
-      />
-    </View>
-  );
-}
-
-function NavSettingRow({ row }: { row: NavRow }) {
-  const COLORS = useThemeColors();
-  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View style={animatedStyle}>
-      <Pressable
-        style={styles.row}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          row.onPress();
-        }}
-        onPressIn={() => {
-          scale.value = withTiming(0.98, { duration: 100 });
-        }}
-        onPressOut={() => {
-          scale.value = withTiming(1, { duration: 100 });
-        }}
-      >
-        <LinearGradient
-          colors={
-            row.danger
-              ? [`${COLORS.danger}1A`, `${COLORS.danger}1A`]
-              : COLORS.iconTileGradient
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.iconCircle}
-        >
-          <Ionicons
-            name={row.icon}
-            size={18}
-            color={row.danger ? COLORS.danger : COLORS.primary}
-          />
-        </LinearGradient>
-        <Text
-          style={[
-            styles.label,
-            styles.navLabel,
-            row.danger && { color: COLORS.danger },
-          ]}
-        >
-          {row.label}
-        </Text>
-        {!row.danger && (
-          <Ionicons name="chevron-forward" size={18} color={COLORS.textFaint} />
-        )}
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
   flex: {
@@ -391,21 +277,10 @@ function createStyles(COLORS: ColorPalette) {
     alignItems: "center",
     justifyContent: "center",
   },
-  textCol: {
-    flex: 1,
-    gap: 2,
-  },
   label: {
     fontSize: TYPOGRAPHY.caption,
     fontWeight: "700",
     color: COLORS.text,
-  },
-  navLabel: {
-    flex: 1,
-  },
-  description: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
   },
   versionText: {
     fontSize: TYPOGRAPHY.small,
