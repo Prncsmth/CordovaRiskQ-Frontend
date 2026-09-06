@@ -20,7 +20,7 @@ import MapFirstTimeGuide from "@/components/tour/MapFirstTimeGuide";
 import {
     CORDOVA_BARANGAYS,
     CORDOVA_CENTER,
-    findNearestBarangay,
+    getNearestBarangay,
     type Barangay,
 } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
@@ -229,7 +229,7 @@ export default function MapScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPickedPoint(coords);
 
-    const nearest = findNearestBarangay(coords.latitude, coords.longitude);
+    const nearest = getNearestBarangay(coords.latitude, coords.longitude);
     setReportLocation({
       address: `Near Barangay ${nearest.name}, Cordova`,
       latitude: coords.latitude,
