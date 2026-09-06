@@ -12,7 +12,7 @@ import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
-import { darken } from "@/components/responder/incident-detail/colorUtils";
+import { darken } from "@/components/responder/colorUtils";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";

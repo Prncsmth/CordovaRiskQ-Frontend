@@ -24,18 +24,9 @@ import {
   type ColorPalette,
 } from "@/theme";
 
-type Variant = "primary" | "secondary" | "success" | "danger";
+import { darken } from "./colorUtils";
 
-// Hand-picked darker shade of a theme color, used as the second gradient
-// stop on gradient-fill button variants -- mirrors the primary/primaryDark
-// two-tone pattern, computed at render time so it tracks light/dark mode.
-function darken(hex: string, amount: number): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const r = Math.max(0, (num >> 16) - amount);
-  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
-  const b = Math.max(0, (num & 0x0000ff) - amount);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
+type Variant = "primary" | "secondary" | "success" | "danger";
 
 // Gradient-fill variants get the same two-tone fill + glossy sheen +
 // tinted shadow treatment as SOSButton/PrimaryButton. "secondary" stays a

@@ -28,7 +28,7 @@ import {
 } from "@/theme";
 import type { Incident } from "@/types/responder";
 
-import { darken } from "./colorUtils";
+import { darken } from "../colorUtils";
 
 export default function OnTheWayView({
   incident,

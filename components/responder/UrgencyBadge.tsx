@@ -10,17 +10,7 @@ import {
 } from "@/theme";
 import type { Urgency } from "@/types/responder";
 
-// Hand-picked darker shade of a theme color, used as the second gradient
-// stop so each urgency pill reads as a solid, high-contrast capsule rather
-// than a flat tint -- mirrors the SOSButton/PrimaryButton gradient-fill
-// treatment. Computed at render time so it tracks light/dark mode.
-function darken(hex: string, amount: number): string {
-  const num = parseInt(hex.replace("#", ""), 16);
-  const r = Math.max(0, (num >> 16) - amount);
-  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
-  const b = Math.max(0, (num & 0x0000ff) - amount);
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
+import { darken } from "./colorUtils";
 
 function getUrgencyStyles(
   COLORS: ColorPalette,

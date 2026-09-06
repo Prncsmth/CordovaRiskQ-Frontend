@@ -1,4 +1,4 @@
-// components/responder/incident-detail/colorUtils.ts
+// components/responder/colorUtils.ts
 // Hand-picked darker shade of an arbitrary incident color, used as the
 // second gradient stop on gradient-fill badges and buttons -- incident
 // colors are dynamic (per report category), not theme tokens, so there's
