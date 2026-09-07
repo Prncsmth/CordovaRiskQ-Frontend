@@ -7,26 +7,23 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Alert,
-  FlatList,
   Pressable,
+  SectionList,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/common/Avatar";
 import RippleRings from "@/components/common/RippleRings";
-import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import UrgencyBadge from "@/components/responder/UrgencyBadge";
+import BarangaySectionHeader from "@/components/responder/BarangaySectionHeader";
+import { groupIncidentsByBarangay, type BarangayGroup } from "@/components/responder/groupIncidentsByBarangay";
+import IncidentCard from "@/components/responder/IncidentCard";
+import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { getIncidents } from "@/services/incident.service";
@@ -45,8 +42,12 @@ import {
 } from "@/theme";
 import { RESPONDER_COLORS } from "@/theme/responderColors";
 import type { Incident } from "@/types/responder";
+import { formatRelativeTime } from "@/utils/formatter";
 
 const POLL_INTERVAL_MS = 12000;
+// How long a just-arrived incident keeps its "NEW" badge after this
+// dashboard first notices it.
+const NEW_BADGE_DURATION_MS = 60000;
 
 type DutyStatus = "online" | "offline";
 
@@ -57,6 +58,10 @@ export default function ResponderIncidentsScreen() {
   const { photoUri } = useProfilePhoto();
   const [duty, setDuty] = useState<DutyStatus>("online");
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set());
+  const [firstSeenSnapshot, setFirstSeenSnapshot] = useState<Record<string, number>>({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -67,6 +72,53 @@ export default function ResponderIncidentsScreen() {
     ? [COLORS.tideTint, "#1F5C58"]
     : [COLORS.tideTint, "#CFEDEB"];
 
+  // Real first-observed timestamp per incident id -- always set to the
+  // actual time this device first saw the incident. Used for the "time
+  // ago" caption and the barangay group recency tiebreak. Never
+  // special-cased to 0, so the time caption never reads "Just now" for an
+  // incident that was already pending before this dashboard opened.
+  // Mirrored into `firstSeenSnapshot` state on every load since render
+  // must not read a ref's `current` value directly.
+  const firstSeenRef = useRef<Record<string, number>>({});
+  // Incident ids present at the very first successful load. Excluded
+  // from the "NEW" badge forever, so opening the dashboard doesn't flood
+  // it with NEW badges for incidents that were already pending. `null`
+  // until the first load completes.
+  const initialIncidentIdsRef = useRef<Set<string> | null>(null);
+
+  const loadIncidents = useCallback(
+    async (responderLocation?: Coordinates) => {
+      if (!token) return;
+      const data = await getIncidents(token, responderLocation);
+      const now = Date.now();
+
+      for (const incident of data) {
+        if (!(incident.id in firstSeenRef.current)) {
+          firstSeenRef.current[incident.id] = now;
+        }
+      }
+      if (initialIncidentIdsRef.current === null) {
+        initialIncidentIdsRef.current = new Set(data.map((incident) => incident.id));
+      }
+
+      const newIds = new Set(
+        data
+          .filter((incident) => {
+            if (initialIncidentIdsRef.current!.has(incident.id)) return false;
+            const firstSeenAt = firstSeenRef.current[incident.id];
+            return now - firstSeenAt < NEW_BADGE_DURATION_MS;
+          })
+          .map((incident) => incident.id),
+      );
+
+      setNewIncidentIds(newIds);
+      setIncidents(data);
+      setFirstSeenSnapshot({ ...firstSeenRef.current });
+      setLastUpdatedAt(new Date());
+    },
+    [token],
+  );
+
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
@@ -74,11 +126,9 @@ export default function ResponderIncidentsScreen() {
       let cancelled = false;
       let responderLocation: Coordinates | undefined;
 
-      async function load() {
-        if (!token) return;
+      async function poll() {
         try {
-          const data = await getIncidents(token, responderLocation);
-          if (!cancelled) setIncidents(data);
+          if (!cancelled) await loadIncidents(responderLocation);
         } catch {
           // A failed poll shouldn't clear the currently-shown list; the
           // next interval tick retries.
@@ -87,20 +137,41 @@ export default function ResponderIncidentsScreen() {
 
       getCurrentLocation().then((fix) => {
         responderLocation = fix;
-        load();
+        poll();
       });
 
-      const interval = setInterval(load, POLL_INTERVAL_MS);
+      const interval = setInterval(poll, POLL_INTERVAL_MS);
 
       return () => {
         cancelled = true;
         clearInterval(interval);
       };
-    }, [token]),
+    }, [token, loadIncidents]),
   );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const responderLocation = await getCurrentLocation().catch(() => undefined);
+      await loadIncidents(responderLocation);
+    } catch {
+      // Keep the current list on a failed manual refresh too.
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const highUrgencyCount = incidents.filter((i) => i.urgency === "high").length;
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
+
+  const sections = useMemo(
+    () =>
+      groupIncidentsByBarangay(incidents, firstSeenSnapshot).map((group) => ({
+        title: group,
+        data: group.incidents,
+      })),
+    [incidents, firstSeenSnapshot],
+  );
 
   const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -180,6 +251,9 @@ export default function ResponderIncidentsScreen() {
             <Text style={styles.headerSubtitle}>
               {incidents.length} nearby incident
               {incidents.length === 1 ? "" : "s"}
+              {duty === "online" && lastUpdatedAt
+                ? ` · Updated ${formatRelativeTime(lastUpdatedAt).toLowerCase()}`
+                : ""}
             </Text>
           </View>
 
@@ -232,15 +306,29 @@ export default function ResponderIncidentsScreen() {
           <Text style={styles.offlineText}>
             You&apos;re offline — go online to receive incidents.
           </Text>
+          <RButton
+            label="Go Online"
+            icon="radio-button-on-outline"
+            variant="primary"
+            onPress={handleToggleDuty}
+            style={styles.goOnlineButton}
+          />
         </View>
       ) : (
-        <FlatList
-          data={incidents}
+        <SectionList<Incident, { title: BarangayGroup }>
+          sections={sections}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          renderSectionHeader={({ section }) => (
+            <BarangaySectionHeader group={section.title} />
+          )}
           renderItem={({ item }) => (
             <IncidentCard
               incident={item}
+              isNew={newIncidentIds.has(item.id)}
+              firstSeenAt={firstSeenSnapshot[item.id] ?? 0}
               onPress={() =>
                 router.push({
                   pathname: "/responder/[id]",
@@ -252,79 +340,6 @@ export default function ResponderIncidentsScreen() {
         />
       )}
     </View>
-  );
-}
-
-function IncidentCard({
-  incident,
-  onPress,
-}: {
-  incident: Incident;
-  onPress: () => void;
-}) {
-  const COLORS = useThemeColors();
-  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const visual = getIncidentVisual(incident.type);
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  return (
-    <Animated.View style={animatedStyle}>
-      <Pressable
-        style={[styles.card, { borderLeftColor: visual.color }]}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onPress();
-        }}
-        onPressIn={() => {
-          scale.value = withTiming(0.98, { duration: 100 });
-        }}
-        onPressOut={() => {
-          scale.value = withTiming(1, { duration: 100 });
-        }}
-      >
-        <View
-          style={[
-            styles.categoryBadge,
-            {
-              backgroundColor: `${visual.color}1A`,
-              borderColor: `${visual.color}33`,
-            },
-          ]}
-        >
-          <Ionicons name={visual.icon} size={22} color={visual.color} />
-        </View>
-
-        <View style={styles.cardBody}>
-          <Text style={styles.cardTitle}>{incident.type}</Text>
-          <View style={styles.cardLocationRow}>
-            <Ionicons
-              name="location-outline"
-              size={12}
-              color={COLORS.textSecondary}
-            />
-            <Text style={styles.cardLocation}>{incident.location}</Text>
-          </View>
-          <View style={styles.cardMetaRow}>
-            <UrgencyBadge urgency={incident.urgency} />
-            <Text style={styles.cardDistance}>
-              {incident.distanceKm != null
-                ? `${incident.distanceKm.toFixed(1)} km`
-                : "Distance unknown"}
-              {incident.etaMinutes ? ` · ${incident.etaMinutes} min` : ""}
-            </Text>
-          </View>
-        </View>
-
-        <Ionicons
-          name="chevron-forward"
-          size={20}
-          color={COLORS.textTertiary}
-        />
-      </Pressable>
-    </Animated.View>
   );
 }
 
@@ -480,58 +495,15 @@ function createStyles(COLORS: ColorPalette) {
     textAlign: "center",
     fontWeight: "600",
   },
+  goOnlineButton: {
+    width: "100%",
+    marginTop: SPACING.sm,
+  },
   list: {
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.xl,
     gap: SPACING.sm,
-  },
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderLeftWidth: 4,
-    padding: SPACING.md,
-    gap: SPACING.sm,
-    ...SHADOW_LG,
-  },
-  categoryBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardBody: {
-    flex: 1,
-    gap: 3,
-  },
-  cardTitle: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  cardLocationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  cardLocation: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-  },
-  cardMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    marginTop: 2,
-  },
-  cardDistance: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textTertiary,
-    fontWeight: "600",
   },
   });
 }
