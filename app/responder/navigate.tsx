@@ -17,7 +17,7 @@ import { getIncidentVisual } from "@/components/responder/incidentVisual";
 import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useRoute } from "@/hooks/useRoute";
-import { getIncidentById, updateIncidentStatus } from "@/services/incident.service";
+import { getIncidentById, updateMyResponderStatus } from "@/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import type { Incident } from "@/types/responder";
@@ -107,7 +107,7 @@ export default function NavigateScreen() {
     if (!token || isArriving) return;
     setIsArriving(true);
     try {
-      await updateIncidentStatus(token, incident.id, "arrived");
+      await updateMyResponderStatus(token, incident.id, "arrived");
       router.replace({ pathname: "/responder/[id]", params: { id: incident.id } });
     } catch (err) {
       Alert.alert(

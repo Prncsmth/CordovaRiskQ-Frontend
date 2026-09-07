@@ -1,10 +1,11 @@
 // app/responder/[id].tsx
 // Screens 1-4 of the responder flow: New Incident -> Team Lobby -> On the
-// Way -> Arrived. Driven by a single `phase` state so the incident's real
-// status field (from the backend) can replace this local state 1:1 later.
-// Each phase's UI lives in components/responder/incident-detail/ -- this
-// file only owns the phase state machine and the backend calls that
-// advance it.
+// Way -> Arrived. Each responder's own phase is derived from their own
+// IncidentResponder roster status (incident.myStatus), never stored
+// separately -- there's no local phase state to drift out of sync with the
+// server. Each phase's UI lives in components/responder/incident-detail/ --
+// this file only owns the derived phase and the backend calls that advance
+// it.
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
@@ -15,11 +16,14 @@ import ArrivedView from "@/components/responder/incident-detail/ArrivedView";
 import LobbyView, { type LobbyTab } from "@/components/responder/incident-detail/LobbyView";
 import OnTheWayView from "@/components/responder/incident-detail/OnTheWayView";
 import PendingView from "@/components/responder/incident-detail/PendingView";
+import { phaseForMyStatus } from "@/components/responder/phaseForMyStatus";
 import { useAuth } from "@/context/AuthContext";
 import {
-  acceptIncident,
+  declineIncident,
   getIncidentById,
+  joinIncident,
   updateIncidentStatus,
+  updateMyResponderStatus,
 } from "@/services/incident.service";
 import {
   FONT_FAMILY,
@@ -28,9 +32,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import type { Incident, IncidentStatus } from "@/types/responder";
-
-type Phase = Exclude<IncidentStatus, "completed" | "cancelled">;
+import type { Incident } from "@/types/responder";
 
 export default function IncidentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -42,19 +44,32 @@ export default function IncidentDetailScreen() {
 
   const [incident, setIncident] = useState<Incident | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
-  const [phase, setPhase] = useState<Phase>("pending");
+  const [isJoining, setIsJoining] = useState(false);
   const [tab, setTab] = useState<LobbyTab>("lobby");
 
   useEffect(() => {
     if (!token || !id) return;
 
     getIncidentById(token, id)
-      .then((fetched) => {
-        setIncident(fetched);
-        if (fetched) setPhase(fetched.status as Phase);
-      })
+      .then(setIncident)
       .finally(() => setIsLoading(false));
   }, [token, id]);
+
+  const myPhase = incident ? phaseForMyStatus(incident.myStatus) : undefined;
+
+  // Only reachable via a stale link -- declined incidents are already
+  // filtered out of the dashboard list, so a responder can't tap into one
+  // from there. "left" is modeled on the backend but has no UI path back
+  // to this screen today either.
+  useEffect(() => {
+    if (incident && myPhase === null) {
+      Alert.alert(
+        "Already declined",
+        "You already declined this incident.",
+        [{ text: "OK", onPress: () => router.back() }],
+      );
+    }
+  }, [incident, myPhase, router]);
 
   if (isLoading) {
     return (
@@ -64,41 +79,65 @@ export default function IncidentDetailScreen() {
     );
   }
 
-  if (!incident) {
+  if (!incident || myPhase === null || myPhase === undefined) {
     return (
       <View style={styles.screen}>
-        <Text style={styles.notFound}>Incident not found.</Text>
+        <Text style={styles.notFound}>
+          {incident ? "" : "Incident not found."}
+        </Text>
       </View>
     );
   }
 
-  // acceptIncident/updateIncidentStatus re-fetch the incident without a
-  // responderLocation (they don't take one — see Task 6), so their response
-  // always has distanceKm: undefined. Carrying forward the previously-known
-  // distance avoids the "Distance" field visibly flipping to "Unknown" on
-  // every status change, which would otherwise regress from what the
-  // Dashboard's poll already computed.
-  const handleAccept = async () => {
-    if (!token) return;
+  const phase = myPhase;
+
+  const handleJoin = async () => {
+    if (!token || isJoining) return;
+    setIsJoining(true);
     try {
-      const updated = await acceptIncident(token, incident.id);
+      const updated = await joinIncident(token, incident.id);
       setIncident({ ...updated, distanceKm: incident.distanceKm });
-      setPhase("lobby");
     } catch (err) {
       Alert.alert(
-        "Couldn't accept incident",
+        "Couldn't join incident",
         err instanceof Error ? err.message : "Please try again.",
       );
+      setIsJoining(false);
       router.back();
     }
+  };
+
+  const handleDecline = () => {
+    Alert.alert(
+      "Decline incident?",
+      "You won't see this incident again, but other responders still can.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Decline",
+          style: "destructive",
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await declineIncident(token, incident.id);
+              router.back();
+            } catch (err) {
+              Alert.alert(
+                "Couldn't decline incident",
+                err instanceof Error ? err.message : "Please try again.",
+              );
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleHeadOut = async () => {
     if (!token) return;
     try {
-      const updated = await updateIncidentStatus(token, incident.id, "on_the_way");
+      const updated = await updateMyResponderStatus(token, incident.id, "on_the_way");
       setIncident({ ...updated, distanceKm: incident.distanceKm });
-      setPhase("on_the_way");
     } catch (err) {
       Alert.alert(
         "Something went wrong",
@@ -110,22 +149,14 @@ export default function IncidentDetailScreen() {
   const handleArrive = async () => {
     if (!token) return;
     try {
-      const updated = await updateIncidentStatus(token, incident.id, "arrived");
+      const updated = await updateMyResponderStatus(token, incident.id, "arrived");
       setIncident({ ...updated, distanceKm: incident.distanceKm });
-      setPhase("arrived");
     } catch (err) {
       Alert.alert(
         "Something went wrong",
         err instanceof Error ? err.message : "Please try again.",
       );
     }
-  };
-
-  const handleDecline = () => {
-    Alert.alert("Decline incident?", "This incident will be reassigned.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Decline", style: "destructive", onPress: () => router.back() },
-    ]);
   };
 
   const handleCancelIncident = () => {
@@ -161,7 +192,7 @@ export default function IncidentDetailScreen() {
       {phase === "pending" && (
         <PendingView
           incident={incident}
-          onAccept={handleAccept}
+          onAccept={handleJoin}
           onDecline={handleDecline}
         />
       )}
