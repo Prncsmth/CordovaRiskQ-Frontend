@@ -1,7 +1,7 @@
 import { apiGet, apiPatch } from "./api";
 import type { Coordinates } from "./location.service";
 import { haversineDistanceKm } from "@/utils/distance";
-import type { Incident, IncidentStatus } from "@/types/responder";
+import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/types/responder";
 
 type IncidentApiRow = {
   id: string;
@@ -11,6 +11,8 @@ type IncidentApiRow = {
   longitude: number | null;
   urgency: "high" | "medium" | "low";
   status: IncidentStatus;
+  responders?: { id: string; name: string; status: ResponderStatus }[];
+  myStatus?: MyResponderStatus;
 };
 
 // Maps a stored category (the citizen-facing CategoryId, plus "sos" for
@@ -26,7 +28,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   sos: "SOS Alert",
 };
 
-function toIncident(row: IncidentApiRow, responderLocation?: Coordinates): Incident {
+export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates): Incident {
   const hasCoords = row.latitude != null && row.longitude != null;
   const incidentCoords = hasCoords
     ? { latitude: row.latitude as number, longitude: row.longitude as number }
@@ -42,8 +44,8 @@ function toIncident(row: IncidentApiRow, responderLocation?: Coordinates): Incid
         ? haversineDistanceKm(responderLocation, incidentCoords)
         : undefined,
     status: row.status,
-    maxResponders: 1,
-    team: [],
+    team: row.responders ?? [],
+    myStatus: row.myStatus ?? "pending",
     incidentCoords,
   };
 }
@@ -75,19 +77,39 @@ export async function getIncidentById(
   }
 }
 
-export async function acceptIncident(token: string, id: string): Promise<Incident> {
+async function updateMyResponderRow(
+  token: string,
+  id: string,
+  status: MyResponderStatus,
+): Promise<Incident> {
   const response = await apiPatch<{ success: true; incident: IncidentApiRow }>(
-    `/api/incidents/${id}/accept`,
-    {},
+    `/api/incidents/${id}/responders/me`,
+    { status },
     token,
   );
   return toIncident(response.incident);
 }
 
+export function joinIncident(token: string, id: string): Promise<Incident> {
+  return updateMyResponderRow(token, id, "joined");
+}
+
+export async function declineIncident(token: string, id: string): Promise<void> {
+  await updateMyResponderRow(token, id, "declined");
+}
+
+export function updateMyResponderStatus(
+  token: string,
+  id: string,
+  status: "on_the_way" | "arrived" | "left",
+): Promise<Incident> {
+  return updateMyResponderRow(token, id, status);
+}
+
 export async function updateIncidentStatus(
   token: string,
   id: string,
-  status: "on_the_way" | "arrived" | "completed" | "cancelled",
+  status: "completed" | "cancelled",
 ): Promise<Incident> {
   const response = await apiPatch<{ success: true; incident: IncidentApiRow }>(
     `/api/incidents/${id}/status`,
