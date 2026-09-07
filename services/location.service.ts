@@ -4,6 +4,29 @@ export type Coordinates = {
   longitude: number;
 };
 
+// expo-location's getCurrentPositionAsync has no built-in timeout -- its own
+// docs warn it "may take several seconds" to get a GPS fix, and on a real
+// device with a weak/no signal (indoors, cold GPS chip) it can hang far
+// longer than that. Screens awaiting getCurrentLocation() (e.g. the
+// responder Navigate screen) would otherwise be stuck forever.
+const FRESH_FIX_TIMEOUT_MS = 8000;
+
+function withTimeout(promise: Promise<any>, ms: number): Promise<any> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(undefined);
+      },
+    );
+  });
+}
+
 // Best-effort location fetch — the native module may not be linked (Expo Go,
 // web) and permission may be denied, so callers should treat `undefined` as
 // "location unavailable" and degrade gracefully rather than throw.
@@ -16,6 +39,9 @@ export async function getCurrentLocation(): Promise<Coordinates | undefined> {
     const getCurrentPositionFn =
       (module as any).getCurrentPositionAsync ??
       (module as any).default?.getCurrentPositionAsync;
+    const getLastKnownPositionFn =
+      (module as any).getLastKnownPositionAsync ??
+      (module as any).default?.getLastKnownPositionAsync;
 
     if (
       typeof requestFn !== "function" ||
@@ -27,11 +53,30 @@ export async function getCurrentLocation(): Promise<Coordinates | undefined> {
     const { status } = await requestFn();
     if (status !== "granted") return undefined;
 
-    const position = await getCurrentPositionFn({});
-    return {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    };
+    const position = await withTimeout(
+      getCurrentPositionFn({}),
+      FRESH_FIX_TIMEOUT_MS,
+    );
+    if (position) {
+      return {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+    }
+
+    // Fresh fix timed out -- fall back to whatever cached fix the OS has,
+    // which returns immediately instead of waiting on GPS.
+    if (typeof getLastKnownPositionFn === "function") {
+      const cached = await getLastKnownPositionFn({}).catch(() => null);
+      if (cached) {
+        return {
+          latitude: cached.coords.latitude,
+          longitude: cached.coords.longitude,
+        };
+      }
+    }
+
+    return undefined;
   } catch {
     return undefined;
   }
