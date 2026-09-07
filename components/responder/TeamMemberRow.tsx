@@ -16,9 +16,9 @@ function getStatusMeta(
   COLORS: ColorPalette,
 ): Record<ResponderStatus, { label: string; color: string }> {
   return {
+    joined: { label: "Preparing", color: COLORS.warning },
     on_the_way: { label: "On the way", color: COLORS.secondary },
-    preparing: { label: "Preparing", color: COLORS.warning },
-    online: { label: "Online", color: COLORS.success },
+    arrived: { label: "Arrived", color: COLORS.success },
   };
 }
 

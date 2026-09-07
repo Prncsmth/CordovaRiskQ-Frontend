@@ -102,7 +102,7 @@ export default function LobbyView({
       {tab === "lobby" ? (
         <ScrollView>
           <Text style={styles.sectionLabel}>
-            Responders Joined ({incident.team.length}/{incident.maxResponders})
+            Responders Joined ({incident.team.length})
           </Text>
           {incident.team.map((member) => (
             <TeamMemberRow key={member.id} member={member} />
