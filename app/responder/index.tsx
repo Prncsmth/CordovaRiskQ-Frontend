@@ -21,8 +21,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/common/Avatar";
 import RippleRings from "@/components/common/RippleRings";
 import BarangaySectionHeader from "@/components/responder/BarangaySectionHeader";
-import { groupIncidentsByBarangay, type BarangayGroup } from "@/components/responder/groupIncidentsByBarangay";
+import {
+  incidentBarangay,
+  filterIncidents,
+  type IncidentFilters,
+} from "@/components/responder/filterIncidents";
+import { groupIncidentsByBarangay, UNKNOWN_LOCATION_ID, type BarangayGroup } from "@/components/responder/groupIncidentsByBarangay";
 import IncidentCard from "@/components/responder/IncidentCard";
+import IncidentFilterBar from "@/components/responder/IncidentFilterBar";
 import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
@@ -60,6 +66,12 @@ export default function ResponderIncidentsScreen() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set());
   const [firstSeenSnapshot, setFirstSeenSnapshot] = useState<Record<string, number>>({});
+  const [filters, setFilters] = useState<IncidentFilters>({
+    search: "",
+    urgencies: new Set(),
+    types: new Set(),
+    barangayIds: new Set(),
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const COLORS = useThemeColors();
@@ -164,13 +176,36 @@ export default function ResponderIncidentsScreen() {
   const highUrgencyCount = incidents.filter((i) => i.urgency === "high").length;
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
+  const availableTypes = useMemo(
+    () => Array.from(new Set(incidents.map((incident) => incident.type))).sort(),
+    [incidents],
+  );
+
+  const availableBarangays = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const incident of incidents) {
+      const barangay = incidentBarangay(incident);
+      byId.set(barangay.id, barangay.name);
+    }
+    return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => {
+      if (a.id === UNKNOWN_LOCATION_ID) return 1;
+      if (b.id === UNKNOWN_LOCATION_ID) return -1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [incidents]);
+
+  const filteredIncidents = useMemo(
+    () => filterIncidents(incidents, filters),
+    [incidents, filters],
+  );
+
   const sections = useMemo(
     () =>
-      groupIncidentsByBarangay(incidents, firstSeenSnapshot).map((group) => ({
+      groupIncidentsByBarangay(filteredIncidents, firstSeenSnapshot).map((group) => ({
         title: group,
         data: group.incidents,
       })),
-    [incidents, firstSeenSnapshot],
+    [filteredIncidents, firstSeenSnapshot],
   );
 
   const handleLogout = () => {
@@ -315,29 +350,51 @@ export default function ResponderIncidentsScreen() {
           />
         </View>
       ) : (
-        <SectionList<Incident, { title: BarangayGroup }>
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          refreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          renderSectionHeader={({ section }) => (
-            <BarangaySectionHeader group={section.title} />
-          )}
-          renderItem={({ item }) => (
-            <IncidentCard
-              incident={item}
-              isNew={newIncidentIds.has(item.id)}
-              firstSeenAt={firstSeenSnapshot[item.id] ?? 0}
-              onPress={() =>
-                router.push({
-                  pathname: "/responder/[id]",
-                  params: { id: item.id },
-                })
-              }
+        <>
+          <IncidentFilterBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            availableTypes={availableTypes}
+            availableBarangays={availableBarangays}
+          />
+
+          {incidents.length > 0 && filteredIncidents.length === 0 ? (
+            <View style={styles.noResultsState}>
+              <Ionicons
+                name="search-outline"
+                size={28}
+                color={COLORS.textTertiary}
+              />
+              <Text style={styles.noResultsText}>
+                No incidents match your search or filters.
+              </Text>
+            </View>
+          ) : (
+            <SectionList<Incident, { title: BarangayGroup }>
+              sections={sections}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.list}
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              renderSectionHeader={({ section }) => (
+                <BarangaySectionHeader group={section.title} />
+              )}
+              renderItem={({ item }) => (
+                <IncidentCard
+                  incident={item}
+                  isNew={newIncidentIds.has(item.id)}
+                  firstSeenAt={firstSeenSnapshot[item.id] ?? 0}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/responder/[id]",
+                      params: { id: item.id },
+                    })
+                  }
+                />
+              )}
             />
           )}
-        />
+        </>
       )}
     </View>
   );
@@ -499,11 +556,24 @@ function createStyles(COLORS: ColorPalette) {
     width: "100%",
     marginTop: SPACING.sm,
   },
+  noResultsState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: SPACING.xl,
+    gap: SPACING.sm,
+  },
+  noResultsText: {
+    fontSize: TYPOGRAPHY.body,
+    color: COLORS.textTertiary,
+    textAlign: "center",
+    fontWeight: "600",
+  },
   list: {
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.xl,
-    gap: SPACING.sm,
+    gap: SPACING.md,
   },
   });
 }
