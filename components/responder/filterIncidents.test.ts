@@ -13,8 +13,8 @@ function makeIncident(overrides: Partial<Incident> & { id: string }): Incident {
     location: "Test Location",
     urgency: "low",
     status: "pending",
-    maxResponders: 1,
     team: [],
+    myStatus: "pending",
     ...overrides,
   };
 }
