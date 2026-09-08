@@ -19,6 +19,7 @@ import {
 } from "@/theme";
 import type { Incident } from "@/types/responder";
 
+import ActionRow from "./ActionRow";
 import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
 
@@ -30,12 +31,14 @@ export default function LobbyView({
   onChangeTab,
   onHeadOut,
   onRingTeam,
+  onLeave,
 }: {
   incident: Incident;
   tab: LobbyTab;
   onChangeTab: (t: LobbyTab) => void;
   onHeadOut: () => void;
   onRingTeam: () => Promise<boolean>;
+  onLeave: () => void;
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -136,6 +139,12 @@ export default function LobbyView({
         disabled={isRinging}
       />
       <RButton label="Head Out" variant="primary" onPress={onHeadOut} />
+      <ActionRow
+        icon="exit-outline"
+        label="Leave Incident"
+        onPress={onLeave}
+        danger
+      />
     </View>
   );
 }

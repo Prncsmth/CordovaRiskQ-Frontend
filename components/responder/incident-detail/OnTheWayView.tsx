@@ -32,9 +32,11 @@ import { darken } from "../colorUtils";
 
 export default function OnTheWayView({
   incident,
+  onLeave,
 }: {
   incident: Incident;
   onArrive: () => void;
+  onLeave: () => void;
 }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -161,6 +163,17 @@ export default function OnTheWayView({
           }
           style={styles.navigateButton}
         />
+
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onLeave();
+          }}
+          style={styles.leaveLink}
+          hitSlop={8}
+        >
+          <Text style={styles.leaveLinkText}>Leave Incident</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -288,6 +301,15 @@ function createStyles(COLORS: ColorPalette) {
     navigateButton: {
       marginTop: SPACING.md,
       marginBottom: 0,
+    },
+    leaveLink: {
+      alignSelf: "center",
+      paddingVertical: SPACING.sm,
+    },
+    leaveLinkText: {
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "600",
+      color: COLORS.danger,
     },
   });
 }

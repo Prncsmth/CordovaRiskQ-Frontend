@@ -218,6 +218,32 @@ export default function IncidentDetailScreen() {
     }
   };
 
+  const handleLeave = () => {
+    Alert.alert(
+      "Leave incident?",
+      "You'll stop helping with this incident. Other responders can still assist.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: async () => {
+            if (!token) return;
+            try {
+              await updateMyResponderStatus(token, incident.id, "left");
+              router.back();
+            } catch (err) {
+              Alert.alert(
+                "Couldn't leave incident",
+                err instanceof Error ? err.message : "Please try again.",
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const handleCancelIncident = () => {
     Alert.alert("Cancel incident?", "This cannot be undone.", [
       { text: "Back", style: "cancel" },
@@ -264,6 +290,7 @@ export default function IncidentDetailScreen() {
           onChangeTab={setTab}
           onHeadOut={handleHeadOut}
           onRingTeam={handleRingTeam}
+          onLeave={handleLeave}
         />
       )}
 
@@ -271,6 +298,7 @@ export default function IncidentDetailScreen() {
         <OnTheWayView
           incident={incident}
           onArrive={handleArrive}
+          onLeave={handleLeave}
         />
       )}
 
