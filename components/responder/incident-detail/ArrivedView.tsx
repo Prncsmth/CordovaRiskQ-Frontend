@@ -1,14 +1,14 @@
 // components/responder/incident-detail/ArrivedView.tsx
 // Phase 4 of the incident-detail flow: on-scene confirmation with a
-// summary card and follow-up actions (start assistance, head home, or
-// cancel the incident).
+// summary card and follow-up actions (head home or cancel the incident).
+// Arrived itself means the responder is already on scene and assisting --
+// there's no separate "start" action.
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import RippleRings from "@/components/common/RippleRings";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import RButton from "@/components/responder/RButton";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -25,11 +25,9 @@ import GradientIconCircle from "./GradientIconCircle";
 
 export default function ArrivedView({
   incident,
-  onStartAssistance,
   onCancelIncident,
 }: {
   incident: Incident;
-  onStartAssistance: () => void;
   onCancelIncident: () => void;
 }) {
   const router = useRouter();
@@ -58,7 +56,7 @@ export default function ArrivedView({
         </View>
         <Text style={styles.arrivedText}>You've Arrived</Text>
         <Text style={styles.arrivedSubtext}>
-          You're on scene. Let your team know when you're ready to help.
+          You're on scene and assisting.
         </Text>
 
         <View style={[styles.summaryCard, styles.arrivedSummaryCard]}>
@@ -77,12 +75,6 @@ export default function ArrivedView({
       </View>
 
       <Text style={styles.sectionLabel}>Actions</Text>
-      <RButton
-        label="Start Assistance"
-        icon="people"
-        variant="primary"
-        onPress={onStartAssistance}
-      />
       <ActionRow
         icon="home-outline"
         label="Back to Home"

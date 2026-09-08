@@ -261,9 +261,6 @@ export default function IncidentDetailScreen() {
       {phase === "arrived" && (
         <ArrivedView
           incident={incident}
-          onStartAssistance={() =>
-            Alert.alert("Start Assistance", "Coming soon.")
-          }
           onCancelIncident={handleCancelIncident}
         />
       )}
