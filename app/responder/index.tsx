@@ -36,6 +36,7 @@ import { getIncidents } from "@/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";
+import { updateDutyStatus } from "@/services/user.service";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -63,7 +64,9 @@ export default function ResponderIncidentsScreen() {
   const insets = useSafeAreaInsets();
   const { logout, user, token } = useAuth();
   const { photoUri } = useProfilePhoto();
-  const [duty, setDuty] = useState<DutyStatus>("online");
+  const [duty, setDuty] = useState<DutyStatus>(() =>
+    user?.isOnDuty === false ? "offline" : "online",
+  );
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set());
   const [firstSeenSnapshot, setFirstSeenSnapshot] = useState<Record<string, number>>({});
@@ -230,7 +233,18 @@ export default function ResponderIncidentsScreen() {
 
   const handleToggleDuty = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setDuty((d) => (d === "online" ? "offline" : "online"));
+    const previous = duty;
+    const next: DutyStatus = previous === "online" ? "offline" : "online";
+    setDuty(next);
+
+    if (!token) return;
+    updateDutyStatus(token, next === "online").catch(() => {
+      setDuty(previous);
+      Alert.alert(
+        "Something went wrong",
+        "Couldn't update your duty status. Please try again.",
+      );
+    });
   };
 
   return (

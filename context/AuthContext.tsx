@@ -22,6 +22,7 @@ type AuthUser = {
   name: string;
   email: string;
   role: "citizen" | "responder";
+  isOnDuty: boolean;
 };
 
 // token, user, and needsOnboarding are kept in a single state object so that
@@ -82,12 +83,18 @@ type AuthContextValue = {
   user: AuthUser | null;
   login: (
     token: string,
-    user: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
+    user: Omit<AuthUser, "role" | "isOnDuty"> & {
+      role?: AuthUser["role"];
+      isOnDuty?: AuthUser["isOnDuty"];
+    },
     needsOnboardingFlag?: boolean,
   ) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (
-    user: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
+    user: Omit<AuthUser, "role" | "isOnDuty"> & {
+      role?: AuthUser["role"];
+      isOnDuty?: AuthUser["isOnDuty"];
+    },
   ) => Promise<void>;
   completeOnboarding: () => void;
   completeTerms: () => void;
@@ -161,13 +168,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user: authState.user,
       login: async (
         newToken: string,
-        newUser: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
+        newUser: Omit<AuthUser, "role" | "isOnDuty"> & {
+          role?: AuthUser["role"];
+          isOnDuty?: AuthUser["isOnDuty"];
+        },
         needsOnboardingFlag = false,
       ) => {
         // The backend doesn't send `role` yet, so default to "citizen" here
         // -- the one place every login/register/Google-auth call funnels
-        // through -- rather than at each call site.
-        const user: AuthUser = { ...newUser, role: newUser.role ?? "citizen" };
+        // through -- rather than at each call site. isOnDuty defaults to
+        // true (matching the backend column's default) for the same
+        // "older cached session predates this field" reason.
+        const user: AuthUser = {
+          ...newUser,
+          role: newUser.role ?? "citizen",
+          isOnDuty: newUser.isOnDuty ?? true,
+        };
         await authStorage.setItem(TOKEN_KEY, newToken);
         await authStorage.setItem(USER_KEY, JSON.stringify(user));
 
@@ -210,13 +226,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       },
       updateUser: async (
-        newUser: Omit<AuthUser, "role"> & { role?: AuthUser["role"] },
+        newUser: Omit<AuthUser, "role" | "isOnDuty"> & {
+          role?: AuthUser["role"];
+          isOnDuty?: AuthUser["isOnDuty"];
+        },
       ) => {
-        // Preserve the existing role if the caller doesn't pass one -- a
-        // profile save shouldn't silently reset a responder to citizen.
+        // Preserve the existing role/duty status if the caller doesn't pass
+        // one -- a profile save shouldn't silently reset a responder to
+        // citizen or flip their duty status.
         const user: AuthUser = {
           ...newUser,
           role: newUser.role ?? authState.user?.role ?? "citizen",
+          isOnDuty: newUser.isOnDuty ?? authState.user?.isOnDuty ?? true,
         };
         await authStorage.setItem(USER_KEY, JSON.stringify(user));
         setAuthState((prev) => ({ ...prev, user }));

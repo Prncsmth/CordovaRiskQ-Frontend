@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from "./api";
+import { apiGet, apiPatch, apiPost, apiPut } from "./api";
 
 export type UserProfile = {
   id: string;
@@ -34,6 +34,17 @@ export async function changePassword(
   await apiPost<{ success: true }>(
     "/api/users/change-password",
     payload,
+    token,
+  );
+}
+
+export async function updateDutyStatus(
+  token: string,
+  isOnDuty: boolean,
+): Promise<void> {
+  await apiPatch<{ success: true }>(
+    "/api/users/duty-status",
+    { isOnDuty },
     token,
   );
 }
