@@ -1,4 +1,4 @@
-import { apiGet, apiPatch } from "./api";
+import { apiGet, apiPatch, apiPost } from "./api";
 import type { Coordinates } from "./location.service";
 import { haversineDistanceKm } from "@/utils/distance";
 import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/types/responder";
@@ -104,6 +104,10 @@ export function updateMyResponderStatus(
   status: "on_the_way" | "arrived" | "left",
 ): Promise<Incident> {
   return updateMyResponderRow(token, id, status);
+}
+
+export async function ringTeam(token: string, id: string): Promise<void> {
+  await apiPost<{ success: true }>(`/api/incidents/${id}/ring`, {}, token);
 }
 
 export async function updateIncidentStatus(

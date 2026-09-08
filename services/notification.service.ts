@@ -6,7 +6,8 @@ export type NotificationType =
   | "incident_status"
   | "tide_risk"
   | "new_incident"
-  | "roster_update";
+  | "roster_update"
+  | "team_ring";
 
 export type AppNotification = {
   id: string;

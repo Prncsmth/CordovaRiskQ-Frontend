@@ -29,20 +29,27 @@ export default function LobbyView({
   tab,
   onChangeTab,
   onHeadOut,
+  onRingTeam,
 }: {
   incident: Incident;
   tab: LobbyTab;
   onChangeTab: (t: LobbyTab) => void;
   onHeadOut: () => void;
+  onRingTeam: () => Promise<boolean>;
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
   const [rung, setRung] = useState(false);
-  const captain = incident.team.find((m) => m.isCaptain);
+  const [isRinging, setIsRinging] = useState(false);
 
-  const handleRingTeam = () => {
-    if (rung) return;
+  const handleRingTeam = async () => {
+    if (rung || isRinging) return;
+    setIsRinging(true);
+    const succeeded = await onRingTeam();
+    setIsRinging(false);
+    if (!succeeded) return;
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setRung(true);
     setTimeout(() => setRung(false), 2500);
@@ -122,10 +129,11 @@ export default function LobbyView({
       )}
 
       <RButton
-        label={rung ? `${captain?.name ?? "Captain"} Alerted` : "Ring Team"}
+        label={rung ? "Team Alerted" : "Ring Team"}
         variant={rung ? "success" : "secondary"}
         icon={rung ? "checkmark-circle" : "notifications"}
         onPress={handleRingTeam}
+        disabled={isRinging}
       />
       <RButton label="Head Out" variant="primary" onPress={onHeadOut} />
     </View>

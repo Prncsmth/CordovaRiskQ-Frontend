@@ -22,6 +22,7 @@ import {
   declineIncident,
   getIncidentById,
   joinIncident,
+  ringTeam,
   updateIncidentStatus,
   updateMyResponderStatus,
 } from "@/services/incident.service";
@@ -190,6 +191,20 @@ export default function IncidentDetailScreen() {
     }
   };
 
+  const handleRingTeam = async (): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      await ringTeam(token, incident.id);
+      return true;
+    } catch (err) {
+      Alert.alert(
+        "Something went wrong",
+        err instanceof Error ? err.message : "Please try again.",
+      );
+      return false;
+    }
+  };
+
   const handleArrive = async () => {
     if (!token) return;
     try {
@@ -248,6 +263,7 @@ export default function IncidentDetailScreen() {
           tab={tab}
           onChangeTab={setTab}
           onHeadOut={handleHeadOut}
+          onRingTeam={handleRingTeam}
         />
       )}
 

@@ -23,6 +23,7 @@ const ICON_BY_TYPE: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   tide_risk: "water-outline",
   new_incident: "alert-circle-outline",
   roster_update: "people-outline",
+  team_ring: "alarm-outline",
 };
 
 const FALLBACK_ROUTE_BY_TYPE: Record<
@@ -34,9 +35,14 @@ const FALLBACK_ROUTE_BY_TYPE: Record<
   tide_risk: "/(tabs)/home",
   new_incident: "/responder",
   roster_update: "/responder",
+  team_ring: "/responder",
 };
 
-const RESPONDER_NOTIFICATION_TYPES: NotificationType[] = ["new_incident", "roster_update"];
+const RESPONDER_NOTIFICATION_TYPES: NotificationType[] = [
+  "new_incident",
+  "roster_update",
+  "team_ring",
+];
 
 function getNotificationRoute(item: AppNotification) {
   if (item.type === "incident_status" && item.referenceId) {
