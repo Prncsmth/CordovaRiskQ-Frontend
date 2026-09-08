@@ -7,7 +7,7 @@
 // this file only owns the derived phase and the backend calls that advance
 // it.
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -48,6 +48,7 @@ export default function IncidentDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
   const [tab, setTab] = useState<LobbyTab>("lobby");
+  const isClosingRef = useRef(false);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -60,9 +61,18 @@ export default function IncidentDetailScreen() {
   useEffect(() => {
     if (!token || !id) return;
 
-    const disconnect = connectToIncidentSocket(token, id, (update) => {
-      setIncident((prev) => (prev ? mergeIncidentUpdate(prev, update) : prev));
-    });
+    const disconnect = connectToIncidentSocket(
+      token,
+      id,
+      (update) => {
+        setIncident((prev) => (prev ? mergeIncidentUpdate(prev, update) : prev));
+      },
+      () => {
+        getIncidentById(token, id).then((fresh) => {
+          if (fresh) setIncident((prev) => (prev ? { ...fresh, distanceKm: prev.distanceKm } : fresh));
+        });
+      },
+    );
 
     return disconnect;
   }, [token, id]);
@@ -82,6 +92,28 @@ export default function IncidentDetailScreen() {
       );
     }
   }, [incident, myPhase, router]);
+
+  // Another responder (or this one, via handleCancelIncident/the "Start
+  // Assistance" flow once it exists) closed the incident -- surface it live
+  // rather than leaving a stale screen open. isClosingRef suppresses this
+  // when the close was this responder's own action, since their own REST
+  // call's socket broadcast can land on their own client mid-navigation.
+  useEffect(() => {
+    if (
+      incident &&
+      !isClosingRef.current &&
+      (incident.status === "completed" || incident.status === "cancelled")
+    ) {
+      isClosingRef.current = true;
+      Alert.alert(
+        incident.status === "completed" ? "Incident resolved" : "Incident cancelled",
+        incident.status === "completed"
+          ? "This incident has been marked resolved."
+          : "This incident was cancelled.",
+        [{ text: "OK", onPress: () => router.back() }],
+      );
+    }
+  }, [incident, router]);
 
   if (isLoading) {
     return (
@@ -181,6 +213,7 @@ export default function IncidentDetailScreen() {
           if (token) {
             await updateIncidentStatus(token, incident.id, "cancelled").catch(() => {});
           }
+          isClosingRef.current = true;
           router.back();
         },
       },

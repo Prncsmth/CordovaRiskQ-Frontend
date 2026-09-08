@@ -23,12 +23,20 @@ export function connectToIncidentSocket(
   token: string,
   incidentId: string,
   onUpdate: (update: IncidentRealtimeUpdate) => void,
+  onReconnect?: () => void,
 ): () => void {
   const socket: Socket = io(API_BASE_URL, {
     auth: { token },
   });
 
-  const join = () => socket.emit("join:incident", { incidentId });
+  let hasConnectedBefore = false;
+  const join = () => {
+    socket.emit("join:incident", { incidentId });
+    if (hasConnectedBefore) {
+      onReconnect?.();
+    }
+    hasConnectedBefore = true;
+  };
 
   socket.on("connect", join);
   socket.on("incident:updated", onUpdate);
