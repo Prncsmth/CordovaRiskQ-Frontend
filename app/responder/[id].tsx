@@ -25,6 +25,8 @@ import {
   updateIncidentStatus,
   updateMyResponderStatus,
 } from "@/services/incident.service";
+import { connectToIncidentSocket } from "@/services/incidentSocket.service";
+import { mergeIncidentUpdate } from "@/components/responder/mergeIncidentUpdate";
 import {
   FONT_FAMILY,
   SPACING,
@@ -53,6 +55,16 @@ export default function IncidentDetailScreen() {
     getIncidentById(token, id)
       .then(setIncident)
       .finally(() => setIsLoading(false));
+  }, [token, id]);
+
+  useEffect(() => {
+    if (!token || !id) return;
+
+    const disconnect = connectToIncidentSocket(token, id, (update) => {
+      setIncident((prev) => (prev ? mergeIncidentUpdate(prev, update) : prev));
+    });
+
+    return disconnect;
   }, [token, id]);
 
   const myPhase = incident ? phaseForMyStatus(incident.myStatus) : undefined;
