@@ -1,7 +1,12 @@
 // services/notification.service.ts
 import { apiGet, apiPatch } from "./api";
 
-export type NotificationType = "announcement" | "incident_status" | "tide_risk";
+export type NotificationType =
+  | "announcement"
+  | "incident_status"
+  | "tide_risk"
+  | "new_incident"
+  | "roster_update";
 
 export type AppNotification = {
   id: string;

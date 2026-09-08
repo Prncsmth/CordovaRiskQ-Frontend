@@ -21,17 +21,29 @@ const ICON_BY_TYPE: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
   announcement: "megaphone-outline",
   incident_status: "document-text-outline",
   tide_risk: "water-outline",
+  new_incident: "alert-circle-outline",
+  roster_update: "people-outline",
 };
 
-const FALLBACK_ROUTE_BY_TYPE: Record<NotificationType, "/(tabs)/report-history" | "/(tabs)/home"> = {
+const FALLBACK_ROUTE_BY_TYPE: Record<
+  NotificationType,
+  "/(tabs)/report-history" | "/(tabs)/home" | "/responder"
+> = {
   incident_status: "/(tabs)/report-history",
   announcement: "/(tabs)/home",
   tide_risk: "/(tabs)/home",
+  new_incident: "/responder",
+  roster_update: "/responder",
 };
+
+const RESPONDER_NOTIFICATION_TYPES: NotificationType[] = ["new_incident", "roster_update"];
 
 function getNotificationRoute(item: AppNotification) {
   if (item.type === "incident_status" && item.referenceId) {
     return `/report-detail/${item.referenceId}` as const;
+  }
+  if (RESPONDER_NOTIFICATION_TYPES.includes(item.type) && item.referenceId) {
+    return `/responder/${item.referenceId}` as const;
   }
   return FALLBACK_ROUTE_BY_TYPE[item.type] ?? "/(tabs)/home";
 }

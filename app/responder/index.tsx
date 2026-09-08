@@ -35,6 +35,7 @@ import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { getIncidents } from "@/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
+import { getNotifications } from "@/services/notification.service";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -74,6 +75,7 @@ export default function ResponderIncidentsScreen() {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [hasUnread, setHasUnread] = useState(false);
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -161,6 +163,16 @@ export default function ResponderIncidentsScreen() {
     }, [token, loadIncidents]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+
+      getNotifications(token)
+        .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
+        .catch(() => {});
+    }, [token]),
+  );
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -240,6 +252,18 @@ export default function ResponderIncidentsScreen() {
             </View>
 
             <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/notifications");
+                }}
+                hitSlop={12}
+                style={styles.logoutButton}
+              >
+                <Ionicons name="notifications-outline" size={18} color={COLORS.text} />
+                {hasUnread ? <View style={styles.unreadDot} /> : null}
+              </Pressable>
+
               <Pressable
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -454,6 +478,17 @@ function createStyles(COLORS: ColorPalette) {
     ...SHADOW_LG,
     borderWidth: 1.5,
     borderColor: COLORS.primaryTint,
+  },
+  unreadDot: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 7,
+    height: 7,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.primary,
+    borderWidth: 1.5,
+    borderColor: COLORS.background,
   },
   statusRow: {
     flexDirection: "row",
