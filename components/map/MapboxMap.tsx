@@ -61,6 +61,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [styleKey, setStyleKey] = useState<StyleKey>("streets");
+  const [layerMenuOpen, setLayerMenuOpen] = useState(false);
   const cameraRef = useRef<any>(null);
   const currentZoomRef = useRef(zoom);
 
@@ -157,6 +158,8 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
         style={styles.fill}
         styleURL={STYLE_URLS[styleKey]}
         logoEnabled={false}
+        compassEnabled={false}
+        scaleBarEnabled={false}
         attributionEnabled={interactive}
         scrollEnabled={interactive}
         zoomEnabled={interactive}
@@ -246,20 +249,38 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
       </MapView>
 
       {showLayerSwitcher && (
-        <View style={styles.styleSwitcher}>
-          {(Object.keys(STYLE_URLS) as StyleKey[]).map((key) => (
-            <Pressable
-              key={key}
-              onPress={() => setStyleKey(key)}
-              style={[styles.styleButton, styleKey === key && styles.styleButtonActive]}
-            >
-              <Text
-                style={[styles.styleButtonText, styleKey === key && styles.styleButtonTextActive]}
-              >
-                {key === "streets" ? "Map" : key[0].toUpperCase() + key.slice(1)}
-              </Text>
-            </Pressable>
-          ))}
+        <View style={styles.layerSwitcher}>
+          <Pressable
+            onPress={() => setLayerMenuOpen((open) => !open)}
+            style={styles.layerButton}
+            accessibilityLabel="Change map layer"
+          >
+            <Ionicons name="layers-outline" size={20} color={COLORS.primary} />
+          </Pressable>
+
+          {layerMenuOpen && (
+            <View style={styles.layerMenu}>
+              {(Object.keys(STYLE_URLS) as StyleKey[]).map((key) => (
+                <Pressable
+                  key={key}
+                  onPress={() => {
+                    setStyleKey(key);
+                    setLayerMenuOpen(false);
+                  }}
+                  style={[styles.layerOption, styleKey === key && styles.layerOptionActive]}
+                >
+                  <Text
+                    style={[
+                      styles.layerOptionText,
+                      styleKey === key && styles.layerOptionTextActive,
+                    ]}
+                  >
+                    {key === "streets" ? "Map" : key[0].toUpperCase() + key.slice(1)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -299,11 +320,25 @@ function createStyles(COLORS: ColorPalette) {
       height: 36,
       ...SHADOW,
     },
-    styleSwitcher: {
+    layerSwitcher: {
       position: "absolute",
-      top: SPACING.sm,
-      right: SPACING.sm,
-      flexDirection: "row",
+      top: SPACING.md,
+      right: SPACING.md,
+      alignItems: "flex-end",
+    },
+    layerButton: {
+      width: 44,
+      height: 44,
+      borderRadius: RADIUS.full,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.background,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      ...SHADOW,
+    },
+    layerMenu: {
+      marginTop: SPACING.xs,
       backgroundColor: COLORS.background,
       borderRadius: RADIUS.sm,
       borderWidth: 1,
@@ -312,20 +347,21 @@ function createStyles(COLORS: ColorPalette) {
       gap: 4,
       ...SHADOW,
     },
-    styleButton: {
-      paddingHorizontal: 10,
-      paddingVertical: 6,
+    layerOption: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
       borderRadius: RADIUS.sm - 2,
     },
-    styleButtonActive: {
+    layerOptionActive: {
       backgroundColor: COLORS.primary,
     },
-    styleButtonText: {
+    layerOptionText: {
       fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.textSecondary,
+      textAlign: "right",
     },
-    styleButtonTextActive: {
+    layerOptionTextActive: {
       color: COLORS.white,
     },
   });

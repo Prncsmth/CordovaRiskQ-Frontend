@@ -1,5 +1,12 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -38,6 +45,20 @@ const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
   warning: "Flood risk in low-lying areas — avoid the causeway",
 };
 
+let clockSnapshot = Date.now();
+
+function subscribeToClockTick(callback: () => void): () => void {
+  const interval = setInterval(() => {
+    clockSnapshot = Date.now();
+    callback();
+  }, 60 * 1000);
+  return () => clearInterval(interval);
+}
+
+function getClockSnapshot(): number {
+  return clockSnapshot;
+}
+
 function formatTideDetail(tide: TideStatus): string {
   const seaLevelText = `${tide.seaLevelM.toFixed(1)} m`;
   if (!tide.nextExtremeAt || !tide.nextExtremeType) {
@@ -53,7 +74,7 @@ export default function HomeScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
-  const { user, token } = useAuth();
+  const { user, token, needsOnboarding, needsTerms } = useAuth();
   const {
     registerTarget,
     unregisterTarget,
@@ -72,6 +93,7 @@ export default function HomeScreen() {
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  const now = useSyncExternalStore(subscribeToClockTick, getClockSnapshot);
   const homeOpacity = useSharedValue(0);
   const homeTranslateY = useSharedValue(18);
 
@@ -102,10 +124,19 @@ export default function HomeScreen() {
   // mount-time call is correct. Depending on notifyHomeReady here would
   // risk re-showing (and resetting to step 0) the tour mid-session if the
   // user had already advanced past step 0 by the time it re-fires.
+  //
+  // needsOnboarding/needsTerms guard against Expo Router's anchor route
+  // ((tabs), i.e. this screen) mounting for one frame before
+  // RootLayoutNav's effect-based redirect sends a freshly-registered user
+  // to /phone-number or (onboarding)/terms -- without this check, that
+  // one frame would arm the tour's global isVisible state, which then
+  // keeps rendering FirstTimeGuideOverlay on top of whichever screen the
+  // redirect lands on instead of Home.
   useEffect(() => {
+    if (needsOnboarding || needsTerms) return;
     notifyHomeReady();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [needsOnboarding, needsTerms]);
 
   useFocusEffect(
     useCallback(() => {
@@ -155,8 +186,7 @@ export default function HomeScreen() {
   const STALE_TIDE_THRESHOLD_MS = 16 * 60 * 60 * 1000; // 2x the backend's 8h poll interval
   const displayTide =
     tideStatus &&
-    Date.now() - new Date(tideStatus.updatedAt).getTime() <
-      STALE_TIDE_THRESHOLD_MS
+    now - new Date(tideStatus.updatedAt).getTime() < STALE_TIDE_THRESHOLD_MS
       ? tideStatus
       : null;
 

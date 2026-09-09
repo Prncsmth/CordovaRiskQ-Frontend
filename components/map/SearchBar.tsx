@@ -82,12 +82,12 @@ function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
     searchContainer: {
       // Stops short of the right edge (instead of spanning full width) so it
-      // doesn't cover the map's layer switcher control, which sits in the
+      // doesn't cover the map's layer switcher button, which sits in the
       // top-right corner of the map itself.
       position: "absolute",
       top: SPACING.md,
       left: SPACING.md,
-      right: 64,
+      right: 68,
     },
     searchBar: {
       flexDirection: "row",

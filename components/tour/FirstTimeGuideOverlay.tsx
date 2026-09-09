@@ -3,6 +3,7 @@
 // tab navigator (same pattern as components/sos/SosOverlay.tsx) so it can
 // spotlight real elements that live in different parts of the tree (Home
 // screen content and the tab bar's Profile icon).
+import { useSegments } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
@@ -51,6 +52,14 @@ export default function FirstTimeGuideOverlay() {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
   const overlayRef = useRef<View>(null);
+  const segments = useSegments();
+  // The tour's anchors (SOS button, Advisory banner, Evacuation card,
+  // Profile tab) only exist while the citizen tabs are showing. This is a
+  // safety net, not the primary guard: it stops the overlay from ever
+  // visually rendering over another screen (e.g. phone-number.tsx) even if
+  // isVisible is ever armed while navigation is mid-redirect -- see the
+  // comment on home.tsx's notifyHomeReady() effect for how that can happen.
+  const isOnHomeTabs = segments[0] === "(tabs)";
 
   const step = steps[currentStep];
 
@@ -186,7 +195,7 @@ export default function FirstTimeGuideOverlay() {
     layoutTick,
   ]);
 
-  if (!isVisible) return null;
+  if (!isVisible || !isOnHomeTabs) return null;
 
   return (
     <View ref={overlayRef} style={styles.container}>

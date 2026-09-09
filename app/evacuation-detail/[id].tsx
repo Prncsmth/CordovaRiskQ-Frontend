@@ -42,6 +42,16 @@ const FACILITY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Power: "flash-outline",
 };
 
+const CATEGORY_LABEL: Record<EvacuationCenter["category"], string> = {
+  school: "School",
+  evacuation_center: "Evacuation Center",
+};
+
+const CATEGORY_ICON: Record<EvacuationCenter["category"], keyof typeof Ionicons.glyphMap> = {
+  school: "school-outline",
+  evacuation_center: "business-outline",
+};
+
 export default function EvacuationDetailScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -146,6 +156,15 @@ export default function EvacuationDetailScreen() {
               {isOpen ? "Open" : "Full"}
             </Text>
           </View>
+        </View>
+
+        <View style={styles.categoryRow}>
+          <Ionicons
+            name={CATEGORY_ICON[center.category]}
+            size={13}
+            color={COLORS.primary}
+          />
+          <Text style={styles.categoryText}>{CATEGORY_LABEL[center.category]}</Text>
         </View>
 
         <View style={styles.addressRow}>
@@ -286,6 +305,19 @@ function createStyles(COLORS: ColorPalette) {
   statusText: {
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
+  },
+  categoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: SPACING.xs,
+  },
+  categoryText: {
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
+    color: COLORS.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
   addressRow: {
     flexDirection: "row",
