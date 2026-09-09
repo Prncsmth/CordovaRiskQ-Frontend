@@ -79,11 +79,13 @@ export default function IncidentDetailScreen() {
   }, [token, id]);
 
   const myPhase = incident ? phaseForMyStatus(incident.myStatus) : undefined;
+  const isRejoin = incident?.myStatus === "left";
 
   // Only reachable via a stale link -- declined incidents are already
   // filtered out of the dashboard list, so a responder can't tap into one
-  // from there. "left" is modeled on the backend but has no UI path back
-  // to this screen today either.
+  // from there. "left" incidents stay in the list and route back into the
+  // pending phase in rejoin mode instead (see phaseForMyStatus), so this
+  // alert is declined-only.
   useEffect(() => {
     if (incident && myPhase === null) {
       Alert.alert(
@@ -269,7 +271,11 @@ export default function IncidentDetailScreen() {
         <View style={styles.header}>
           <BackButton onPress={() => router.dismissTo("/responder")} />
           <Text style={styles.headerTitle}>
-            {phase === "pending" ? "New Incident" : `Incident #${incident.id}`}
+            {phase === "pending"
+              ? isRejoin
+                ? "Rejoin Incident"
+                : "New Incident"
+              : `Incident #${incident.id}`}
           </Text>
           <View style={{ width: 36 }} />
         </View>
@@ -280,6 +286,7 @@ export default function IncidentDetailScreen() {
           incident={incident}
           onAccept={handleJoin}
           onDecline={handleDecline}
+          isRejoin={isRejoin}
         />
       )}
 

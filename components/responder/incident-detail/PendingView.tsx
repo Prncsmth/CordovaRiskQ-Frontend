@@ -24,10 +24,16 @@ export default function PendingView({
   incident,
   onAccept,
   onDecline,
+  isRejoin = false,
 }: {
   incident: Incident;
   onAccept: () => void;
   onDecline: () => void;
+  // True when this responder previously left this incident and is looking
+  // at it again. Decline isn't offered here: the backend only allows
+  // "declined" as a transition from no-row-yet, so it would 409 for a
+  // rejoin -- the header's Back button already covers "never mind".
+  isRejoin?: boolean;
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -53,6 +59,9 @@ export default function PendingView({
       </View>
       <Text style={styles.incidentType}>{incident.type}</Text>
       <Text style={styles.incidentLocation}>{incident.location}</Text>
+      {isRejoin && (
+        <Text style={styles.rejoinNote}>You previously left this incident.</Text>
+      )}
 
       <View style={styles.metaRow}>
         <View style={styles.metaBox}>
@@ -68,8 +77,10 @@ export default function PendingView({
       </View>
 
       <View style={styles.pendingActions}>
-        <RButton label="Accept" onPress={onAccept} variant="primary" />
-        <RButton label="Decline" onPress={onDecline} variant="secondary" />
+        <RButton label={isRejoin ? "Rejoin" : "Accept"} onPress={onAccept} variant="primary" />
+        {!isRejoin && (
+          <RButton label="Decline" onPress={onDecline} variant="secondary" />
+        )}
       </View>
     </View>
   );
@@ -104,6 +115,11 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.body,
       color: COLORS.textSecondary,
       marginTop: 4,
+      marginBottom: SPACING.lg,
+    },
+    rejoinNote: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textTertiary,
       marginBottom: SPACING.lg,
     },
     metaRow: {
