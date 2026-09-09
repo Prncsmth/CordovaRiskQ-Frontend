@@ -8,12 +8,11 @@ export type IncidentStatus =
   | "completed"
   | "cancelled";
 
-// A responder's own status on one incident's roster. "pending" and "left"
-// are frontend-only conveniences: "pending" means no IncidentResponder row
-// exists yet (haven't joined or declined); the backend never returns
-// "left" for `myStatus` on a fresh load since there's no UI path back to
-// this screen after leaving, but it's modeled here for completeness since
-// the backend accepts it as a roster transition target.
+// A responder's own status on one incident's roster. "pending" means no
+// IncidentResponder row exists yet (haven't joined or declined). "left"
+// incidents stay visible in the incident list (only "declined" is
+// filtered out) and route back into the pending phase in rejoin mode --
+// see phaseForMyStatus and PendingView's isRejoin prop.
 export type MyResponderStatus =
   | "pending"
   | "declined"

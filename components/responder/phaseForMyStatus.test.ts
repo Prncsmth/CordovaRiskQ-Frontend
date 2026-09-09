@@ -8,8 +8,11 @@ describe("phaseForMyStatus", () => {
     expect(phaseForMyStatus("arrived")).toBe("arrived");
   });
 
-  it("returns null for declined and left", () => {
+  it("maps left back to pending, since rejoining is allowed", () => {
+    expect(phaseForMyStatus("left")).toBe("pending");
+  });
+
+  it("returns null for declined", () => {
     expect(phaseForMyStatus("declined")).toBeNull();
-    expect(phaseForMyStatus("left")).toBeNull();
   });
 });
