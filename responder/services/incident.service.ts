@@ -1,6 +1,7 @@
 import { apiGet, apiPatch, apiPost, type ApiError } from "@/services/api";
 import type { Coordinates } from "@/services/location.service";
 import { haversineDistanceKm } from "@/utils/distance";
+import { formatDate } from "@/utils/formatter";
 import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/responder/types/responder";
 
 type IncidentApiRow = {
@@ -14,6 +15,7 @@ type IncidentApiRow = {
   responders?: { id: string; name: string; status: ResponderStatus }[];
   myStatus?: MyResponderStatus;
   createdAt: string;
+  updatedAt: string;
 };
 
 // Maps a stored category (the citizen-facing CategoryId, plus "sos" for
@@ -50,6 +52,32 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
     incidentCoords,
     createdAt: row.createdAt,
   };
+}
+
+export type CompletedIncident = {
+  id: string;
+  type: string;
+  location: string;
+  completedDate: string;
+  ref: string;
+};
+
+export function toCompletedIncident(row: IncidentApiRow): CompletedIncident {
+  return {
+    id: row.id,
+    type: CATEGORY_LABELS[row.category] ?? row.category,
+    location: row.locationLabel,
+    completedDate: formatDate(row.updatedAt),
+    ref: row.id.slice(0, 8).toUpperCase(),
+  };
+}
+
+export async function getCompletedIncidents(token: string): Promise<CompletedIncident[]> {
+  const response = await apiGet<{ success: true; incidents: IncidentApiRow[] }>(
+    "/api/incidents/completed",
+    token,
+  );
+  return response.incidents.map(toCompletedIncident);
 }
 
 export async function getIncidents(
