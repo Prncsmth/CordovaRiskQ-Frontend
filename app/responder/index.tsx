@@ -396,7 +396,18 @@ export default function ResponderIncidentsScreen() {
             availableBarangays={availableBarangays}
           />
 
-          {incidents.length > 0 && filteredIncidents.length === 0 ? (
+          {incidents.length === 0 ? (
+            <View style={styles.noResultsState}>
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={28}
+                color={COLORS.textTertiary}
+              />
+              <Text style={styles.noResultsText}>
+                You&apos;re all caught up — no nearby incidents right now.
+              </Text>
+            </View>
+          ) : filteredIncidents.length === 0 ? (
             <View style={styles.noResultsState}>
               <Ionicons
                 name="search-outline"
