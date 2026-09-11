@@ -31,6 +31,7 @@ import { groupIncidentsByBarangay, UNKNOWN_LOCATION_ID, type BarangayGroup } fro
 import IncidentCard from "@/components/responder/IncidentCard";
 import IncidentFilterBar from "@/components/responder/IncidentFilterBar";
 import RButton from "@/components/responder/RButton";
+import { selectNearestIncidents } from "@/components/responder/selectNearestIncidents";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { getIncidents } from "@/services/incident.service";
@@ -56,6 +57,7 @@ const POLL_INTERVAL_MS = 12000;
 // How long a just-arrived incident keeps its "NEW" badge after this
 // dashboard first notices it.
 const NEW_BADGE_DURATION_MS = 60000;
+const NEAREST_INCIDENTS_COUNT = 3;
 
 type DutyStatus = "online" | "offline";
 
@@ -219,6 +221,11 @@ export default function ResponderIncidentsScreen() {
   const filteredIncidents = useMemo(
     () => filterIncidents(incidents, filters),
     [incidents, filters],
+  );
+
+  const nearestIncidents = useMemo(
+    () => selectNearestIncidents(filteredIncidents, NEAREST_INCIDENTS_COUNT),
+    [filteredIncidents],
   );
 
   const sections = useMemo(
@@ -462,6 +469,29 @@ export default function ResponderIncidentsScreen() {
               contentContainerStyle={styles.list}
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
+              ListHeaderComponent={
+                nearestIncidents.length > 0
+                  ? () => (
+                      <View style={styles.nearestSection}>
+                        <Text style={styles.nearestLabel}>Nearest to You</Text>
+                        {nearestIncidents.map((incident) => (
+                          <IncidentCard
+                            key={incident.id}
+                            incident={incident}
+                            isNew={newIncidentIds.has(incident.id)}
+                            firstSeenAt={firstSeenSnapshot[incident.id] ?? 0}
+                            onPress={() =>
+                              router.push({
+                                pathname: "/responder/[id]",
+                                params: { id: incident.id },
+                              })
+                            }
+                          />
+                        ))}
+                      </View>
+                    )
+                  : undefined
+              }
               renderSectionHeader={({ section }) => (
                 <BarangaySectionHeader group={section.title} />
               )}
@@ -660,6 +690,16 @@ function createStyles(COLORS: ColorPalette) {
     paddingTop: SPACING.sm,
     paddingBottom: SPACING.xl,
     gap: SPACING.md,
+  },
+  nearestSection: {
+    gap: SPACING.md,
+  },
+  nearestLabel: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "800",
+    color: COLORS.text,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
   },
   });
 }
