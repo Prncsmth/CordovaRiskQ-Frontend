@@ -19,12 +19,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import AppMap, { type MapHandle } from "@/components/map/AppMap";
+import type { MapHandle } from "@/components/map/AppMap";
 import { darken } from "@/components/responder/colorUtils";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
+import LiveIncidentMap from "@/components/responder/LiveIncidentMap";
 import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";
-import { useRoute } from "@/hooks/useRoute";
+import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import { getIncidentById, updateMyResponderStatus } from "@/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
@@ -64,7 +65,12 @@ export default function NavigateScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
-  const route = useRoute(responderCoords, incident?.incidentCoords, "driving");
+  const { route, midpoint, durationMin, distanceKm } = useIncidentRoute(
+    responderCoords,
+    incident?.incidentCoords,
+    incident?.etaMinutes,
+    incident?.distanceKm,
+  );
 
   const loadData = useCallback(() => {
     if (!token || !id) return;
@@ -120,7 +126,7 @@ export default function NavigateScreen() {
     );
   }
 
-  if (!incident || !responderCoords || !incident.incidentCoords) {
+  if (!incident || !responderCoords || !incident.incidentCoords || !midpoint) {
     return (
       <View style={styles.fallbackScreen}>
         <Stack.Screen
@@ -136,13 +142,6 @@ export default function NavigateScreen() {
 
   const visual = getIncidentVisual(incident.type);
   const { incidentCoords } = incident;
-  const midpoint = {
-    latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
-    longitude: (responderCoords.longitude + incidentCoords.longitude) / 2,
-  };
-
-  const durationMin = route?.durationMin ?? incident.etaMinutes ?? 6;
-  const distanceKm = route?.distanceKm ?? incident.distanceKm;
 
   // Layout the floating stack top-to-bottom below the safe area: incident
   // card, then the trip stats bar, then the locate button beside it.
@@ -182,24 +181,14 @@ export default function NavigateScreen() {
         options={{ headerShown: false, presentation: "fullScreenModal" }}
       />
 
-      <AppMap
+      <LiveIncidentMap
         ref={mapRef}
         style={styles.map}
-        center={midpoint}
-        zoom={14}
-        showLayerSwitcher
-        markers={[
-          { id: "responder", ...responderCoords, color: COLORS.secondary, icon: "logo" },
-          { id: "incident", ...incidentCoords, color: visual.color },
-        ]}
-        polylines={[
-          {
-            points: route ? route.coordinates : [responderCoords, incidentCoords],
-            color: COLORS.secondary,
-            dashed: false,
-            weight: 4,
-          },
-        ]}
+        responderCoords={responderCoords}
+        incidentCoords={incidentCoords}
+        midpoint={midpoint}
+        color={visual.color}
+        route={route}
         onReady={() =>
           mapRef.current?.fitToPoints(
             [responderCoords, incidentCoords],

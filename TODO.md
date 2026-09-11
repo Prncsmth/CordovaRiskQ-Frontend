@@ -20,4 +20,4 @@
 ## Cleanup
 
 - [x] Responder dashboard: remove or wire up dead styles (dutyPillOnline/dutyTextOnline, statCardDark/statValueDark/statLabelDark)
-- [ ] Responder OnTheWayView + navigate.tsx duplicate almost the same live map/bottom-sheet implementation — consider sharing one component
+- [x] Responder OnTheWayView + navigate.tsx duplicate almost the same live map/bottom-sheet implementation — consider sharing one component

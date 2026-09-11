@@ -10,10 +10,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import AppMap, { type MapHandle } from "@/components/map/AppMap";
+import type { MapHandle } from "@/components/map/AppMap";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
+import LiveIncidentMap from "@/components/responder/LiveIncidentMap";
 import RButton from "@/components/responder/RButton";
-import { useRoute } from "@/hooks/useRoute";
+import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import {
@@ -45,13 +46,18 @@ export default function OnTheWayView({
   const visual = getIncidentVisual(incident.type);
   const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
   const mapRef = useRef<MapHandle>(null);
-  const route = useRoute(responderCoords, incident.incidentCoords, "driving");
+  const { route, midpoint, durationMin, distanceKm } = useIncidentRoute(
+    responderCoords,
+    incident.incidentCoords,
+    incident.etaMinutes,
+    incident.distanceKm,
+  );
 
   useEffect(() => {
     getCurrentLocation().then(setResponderCoords).catch(() => {});
   }, []);
 
-  if (!incident.incidentCoords || !responderCoords) {
+  if (!incident.incidentCoords || !responderCoords || !midpoint) {
     return (
       <View style={styles.mapScreen}>
         <Text style={styles.notFound}>Location data unavailable.</Text>
@@ -60,12 +66,6 @@ export default function OnTheWayView({
   }
 
   const { incidentCoords } = incident;
-  const midpoint = {
-    latitude: (responderCoords.latitude + incidentCoords.latitude) / 2,
-    longitude: (responderCoords.longitude + incidentCoords.longitude) / 2,
-  };
-  const durationMin = route?.durationMin ?? incident.etaMinutes ?? 6;
-  const distanceKm = route?.distanceKm ?? incident.distanceKm;
 
   const handleLocate = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -74,24 +74,14 @@ export default function OnTheWayView({
 
   return (
     <View style={styles.mapScreen}>
-      <AppMap
+      <LiveIncidentMap
         ref={mapRef}
         style={styles.map}
-        center={midpoint}
-        zoom={14}
-        showLayerSwitcher
-        markers={[
-          { id: "responder", ...responderCoords, color: COLORS.secondary, icon: "logo" },
-          { id: "incident", ...incidentCoords, color: visual.color },
-        ]}
-        polylines={[
-          {
-            points: route ? route.coordinates : [responderCoords, incidentCoords],
-            color: COLORS.secondary,
-            dashed: false,
-            weight: 4,
-          },
-        ]}
+        responderCoords={responderCoords}
+        incidentCoords={incidentCoords}
+        midpoint={midpoint}
+        color={visual.color}
+        route={route}
         onReady={() =>
           mapRef.current?.fitToPoints(
             [responderCoords, incidentCoords],
