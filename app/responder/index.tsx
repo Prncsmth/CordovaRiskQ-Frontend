@@ -79,6 +79,7 @@ export default function ResponderIncidentsScreen() {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
   const COLORS = useThemeColors();
@@ -147,10 +148,14 @@ export default function ResponderIncidentsScreen() {
 
       async function poll() {
         try {
-          if (!cancelled) await loadIncidents(responderLocation);
+          if (!cancelled) {
+            await loadIncidents(responderLocation);
+            if (!cancelled) setLoadError(false);
+          }
         } catch {
           // A failed poll shouldn't clear the currently-shown list; the
           // next interval tick retries.
+          if (!cancelled) setLoadError(true);
         } finally {
           if (!cancelled) setHasLoadedOnce(true);
         }
@@ -185,8 +190,10 @@ export default function ResponderIncidentsScreen() {
     try {
       const responderLocation = await getCurrentLocation().catch(() => undefined);
       await loadIncidents(responderLocation);
+      setLoadError(false);
     } catch {
       // Keep the current list on a failed manual refresh too.
+      setLoadError(true);
     } finally {
       setIsRefreshing(false);
     }
@@ -403,6 +410,24 @@ export default function ResponderIncidentsScreen() {
           {!hasLoadedOnce ? (
             <View style={styles.noResultsState}>
               <ActivityIndicator color={COLORS.primary} />
+            </View>
+          ) : loadError && incidents.length === 0 ? (
+            <View style={styles.noResultsState}>
+              <Ionicons
+                name="cloud-offline-outline"
+                size={28}
+                color={COLORS.textTertiary}
+              />
+              <Text style={styles.noResultsText}>
+                Couldn&apos;t load incidents. Check your connection.
+              </Text>
+              <RButton
+                label="Retry"
+                icon="refresh"
+                variant="secondary"
+                onPress={handleRefresh}
+                style={styles.retryButton}
+              />
             </View>
           ) : incidents.length === 0 ? (
             <View style={styles.noResultsState}>
@@ -636,6 +661,10 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.textTertiary,
     textAlign: "center",
     fontWeight: "600",
+  },
+  retryButton: {
+    width: 160,
+    marginTop: SPACING.sm,
   },
   list: {
     paddingHorizontal: SPACING.md,
