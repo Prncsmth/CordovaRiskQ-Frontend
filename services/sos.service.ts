@@ -10,10 +10,11 @@ export type SosAlert = {
 export async function triggerSOS(
   token: string,
   location?: Coordinates,
+  locationLabel?: string,
 ): Promise<SosAlert> {
   const response = await apiPost<{ success: true; alert: SosAlert }>(
     "/api/sos",
-    location ?? {},
+    { ...location, ...(locationLabel ? { locationLabel } : {}) },
     token,
   );
   return response.alert;

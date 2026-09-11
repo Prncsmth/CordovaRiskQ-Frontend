@@ -1,6 +1,7 @@
 // context/SosContext.tsx
 import React, { createContext, useContext, useMemo, useState } from "react";
 
+import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
 import { getCurrentLocation } from "@/services/location.service";
 import { triggerSOS } from "@/services/sos.service";
@@ -29,7 +30,12 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
         if (!token) return;
 
         getCurrentLocation()
-          .then((location) => triggerSOS(token, location))
+          .then((location) => {
+            const locationLabel = location
+              ? `Barangay ${getNearestBarangay(location.latitude, location.longitude).name}, Cordova`
+              : undefined;
+            return triggerSOS(token, location, locationLabel);
+          })
           .catch((error) => console.warn("Failed to send SOS alert", error));
       },
       cancelSOS: () => setStage("idle"),

@@ -165,7 +165,7 @@ export default function NavigateScreen() {
     setIsArriving(true);
     try {
       await updateMyResponderStatus(token, incident.id, "arrived");
-      router.replace({ pathname: "/responder/[id]", params: { id: incident.id } });
+      router.dismissTo({ pathname: "/responder/[id]", params: { id: incident.id } });
     } catch (err) {
       Alert.alert(
         "Something went wrong",

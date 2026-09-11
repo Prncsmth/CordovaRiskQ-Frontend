@@ -46,12 +46,10 @@ function myStatusMeta(incident: Incident): ResponderStatus | undefined {
 export default function IncidentCard({
   incident,
   isNew,
-  firstSeenAt,
   onPress,
 }: {
   incident: Incident;
   isNew?: boolean;
-  firstSeenAt: number;
   onPress: () => void;
 }) {
   const COLORS = useThemeColors();
@@ -146,9 +144,7 @@ export default function IncidentCard({
               </View>
             )}
             <Text style={styles.cardDistance}>
-              {firstSeenAt > 0
-                ? `${formatRelativeTime(new Date(firstSeenAt)).toLowerCase()} · `
-                : ""}
+              {`${formatRelativeTime(incident.createdAt).toLowerCase()} · `}
               {incident.distanceKm != null
                 ? `${incident.distanceKm.toFixed(1)} km`
                 : "Distance unknown"}

@@ -502,7 +502,6 @@ export default function ResponderIncidentsScreen() {
                             key={incident.id}
                             incident={incident}
                             isNew={newIncidentIds.has(incident.id)}
-                            firstSeenAt={firstSeenSnapshot[incident.id] ?? 0}
                             onPress={() =>
                               router.push({
                                 pathname: "/responder/[id]",
@@ -522,7 +521,6 @@ export default function ResponderIncidentsScreen() {
                 <IncidentCard
                   incident={item}
                   isNew={newIncidentIds.has(item.id)}
-                  firstSeenAt={firstSeenSnapshot[item.id] ?? 0}
                   onPress={() =>
                     router.push({
                       pathname: "/responder/[id]",
