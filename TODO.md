@@ -10,7 +10,7 @@
 - [x] Responder incident detail ([id].tsx): handleJoin's error path calls router.back() immediately after Alert.alert(), popping the screen before the user dismisses the alert
 - [x] Responder flow: no way to mark an incident "completed" once arrived — only "Back to Home" (leaves it open) or "Cancel Incident" (destructive)
 - [x] Responder navigate.tsx: "Location data unavailable" fallback covers both still-loading and permanently-failed with no retry
-- [ ] Responder LobbyView: setTimeout resetting "rung" has no cleanup — setState-after-unmount warning if user navigates away within 2.5s
+- [x] Responder LobbyView: setTimeout resetting "rung" has no cleanup — setState-after-unmount warning if user navigates away within 2.5s
 
 ## Features
 

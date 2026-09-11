@@ -3,7 +3,7 @@
 // accepting, with a Team Lobby / Details tab switch and a "Head Out"
 // action that advances to the On the Way phase.
 import * as Haptics from "expo-haptics";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
@@ -45,6 +45,13 @@ export default function LobbyView({
   const visual = getIncidentVisual(incident.type);
   const [rung, setRung] = useState(false);
   const [isRinging, setIsRinging] = useState(false);
+  const rungTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (rungTimeoutRef.current) clearTimeout(rungTimeoutRef.current);
+    };
+  }, []);
 
   const handleRingTeam = async () => {
     if (rung || isRinging) return;
@@ -55,7 +62,7 @@ export default function LobbyView({
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setRung(true);
-    setTimeout(() => setRung(false), 2500);
+    rungTimeoutRef.current = setTimeout(() => setRung(false), 2500);
   };
 
   return (
