@@ -9,6 +9,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import RippleRings from "@/components/common/RippleRings";
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
+import RButton from "@/components/responder/RButton";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -25,9 +26,11 @@ import GradientIconCircle from "./GradientIconCircle";
 
 export default function ArrivedView({
   incident,
+  onCompleteIncident,
   onCancelIncident,
 }: {
   incident: Incident;
+  onCompleteIncident: () => void;
   onCancelIncident: () => void;
 }) {
   const router = useRouter();
@@ -73,6 +76,13 @@ export default function ArrivedView({
           </View>
         </View>
       </View>
+
+      <RButton
+        label="Mark Resolved"
+        icon="checkmark-done"
+        variant="primary"
+        onPress={onCompleteIncident}
+      />
 
       <Text style={styles.sectionLabel}>Actions</Text>
       <ActionRow

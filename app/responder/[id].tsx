@@ -287,6 +287,26 @@ export default function IncidentDetailScreen() {
     ]);
   };
 
+  const handleCompleteIncident = () => {
+    Alert.alert(
+      "Mark incident resolved?",
+      "This confirms the incident has been handled and closes it for everyone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Mark Resolved",
+          onPress: async () => {
+            if (token) {
+              await updateIncidentStatus(token, incident.id, "completed").catch(() => {});
+            }
+            isClosingRef.current = true;
+            router.back();
+          },
+        },
+      ],
+    );
+  };
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top + SPACING.sm }]}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -336,6 +356,7 @@ export default function IncidentDetailScreen() {
       {phase === "arrived" && (
         <ArrivedView
           incident={incident}
+          onCompleteIncident={handleCompleteIncident}
           onCancelIncident={handleCancelIncident}
         />
       )}
