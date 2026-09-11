@@ -245,6 +245,16 @@ export default function ResponderIncidentsScreen() {
     ]);
   };
 
+  const handleToggleHighUrgency = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFilters((prev) => {
+      const urgencies = new Set(prev.urgencies);
+      if (urgencies.has("high")) urgencies.delete("high");
+      else urgencies.add("high");
+      return { ...prev, urgencies };
+    });
+  };
+
   const handleToggleDuty = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const previous = duty;
@@ -365,7 +375,20 @@ export default function ResponderIncidentsScreen() {
               <Text style={styles.statValue}>{incidents.length}</Text>
               <Text style={styles.statLabel}>Nearby</Text>
             </View>
-            <View style={[styles.statCard, { borderLeftColor: COLORS.primary }]}>
+            <Pressable
+              style={[
+                styles.statCard,
+                { borderLeftColor: COLORS.primary },
+                filters.urgencies.has("high") && styles.statCardActive,
+              ]}
+              onPress={handleToggleHighUrgency}
+              accessibilityRole="button"
+              accessibilityLabel={
+                filters.urgencies.has("high")
+                  ? "High urgency, showing high urgency incidents only, tap to clear"
+                  : "High urgency, tap to show high urgency incidents only"
+              }
+            >
               <LinearGradient
                 colors={COLORS.iconTileGradient}
                 start={{ x: 0, y: 0 }}
@@ -382,7 +405,7 @@ export default function ResponderIncidentsScreen() {
                 {highUrgencyCount}
               </Text>
               <Text style={styles.statLabel}>High Urgency</Text>
-            </View>
+            </Pressable>
           </View>
         </LinearGradient>
       </View>
@@ -627,6 +650,9 @@ function createStyles(COLORS: ColorPalette) {
     borderLeftWidth: 4,
     paddingVertical: SPACING.md,
     ...SHADOW,
+  },
+  statCardActive: {
+    backgroundColor: COLORS.primaryTint,
   },
   statIcon: {
     width: 32,
