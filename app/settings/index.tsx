@@ -68,6 +68,16 @@ export default function SettingsScreen() {
       label: "Change Password",
       onPress: () => router.push("/change-password"),
     },
+    ...(isResponder
+      ? [
+          {
+            key: "completed-incidents",
+            icon: "checkmark-done-outline",
+            label: "Completed Incidents",
+            onPress: () => router.push("/responder/completed"),
+          } satisfies NavRow,
+        ]
+      : []),
     {
       key: "logout",
       icon: "log-out-outline",
