@@ -30,7 +30,7 @@ import {
 import { groupIncidentsByBarangay, UNKNOWN_LOCATION_ID, type BarangayGroup } from "@/components/responder/groupIncidentsByBarangay";
 import IncidentCard from "@/components/responder/IncidentCard";
 import IncidentFilterBar from "@/components/responder/IncidentFilterBar";
-import RButton from "@/components/responder/RButton";
+import RButton from "@/responder/components/shared/RButton";
 import { selectNearestIncidents } from "@/components/responder/selectNearestIncidents";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";

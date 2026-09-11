@@ -11,9 +11,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MapHandle } from "@/components/map/AppMap";
-import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import LiveIncidentMap from "@/components/responder/LiveIncidentMap";
-import RButton from "@/components/responder/RButton";
+import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
+import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
+import RButton from "@/responder/components/shared/RButton";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
@@ -29,7 +29,7 @@ import {
 } from "@/theme";
 import type { Incident } from "@/responder/types/responder";
 
-import { darken } from "../colorUtils";
+import { darken } from "@/responder/components/shared/colorUtils";
 
 export default function OnTheWayView({
   incident,

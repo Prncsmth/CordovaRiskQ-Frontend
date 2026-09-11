@@ -5,9 +5,9 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import RippleRings from "@/components/common/RippleRings";
-import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import RButton from "@/components/responder/RButton";
-import UrgencyBadge from "@/components/responder/UrgencyBadge";
+import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
+import RButton from "@/responder/components/shared/RButton";
+import UrgencyBadge from "@/responder/components/shared/UrgencyBadge";
 import {
   FONT_FAMILY,
   RADIUS,

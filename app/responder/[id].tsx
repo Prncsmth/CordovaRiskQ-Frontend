@@ -17,7 +17,7 @@ import LobbyView, { type LobbyTab } from "@/components/responder/incident-detail
 import OnTheWayView from "@/components/responder/incident-detail/OnTheWayView";
 import PendingView from "@/components/responder/incident-detail/PendingView";
 import { phaseForMyStatus } from "@/components/responder/phaseForMyStatus";
-import RButton from "@/components/responder/RButton";
+import RButton from "@/responder/components/shared/RButton";
 import { useAuth } from "@/context/AuthContext";
 import {
   declineIncident,

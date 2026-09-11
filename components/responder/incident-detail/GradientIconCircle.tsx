@@ -9,7 +9,7 @@ import { View } from "react-native";
 
 import type { ColorPalette } from "@/theme";
 
-import { darken } from "../colorUtils";
+import { darken } from "@/responder/components/shared/colorUtils";
 
 export default function GradientIconCircle({
   color,

@@ -20,10 +20,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MapHandle } from "@/components/map/AppMap";
-import { darken } from "@/components/responder/colorUtils";
-import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import LiveIncidentMap from "@/components/responder/LiveIncidentMap";
-import RButton from "@/components/responder/RButton";
+import { darken } from "@/responder/components/shared/colorUtils";
+import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
+import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
+import RButton from "@/responder/components/shared/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import { getIncidentById, updateMyResponderStatus } from "@/responder/services/incident.service";

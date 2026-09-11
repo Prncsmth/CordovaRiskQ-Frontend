@@ -15,9 +15,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import { responderStatusColor } from "@/components/responder/responderStatusColors";
-import UrgencyBadge from "@/components/responder/UrgencyBadge";
+import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
+import { responderStatusColor } from "@/responder/components/shared/responderStatusColors";
+import UrgencyBadge from "@/responder/components/shared/UrgencyBadge";
 import { RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 import type { Incident, ResponderStatus } from "@/responder/types/responder";
 import { formatRelativeTime } from "@/utils/formatter";

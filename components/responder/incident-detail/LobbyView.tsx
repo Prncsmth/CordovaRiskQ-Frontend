@@ -6,8 +6,8 @@ import * as Haptics from "expo-haptics";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { getIncidentVisual } from "@/components/responder/incidentVisual";
-import RButton from "@/components/responder/RButton";
+import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
+import RButton from "@/responder/components/shared/RButton";
 import TeamMemberRow from "@/components/responder/TeamMemberRow";
 import {
   RADIUS,
