@@ -12,11 +12,11 @@ import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
-import ArrivedView from "@/components/responder/incident-detail/ArrivedView";
-import LobbyView, { type LobbyTab } from "@/components/responder/incident-detail/LobbyView";
-import OnTheWayView from "@/components/responder/incident-detail/OnTheWayView";
-import PendingView from "@/components/responder/incident-detail/PendingView";
-import { phaseForMyStatus } from "@/components/responder/phaseForMyStatus";
+import ArrivedView from "@/responder/components/incident-detail/ArrivedView";
+import LobbyView, { type LobbyTab } from "@/responder/components/incident-detail/LobbyView";
+import OnTheWayView from "@/responder/components/incident-detail/OnTheWayView";
+import PendingView from "@/responder/components/incident-detail/PendingView";
+import { phaseForMyStatus } from "@/responder/components/incident-detail/phaseForMyStatus";
 import RButton from "@/responder/components/shared/RButton";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -28,7 +28,7 @@ import {
   updateMyResponderStatus,
 } from "@/responder/services/incident.service";
 import { connectToIncidentSocket } from "@/responder/services/incidentSocket.service";
-import { mergeIncidentUpdate } from "@/components/responder/mergeIncidentUpdate";
+import { mergeIncidentUpdate } from "@/responder/components/incident-detail/mergeIncidentUpdate";
 import {
   FONT_FAMILY,
   SPACING,

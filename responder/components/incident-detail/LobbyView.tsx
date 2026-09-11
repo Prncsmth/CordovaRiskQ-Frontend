@@ -8,7 +8,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
 import RButton from "@/responder/components/shared/RButton";
-import TeamMemberRow from "@/components/responder/TeamMemberRow";
+import TeamMemberRow from "@/responder/components/incident-detail/TeamMemberRow";
 import {
   RADIUS,
   SHADOW,
