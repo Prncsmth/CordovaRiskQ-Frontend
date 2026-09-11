@@ -6,7 +6,7 @@
 // server. Each phase's UI lives in components/responder/incident-detail/ --
 // this file only owns the derived phase and the backend calls that advance
 // it.
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -52,20 +52,44 @@ export default function IncidentDetailScreen() {
   const [isJoining, setIsJoining] = useState(false);
   const [tab, setTab] = useState<LobbyTab>("lobby");
   const isClosingRef = useRef(false);
+  const hasFocusedOnceRef = useRef(false);
 
-  const loadIncident = useCallback(() => {
-    if (!token || !id) return;
-    setIsLoading(true);
-    setLoadFailed(false);
-    getIncidentById(token, id)
-      .then(setIncident)
-      .catch(() => setLoadFailed(true))
-      .finally(() => setIsLoading(false));
-  }, [token, id]);
+  const loadIncident = useCallback(
+    (options?: { silent?: boolean }) => {
+      if (!token || !id) return;
+      if (!options?.silent) {
+        setIsLoading(true);
+        setLoadFailed(false);
+      }
+      getIncidentById(token, id)
+        .then(setIncident)
+        .catch(() => {
+          if (!options?.silent) setLoadFailed(true);
+        })
+        .finally(() => {
+          if (!options?.silent) setIsLoading(false);
+        });
+    },
+    [token, id],
+  );
 
-  useEffect(() => {
-    loadIncident();
-  }, [loadIncident]);
+  // Refetch whenever this screen regains focus, not just on mount -- e.g.
+  // returning here after "Arrive" on the full-screen Navigate modal
+  // (dismissTo reveals this same screen instance rather than remounting
+  // it, and the live socket deliberately never carries myStatus since
+  // it's per-viewer, so without this the phase would stay stale). Silent
+  // after the first load so returning here doesn't flash the full-screen
+  // spinner over an already-rendered phase.
+  useFocusEffect(
+    useCallback(() => {
+      if (hasFocusedOnceRef.current) {
+        loadIncident({ silent: true });
+      } else {
+        hasFocusedOnceRef.current = true;
+        loadIncident();
+      }
+    }, [loadIncident]),
+  );
 
   useEffect(() => {
     if (!token || !id) return;
