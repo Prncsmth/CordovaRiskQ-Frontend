@@ -49,7 +49,6 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import { RESPONDER_COLORS } from "@/theme/responderColors";
 import type { Incident } from "@/types/responder";
 import { formatRelativeTime } from "@/utils/formatter";
 
@@ -569,9 +568,6 @@ function createStyles(COLORS: ColorPalette) {
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  dutyPillOnline: {
-    backgroundColor: COLORS.tide,
-  },
   dutyPillOffline: {
     backgroundColor: COLORS.background,
     borderWidth: 1,
@@ -586,9 +582,6 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
     color: COLORS.text,
-  },
-  dutyTextOnline: {
-    color: COLORS.white,
   },
   statsRow: {
     flexDirection: "row",
@@ -605,9 +598,6 @@ function createStyles(COLORS: ColorPalette) {
     paddingVertical: SPACING.md,
     ...SHADOW,
   },
-  statCardDark: {
-    backgroundColor: RESPONDER_COLORS.surfaceDark,
-  },
   statIcon: {
     width: 32,
     height: 32,
@@ -621,17 +611,11 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.heading,
     color: COLORS.text,
   },
-  statValueDark: {
-    color: COLORS.primary,
-  },
   statLabel: {
     fontSize: TYPOGRAPHY.small,
     color: COLORS.textTertiary,
     fontWeight: "600",
     marginTop: 2,
-  },
-  statLabelDark: {
-    color: RESPONDER_COLORS.textOnDarkMuted,
   },
   offlineState: {
     flex: 1,
