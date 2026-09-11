@@ -5,7 +5,7 @@
 // computed client-side from the responder's own location). Pure so it's
 // unit-testable without mounting the screen, same pattern as
 // phaseForMyStatus.
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 import type { IncidentRealtimeUpdate } from "@/services/incidentSocket.service";
 
 export function mergeIncidentUpdate(

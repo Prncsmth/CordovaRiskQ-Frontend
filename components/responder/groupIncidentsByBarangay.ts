@@ -4,7 +4,7 @@
 // incidents within them so the most urgent, most active locations surface
 // first. See docs/superpowers/specs/2026-09-07-responder-barangay-grouping-design.md.
 import { getNearestBarangay } from "@/constants/cordovaBarangays";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 
 export const UNKNOWN_LOCATION_ID = "unknown";
 export const UNKNOWN_LOCATION_NAME = "Unknown Location";

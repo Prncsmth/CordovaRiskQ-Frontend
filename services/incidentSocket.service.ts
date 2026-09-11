@@ -6,7 +6,7 @@
 import { io, type Socket } from "socket.io-client";
 
 import { API_BASE_URL } from "./api";
-import type { IncidentStatus, ResponderStatus } from "@/types/responder";
+import type { IncidentStatus, ResponderStatus } from "@/responder/types/responder";
 
 // Deliberately has no myStatus field -- the server never broadcasts it,
 // since it's per-viewer. See emitIncidentUpdate on the backend.

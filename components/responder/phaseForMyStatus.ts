@@ -2,7 +2,7 @@
 // Maps a responder's own roster status on one incident to the phase view
 // app/responder/[id].tsx should show. Pure so it's unit-testable without
 // mounting the screen.
-import type { MyResponderStatus } from "@/types/responder";
+import type { MyResponderStatus } from "@/responder/types/responder";
 
 export type Phase = "pending" | "lobby" | "on_the_way" | "arrived";
 

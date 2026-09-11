@@ -1,7 +1,7 @@
 import { apiGet, apiPatch, apiPost, type ApiError } from "./api";
 import type { Coordinates } from "./location.service";
 import { haversineDistanceKm } from "@/utils/distance";
-import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/types/responder";
+import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/responder/types/responder";
 
 type IncidentApiRow = {
   id: string;

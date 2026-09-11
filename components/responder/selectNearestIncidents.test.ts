@@ -1,5 +1,5 @@
 import { selectNearestIncidents } from "./selectNearestIncidents";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 
 function makeIncident(overrides: Partial<Incident> & { id: string }): Incident {
   return {

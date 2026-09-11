@@ -4,7 +4,7 @@
 // responder's roster status shows up -- TeamMemberRow's teammate chips and
 // IncidentCard's own-status chip on the dashboard.
 import type { ColorPalette } from "@/theme";
-import type { ResponderStatus } from "@/types/responder";
+import type { ResponderStatus } from "@/responder/types/responder";
 
 export function responderStatusColor(
   COLORS: ColorPalette,

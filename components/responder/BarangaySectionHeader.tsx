@@ -15,7 +15,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import type { Urgency } from "@/types/responder";
+import type { Urgency } from "@/responder/types/responder";
 
 function severityColor(urgency: Urgency, COLORS: ColorPalette): string {
   if (urgency === "high") return COLORS.primary;

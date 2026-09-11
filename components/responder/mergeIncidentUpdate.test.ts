@@ -1,5 +1,5 @@
 import { mergeIncidentUpdate } from "./mergeIncidentUpdate";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 
 const baseIncident: Incident = {
   id: "inc-1",

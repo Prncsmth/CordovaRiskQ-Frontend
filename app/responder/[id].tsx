@@ -36,7 +36,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 
 export default function IncidentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

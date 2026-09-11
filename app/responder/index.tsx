@@ -50,7 +50,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 import { formatRelativeTime } from "@/utils/formatter";
 
 const POLL_INTERVAL_MS = 12000;

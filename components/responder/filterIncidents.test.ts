@@ -1,5 +1,5 @@
 import { filterIncidents, type IncidentFilters } from "./filterIncidents";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 
 // Exact coordinates of real entries in constants/cordovaBarangays.ts, so
 // getNearestBarangay resolves them deterministically (distance to an

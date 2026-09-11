@@ -29,7 +29,7 @@ import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import { getIncidentById, updateMyResponderStatus } from "@/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 import {
     FONT_FAMILY,
     RADIUS,

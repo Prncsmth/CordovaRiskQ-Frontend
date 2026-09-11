@@ -11,7 +11,7 @@ import {
   type ColorPalette,
 } from "@/theme";
 import { responderStatusColor } from "@/components/responder/responderStatusColors";
-import type { ResponderStatus, TeamMember } from "@/types/responder";
+import type { ResponderStatus, TeamMember } from "@/responder/types/responder";
 
 const STATUS_LABELS: Record<ResponderStatus, string> = {
   joined: "Preparing",

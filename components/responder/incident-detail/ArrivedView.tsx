@@ -19,7 +19,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 
 import ActionRow from "./ActionRow";
 import GradientIconCircle from "./GradientIconCircle";

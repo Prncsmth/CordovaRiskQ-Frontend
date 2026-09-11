@@ -6,7 +6,7 @@ import {
   UNKNOWN_LOCATION_ID,
   UNKNOWN_LOCATION_NAME,
 } from "@/components/responder/groupIncidentsByBarangay";
-import type { Incident, Urgency } from "@/types/responder";
+import type { Incident, Urgency } from "@/responder/types/responder";
 
 export type IncidentFilters = {
   search: string;

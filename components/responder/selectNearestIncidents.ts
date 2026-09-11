@@ -2,7 +2,7 @@
 // Picks the incidents to show in the responder Dashboard's "Nearest to
 // You" header -- the `count` closest incidents with a known distance,
 // nearest first. Pure so it's unit-testable without mounting the screen.
-import type { Incident } from "@/types/responder";
+import type { Incident } from "@/responder/types/responder";
 
 export function selectNearestIncidents(
   incidents: Incident[],
