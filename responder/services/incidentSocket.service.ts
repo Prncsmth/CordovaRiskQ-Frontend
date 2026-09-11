@@ -5,7 +5,7 @@
 // docs/superpowers/specs/2026-09-08-active-incident-realtime-design.md.
 import { io, type Socket } from "socket.io-client";
 
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL } from "@/services/api";
 import type { IncidentStatus, ResponderStatus } from "@/responder/types/responder";
 
 // Deliberately has no myStatus field -- the server never broadcasts it,

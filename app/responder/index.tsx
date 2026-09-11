@@ -34,7 +34,7 @@ import RButton from "@/components/responder/RButton";
 import { selectNearestIncidents } from "@/components/responder/selectNearestIncidents";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
-import { getIncidents } from "@/services/incident.service";
+import { getIncidents } from "@/responder/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";

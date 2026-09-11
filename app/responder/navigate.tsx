@@ -26,7 +26,7 @@ import LiveIncidentMap from "@/components/responder/LiveIncidentMap";
 import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
-import { getIncidentById, updateMyResponderStatus } from "@/services/incident.service";
+import { getIncidentById, updateMyResponderStatus } from "@/responder/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import type { Incident } from "@/responder/types/responder";

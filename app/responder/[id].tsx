@@ -26,8 +26,8 @@ import {
   ringTeam,
   updateIncidentStatus,
   updateMyResponderStatus,
-} from "@/services/incident.service";
-import { connectToIncidentSocket } from "@/services/incidentSocket.service";
+} from "@/responder/services/incident.service";
+import { connectToIncidentSocket } from "@/responder/services/incidentSocket.service";
 import { mergeIncidentUpdate } from "@/components/responder/mergeIncidentUpdate";
 import {
   FONT_FAMILY,

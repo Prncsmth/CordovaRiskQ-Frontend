@@ -1,5 +1,5 @@
-import { apiGet, apiPatch, apiPost, type ApiError } from "./api";
-import type { Coordinates } from "./location.service";
+import { apiGet, apiPatch, apiPost, type ApiError } from "@/services/api";
+import type { Coordinates } from "@/services/location.service";
 import { haversineDistanceKm } from "@/utils/distance";
 import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/responder/types/responder";
 

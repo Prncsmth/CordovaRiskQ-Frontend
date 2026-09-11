@@ -1,7 +1,7 @@
 // services/report.service.ts
 import { apiGet, apiPost } from "./api";
 import type { CategoryId } from "@/components/report/categories";
-import { CATEGORY_LABELS } from "./incident.service";
+import { CATEGORY_LABELS } from "@/responder/services/incident.service";
 import { formatDate } from "@/utils/formatter";
 
 type IncidentApiRow = {

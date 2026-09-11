@@ -6,7 +6,7 @@
 // unit-testable without mounting the screen, same pattern as
 // phaseForMyStatus.
 import type { Incident } from "@/responder/types/responder";
-import type { IncidentRealtimeUpdate } from "@/services/incidentSocket.service";
+import type { IncidentRealtimeUpdate } from "@/responder/services/incidentSocket.service";
 
 export function mergeIncidentUpdate(
   current: Incident,
