@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from "./api";
+import { apiGet, apiPatch, apiPost, type ApiError } from "./api";
 import type { Coordinates } from "./location.service";
 import { haversineDistanceKm } from "@/utils/distance";
 import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/types/responder";
@@ -72,8 +72,14 @@ export async function getIncidentById(
       token,
     );
     return toIncident(response.incident, responderLocation);
-  } catch {
-    return undefined;
+  } catch (err) {
+    // Only a real 404 means "no such incident" -- a network/server failure
+    // should propagate so callers can distinguish and offer a retry instead
+    // of silently looking like the incident doesn't exist.
+    if ((err as Partial<ApiError>)?.status === 404) {
+      return undefined;
+    }
+    throw err;
   }
 }
 

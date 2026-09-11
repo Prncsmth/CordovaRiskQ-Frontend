@@ -77,9 +77,14 @@ export default function IncidentDetailScreen() {
         setIncident((prev) => (prev ? mergeIncidentUpdate(prev, update) : prev));
       },
       () => {
-        getIncidentById(token, id).then((fresh) => {
-          if (fresh) setIncident((prev) => (prev ? { ...fresh, distanceKm: prev.distanceKm } : fresh));
-        });
+        getIncidentById(token, id)
+          .then((fresh) => {
+            if (fresh) setIncident((prev) => (prev ? { ...fresh, distanceKm: prev.distanceKm } : fresh));
+          })
+          .catch(() => {
+            // Best-effort resync -- the next reconnect (or the socket's own
+            // update events) will retry, no need to surface this.
+          });
       },
     );
 

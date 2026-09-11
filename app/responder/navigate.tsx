@@ -7,8 +7,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
@@ -51,16 +59,66 @@ export default function NavigateScreen() {
   const [incident, setIncident] = useState<Incident | undefined>(undefined);
   const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
   const [isArriving, setIsArriving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
   const route = useRoute(responderCoords, incident?.incidentCoords, "driving");
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (!token || !id) return;
-    getIncidentById(token, id).then(setIncident);
-    getCurrentLocation().then(setResponderCoords).catch(() => {});
+    setIsLoading(true);
+    setLoadFailed(false);
+    // getCurrentLocation never rejects (resolves undefined when location is
+    // unavailable), so Promise.all only rejects on a real getIncidentById
+    // failure -- that's the only case worth a retry.
+    Promise.all([getIncidentById(token, id), getCurrentLocation()])
+      .then(([incidentData, coords]) => {
+        setIncident(incidentData);
+        setResponderCoords(coords);
+      })
+      .catch(() => setLoadFailed(true))
+      .finally(() => setIsLoading(false));
   }, [token, id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.fallbackScreen}>
+        <Stack.Screen
+          options={{ headerShown: false, presentation: "fullScreenModal" }}
+        />
+        <ActivityIndicator color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <View style={styles.fallbackScreen}>
+        <Stack.Screen
+          options={{ headerShown: false, presentation: "fullScreenModal" }}
+        />
+        <Text style={styles.fallbackText}>
+          Couldn&apos;t load trip data. Check your connection.
+        </Text>
+        <RButton
+          label="Retry"
+          icon="refresh"
+          variant="secondary"
+          onPress={loadData}
+          style={styles.fallbackRetry}
+        />
+        <Pressable onPress={() => router.dismissTo("/responder")} style={styles.fallbackClose}>
+          <Text style={styles.fallbackCloseText}>Close</Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   if (!incident || !responderCoords || !incident.incidentCoords) {
     return (
@@ -407,6 +465,9 @@ function createStyles(COLORS: ColorPalette) {
   fallbackText: {
     color: COLORS.textTertiary,
     fontSize: TYPOGRAPHY.body,
+  },
+  fallbackRetry: {
+    width: 160,
   },
   fallbackClose: {
     paddingHorizontal: SPACING.lg,

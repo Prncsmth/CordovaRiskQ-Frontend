@@ -50,6 +50,11 @@ async function extractErrorMessage(response: Response): Promise<string> {
 // invalid/expired -- distinct from a 401 on an unauthenticated endpoint
 // (e.g. wrong password on login), which never passes a token and so never
 // triggers this.
+// Callers that need to tell a real "not found" apart from a network/server
+// failure (e.g. getIncidentById) read this off a caught error rather than
+// parsing the message string.
+export type ApiError = Error & { status: number };
+
 async function handleErrorResponse(
   response: Response,
   token?: string,
@@ -58,7 +63,9 @@ async function handleErrorResponse(
   if (response.status === 401 && token) {
     onUnauthorized?.();
   }
-  throw new Error(message);
+  const error = new Error(message) as ApiError;
+  error.status = response.status;
+  throw error;
 }
 
 export async function apiGet<T>(path: string, token?: string): Promise<T> {
