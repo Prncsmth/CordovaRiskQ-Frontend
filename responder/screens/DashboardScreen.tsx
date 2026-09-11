@@ -64,7 +64,7 @@ type DutyStatus = "online" | "offline";
 export default function ResponderIncidentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { logout, user, token } = useAuth();
+  const { user, token } = useAuth();
   const { photoUri } = useProfilePhoto();
   const [duty, setDuty] = useState<DutyStatus>(() =>
     user?.isOnDuty === false ? "offline" : "online",
@@ -237,14 +237,6 @@ export default function ResponderIncidentsScreen() {
     [filteredIncidents, firstSeenSnapshot],
   );
 
-  const handleLogout = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("Log out?", "You'll stop receiving incident alerts.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", style: "destructive", onPress: () => logout() },
-    ]);
-  };
-
   const handleToggleHighUrgency = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFilters((prev) => {
@@ -317,16 +309,6 @@ export default function ResponderIncidentsScreen() {
                 accessibilityLabel="Settings"
               >
                 <Ionicons name="settings-outline" size={18} color={COLORS.text} />
-              </Pressable>
-
-              <Pressable
-                onPress={handleLogout}
-                hitSlop={12}
-                style={styles.logoutButton}
-                accessibilityRole="button"
-                accessibilityLabel="Log out"
-              >
-                <Ionicons name="power" size={18} color={COLORS.primary} />
               </Pressable>
             </View>
           </View>
