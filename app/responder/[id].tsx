@@ -128,7 +128,10 @@ export default function IncidentDetailScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.screen}>
+      <View style={[styles.screen, { paddingTop: insets.top + SPACING.sm }]}>
+        <View style={styles.header}>
+          <BackButton onPress={() => router.back()} />
+        </View>
         <ActivityIndicator color={COLORS.primary} style={styles.loading} />
       </View>
     );
