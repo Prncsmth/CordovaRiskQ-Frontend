@@ -3,7 +3,7 @@
 ## Bugs
 
 - [x] Responder dashboard: no "all caught up" empty state when online with zero nearby incidents (just blank space under filter bar)
-- [ ] Responder dashboard: no first-load spinner — looks identical to "no incidents" while still loading
+- [x] Responder dashboard: no first-load spinner — looks identical to "no incidents" while still loading
 - [ ] Responder dashboard: no error/retry UI when the first incident fetch fails (silently swallowed)
 - [ ] Responder incident detail ([id].tsx): "Incident not found" shown for both a real 404 and a network failure — no retry
 - [ ] Responder incident detail ([id].tsx): loading spinner has no back button, traps user if the fetch hangs

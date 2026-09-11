@@ -9,6 +9,7 @@ import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   SectionList,
@@ -77,6 +78,7 @@ export default function ResponderIncidentsScreen() {
     barangayIds: new Set(),
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
   const COLORS = useThemeColors();
@@ -149,6 +151,8 @@ export default function ResponderIncidentsScreen() {
         } catch {
           // A failed poll shouldn't clear the currently-shown list; the
           // next interval tick retries.
+        } finally {
+          if (!cancelled) setHasLoadedOnce(true);
         }
       }
 
@@ -396,7 +400,11 @@ export default function ResponderIncidentsScreen() {
             availableBarangays={availableBarangays}
           />
 
-          {incidents.length === 0 ? (
+          {!hasLoadedOnce ? (
+            <View style={styles.noResultsState}>
+              <ActivityIndicator color={COLORS.primary} />
+            </View>
+          ) : incidents.length === 0 ? (
             <View style={styles.noResultsState}>
               <Ionicons
                 name="checkmark-circle-outline"
