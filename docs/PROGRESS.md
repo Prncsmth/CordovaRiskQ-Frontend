@@ -2,7 +2,7 @@
 
 > Living document. Update this after every feature lands (new plan/spec pair merged, or a task list in `docs/superpowers/plans/*` finished). Don't duplicate detail that already lives in `docs/superpowers/plans/*` or `specs/*` — link to it instead.
 
-Last updated: 2026-09-09 (responder-side notifications, duty status, Ring Team, Leave affordance; full pass to correct staleness — the responder flow section below was badly out of date)
+Last updated: 2026-09-12 (responder module reorganization — see below)
 
 ## How this project builds features
 
@@ -45,7 +45,7 @@ Auth (login/register/forgot-password/Google sign-in) predates the plans/specs co
 
 What was a 100%-mock prototype (see git history before ~2026-08-19) is now a fully real second user role, built out over several specs:
 
-- **Real incident pipeline** (`2026-08-19-responder-incident-pipeline`): `mockIncidents.ts` deleted; real `Incident` Prisma model fed by both citizen reports and SOS triggers; `services/incident.service.ts` replaces it. `__DEV__` responder-login bypass removed (`3eabebc`) once the backend started returning real `role`.
+- **Real incident pipeline** (`2026-08-19-responder-incident-pipeline`): `mockIncidents.ts` deleted; real `Incident` Prisma model fed by both citizen reports and SOS triggers; `responder/services/incident.service.ts` replaces it. `__DEV__` responder-login bypass removed (`3eabebc`) once the backend started returning real `role`.
 - **Multi-responder roster** (`2026-09-08-multi-responder-incidents`): replaced the old single-`acceptedByResponderId` exclusive-accept model with a real per-responder roster (`IncidentResponder`, statuses `joined`/`on_the_way`/`arrived`/`left`/`declined`). Each responder now has their own independent phase (`incident.myStatus`), not one shared incident-wide phase. `LobbyView` shows the real active roster.
 - **Dashboard grouping + filters** (`2026-09-07-responder-barangay-grouping`): incident list grouped by barangay, prioritized by urgency/activity; a filter bar (`IncidentFilterBar`, `filterIncidents.ts`) was added alongside this.
 - **Live updates** (`2026-09-08-active-incident-realtime`): Socket.IO pushes roster/status changes to the open incident-detail screen without polling; receive-only, REST stays the write path.
@@ -55,6 +55,7 @@ What was a 100%-mock prototype (see git history before ~2026-08-19) is now a ful
 - **"Start Assistance" removed** (no plan/spec, bounded): it was a permanent `Alert.alert("Coming soon.")` stub; removed entirely rather than wired up, since Arrived already means "on scene and assisting" — no separate "start" action was needed.
 - **Admin-side role management**: promoting a citizen to responder (or reverting one) is a real action in the `CordovaRiskQ- Admin` app's Users page (`PATCH /admin/users/:id/role`), not a manual SQL update. There is intentionally **no self-registration path** for the responder role — only an admin can change it.
 - **Real map/nav**: `OnTheWayView`/`app/responder/navigate.tsx` use the same real dual-engine map + real turn-by-turn routing (`useRoute` hook) as the rest of the app.
+- **Responder module reorganization** (`2026-09-12-responder-module-reorg`): all responder-domain code (components, services, types, theme colors, screens) moved out of the app's shared top-level `app/`/`components/`/`services/`/`types/`/`theme/` folders into one `responder/` module organized by screen (`responder/screens/`, `responder/components/{dashboard,incident-detail,shared}/`, `responder/services/`, `responder/types/`, `responder/theme/`). `app/responder/*.tsx` route files are now one-line re-exports into `responder/screens/` — same URLs, pure structural move, no behavior change.
 
 **Known gaps in this flow:**
 - "Chat with Team" was replaced by "Ring Team," which is now real (see above) — there's no separate team chat feature.
