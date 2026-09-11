@@ -5,7 +5,7 @@
 - [x] Responder dashboard: no "all caught up" empty state when online with zero nearby incidents (just blank space under filter bar)
 - [x] Responder dashboard: no first-load spinner — looks identical to "no incidents" while still loading
 - [x] Responder dashboard: no error/retry UI when the first incident fetch fails (silently swallowed)
-- [ ] Responder incident detail ([id].tsx): "Incident not found" shown for both a real 404 and a network failure — no retry
+- [x] Responder incident detail ([id].tsx): "Incident not found" shown for both a real 404 and a network failure — no retry
 - [ ] Responder incident detail ([id].tsx): loading spinner has no back button, traps user if the fetch hangs
 - [ ] Responder incident detail ([id].tsx): handleJoin's error path calls router.back() immediately after Alert.alert(), popping the screen before the user dismisses the alert
 - [ ] Responder flow: no way to mark an incident "completed" once arrived — only "Back to Home" (leaves it open) or "Cancel Incident" (destructive)

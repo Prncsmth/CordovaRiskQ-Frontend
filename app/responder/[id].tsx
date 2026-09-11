@@ -7,7 +7,7 @@
 // this file only owns the derived phase and the backend calls that advance
 // it.
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -17,6 +17,7 @@ import LobbyView, { type LobbyTab } from "@/components/responder/incident-detail
 import OnTheWayView from "@/components/responder/incident-detail/OnTheWayView";
 import PendingView from "@/components/responder/incident-detail/PendingView";
 import { phaseForMyStatus } from "@/components/responder/phaseForMyStatus";
+import RButton from "@/components/responder/RButton";
 import { useAuth } from "@/context/AuthContext";
 import {
   declineIncident,
@@ -47,17 +48,24 @@ export default function IncidentDetailScreen() {
 
   const [incident, setIncident] = useState<Incident | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [tab, setTab] = useState<LobbyTab>("lobby");
   const isClosingRef = useRef(false);
 
-  useEffect(() => {
+  const loadIncident = useCallback(() => {
     if (!token || !id) return;
-
+    setIsLoading(true);
+    setLoadFailed(false);
     getIncidentById(token, id)
       .then(setIncident)
+      .catch(() => setLoadFailed(true))
       .finally(() => setIsLoading(false));
   }, [token, id]);
+
+  useEffect(() => {
+    loadIncident();
+  }, [loadIncident]);
 
   useEffect(() => {
     if (!token || !id) return;
@@ -130,8 +138,21 @@ export default function IncidentDetailScreen() {
     return (
       <View style={styles.screen}>
         <Text style={styles.notFound}>
-          {incident ? "" : "Incident not found."}
+          {loadFailed
+            ? "Couldn't load this incident. Check your connection."
+            : incident
+              ? ""
+              : "Incident not found."}
         </Text>
+        {loadFailed && (
+          <RButton
+            label="Retry"
+            icon="refresh"
+            variant="secondary"
+            onPress={loadIncident}
+            style={styles.retryButton}
+          />
+        )}
       </View>
     );
   }
@@ -340,7 +361,13 @@ function createStyles(COLORS: ColorPalette) {
     notFound: {
       textAlign: "center",
       marginTop: SPACING.xl,
+      paddingHorizontal: SPACING.lg,
       color: COLORS.textTertiary,
+    },
+    retryButton: {
+      alignSelf: "center",
+      width: 160,
+      marginTop: SPACING.md,
     },
     loading: {
       marginTop: SPACING.xl,
