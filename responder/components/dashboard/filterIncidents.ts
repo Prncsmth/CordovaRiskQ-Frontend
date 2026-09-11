@@ -5,7 +5,7 @@ import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import {
   UNKNOWN_LOCATION_ID,
   UNKNOWN_LOCATION_NAME,
-} from "@/components/responder/groupIncidentsByBarangay";
+} from "@/responder/components/dashboard/groupIncidentsByBarangay";
 import type { Incident, Urgency } from "@/responder/types/responder";
 
 export type IncidentFilters = {

@@ -7,7 +7,7 @@
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import type { BarangayGroup } from "@/components/responder/groupIncidentsByBarangay";
+import type { BarangayGroup } from "@/responder/components/dashboard/groupIncidentsByBarangay";
 import {
   RADIUS,
   SPACING,

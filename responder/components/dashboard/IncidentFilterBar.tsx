@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 
-import type { IncidentFilters } from "@/components/responder/filterIncidents";
+import type { IncidentFilters } from "@/responder/components/dashboard/filterIncidents";
 import {
   RADIUS,
   SPACING,

@@ -21,17 +21,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/common/Avatar";
 import RippleRings from "@/components/common/RippleRings";
-import BarangaySectionHeader from "@/components/responder/BarangaySectionHeader";
+import BarangaySectionHeader from "@/responder/components/dashboard/BarangaySectionHeader";
 import {
   incidentBarangay,
   filterIncidents,
   type IncidentFilters,
-} from "@/components/responder/filterIncidents";
-import { groupIncidentsByBarangay, UNKNOWN_LOCATION_ID, type BarangayGroup } from "@/components/responder/groupIncidentsByBarangay";
-import IncidentCard from "@/components/responder/IncidentCard";
-import IncidentFilterBar from "@/components/responder/IncidentFilterBar";
+} from "@/responder/components/dashboard/filterIncidents";
+import { groupIncidentsByBarangay, UNKNOWN_LOCATION_ID, type BarangayGroup } from "@/responder/components/dashboard/groupIncidentsByBarangay";
+import IncidentCard from "@/responder/components/dashboard/IncidentCard";
+import IncidentFilterBar from "@/responder/components/dashboard/IncidentFilterBar";
 import RButton from "@/responder/components/shared/RButton";
-import { selectNearestIncidents } from "@/components/responder/selectNearestIncidents";
+import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { getIncidents } from "@/responder/services/incident.service";
