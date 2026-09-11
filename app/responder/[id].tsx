@@ -169,12 +169,12 @@ export default function IncidentDetailScreen() {
       const updated = await joinIncident(token, incident.id);
       setIncident({ ...updated, distanceKm: incident.distanceKm });
     } catch (err) {
+      setIsJoining(false);
       Alert.alert(
         "Couldn't join incident",
         err instanceof Error ? err.message : "Please try again.",
+        [{ text: "OK", onPress: () => router.back() }],
       );
-      setIsJoining(false);
-      router.back();
     }
   };
 
