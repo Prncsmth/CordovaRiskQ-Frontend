@@ -104,6 +104,8 @@ export default function OnTheWayView({
         onPress={handleLocate}
         hitSlop={8}
         style={[styles.locateButton, { top: insets.top + SPACING.sm }]}
+        accessibilityRole="button"
+        accessibilityLabel="Center map on my location"
       >
         <Ionicons name="locate" size={20} color={COLORS.textSecondary} />
       </Pressable>

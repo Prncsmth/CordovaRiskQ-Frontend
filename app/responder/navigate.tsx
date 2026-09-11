@@ -235,6 +235,8 @@ export default function NavigateScreen() {
             }}
             hitSlop={10}
             style={styles.closeButton}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
           >
             <Ionicons name="close" size={20} color={COLORS.textSecondary} />
           </Pressable>
@@ -264,6 +266,8 @@ export default function NavigateScreen() {
         onPress={handleLocate}
         hitSlop={8}
         style={[styles.locateButton, { top: locateButtonTop }]}
+        accessibilityRole="button"
+        accessibilityLabel="Center map on my location"
       >
         <Ionicons name="locate" size={16} color={COLORS.textSecondary} />
       </Pressable>

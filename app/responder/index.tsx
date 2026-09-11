@@ -284,6 +284,10 @@ export default function ResponderIncidentsScreen() {
                 }}
                 hitSlop={12}
                 style={styles.logoutButton}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  hasUnread ? "Notifications, unread" : "Notifications"
+                }
               >
                 <Ionicons name="notifications-outline" size={18} color={COLORS.text} />
                 {hasUnread ? <View style={styles.unreadDot} /> : null}
@@ -296,6 +300,8 @@ export default function ResponderIncidentsScreen() {
                 }}
                 hitSlop={12}
                 style={styles.logoutButton}
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
               >
                 <Ionicons name="settings-outline" size={18} color={COLORS.text} />
               </Pressable>
@@ -304,6 +310,8 @@ export default function ResponderIncidentsScreen() {
                 onPress={handleLogout}
                 hitSlop={12}
                 style={styles.logoutButton}
+                accessibilityRole="button"
+                accessibilityLabel="Log out"
               >
                 <Ionicons name="power" size={18} color={COLORS.primary} />
               </Pressable>
