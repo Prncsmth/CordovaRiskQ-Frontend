@@ -15,7 +15,7 @@
 ## Features
 
 - [x] Accessibility labels/roles for icon-only buttons across responder screens (notification bell, settings, logout, locate, close)
-- [ ] Responder dashboard: refresh unread-notification dot on the same poll interval as incidents, not just on screen focus
+- [x] Responder dashboard: refresh unread-notification dot on the same poll interval as incidents, not just on screen focus
 
 ## Cleanup
 

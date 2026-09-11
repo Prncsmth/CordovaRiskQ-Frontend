@@ -142,6 +142,7 @@ export default function ResponderIncidentsScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
+      const activeToken = token;
 
       let cancelled = false;
       let responderLocation: Coordinates | undefined;
@@ -159,6 +160,12 @@ export default function ResponderIncidentsScreen() {
         } finally {
           if (!cancelled) setHasLoadedOnce(true);
         }
+
+        getNotifications(activeToken)
+          .then((notifications) => {
+            if (!cancelled) setHasUnread(notifications.some((n) => !n.read));
+          })
+          .catch(() => {});
       }
 
       getCurrentLocation().then((fix) => {
@@ -173,16 +180,6 @@ export default function ResponderIncidentsScreen() {
         clearInterval(interval);
       };
     }, [token, loadIncidents]),
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!token) return;
-
-      getNotifications(token)
-        .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
-        .catch(() => {});
-    }, [token]),
   );
 
   const handleRefresh = async () => {
