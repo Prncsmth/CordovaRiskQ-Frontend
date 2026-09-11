@@ -15,6 +15,7 @@ describe("toIncident", () => {
         { id: "r2", name: "Bob", status: "joined" },
       ],
       myStatus: "on_the_way",
+      createdAt: "2026-01-01T12:00:00.000Z",
     });
 
     expect(incident.team).toEqual([
@@ -22,6 +23,7 @@ describe("toIncident", () => {
       { id: "r2", name: "Bob", status: "joined" },
     ]);
     expect(incident.myStatus).toBe("on_the_way");
+    expect(incident.createdAt).toBe("2026-01-01T12:00:00.000Z");
   });
 
   it("defaults team to an empty array and myStatus to pending when the backend omits them", () => {
@@ -33,6 +35,7 @@ describe("toIncident", () => {
       longitude: null,
       urgency: "medium",
       status: "pending",
+      createdAt: "2026-01-01T12:00:00.000Z",
     });
 
     expect(incident.team).toEqual([]);

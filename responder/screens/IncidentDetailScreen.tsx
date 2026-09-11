@@ -109,11 +109,11 @@ export default function IncidentDetailScreen() {
     }
   }, [incident, myPhase, router]);
 
-  // Another responder (or this one, via handleCancelIncident/the "Start
-  // Assistance" flow once it exists) closed the incident -- surface it live
-  // rather than leaving a stale screen open. isClosingRef suppresses this
-  // when the close was this responder's own action, since their own REST
-  // call's socket broadcast can land on their own client mid-navigation.
+  // Another responder closed the incident (e.g. marked it resolved) --
+  // surface it live rather than leaving a stale screen open. isClosingRef
+  // suppresses this when the close was this responder's own action, since
+  // their own REST call's socket broadcast can land on their own client
+  // mid-navigation.
   useEffect(() => {
     if (
       incident &&
@@ -275,23 +275,6 @@ export default function IncidentDetailScreen() {
     );
   };
 
-  const handleCancelIncident = () => {
-    Alert.alert("Cancel incident?", "This cannot be undone.", [
-      { text: "Back", style: "cancel" },
-      {
-        text: "Cancel Incident",
-        style: "destructive",
-        onPress: async () => {
-          if (token) {
-            await updateIncidentStatus(token, incident.id, "cancelled").catch(() => {});
-          }
-          isClosingRef.current = true;
-          router.back();
-        },
-      },
-    ]);
-  };
-
   const handleCompleteIncident = () => {
     Alert.alert(
       "Mark incident resolved?",
@@ -362,7 +345,6 @@ export default function IncidentDetailScreen() {
         <ArrivedView
           incident={incident}
           onCompleteIncident={handleCompleteIncident}
-          onCancelIncident={handleCancelIncident}
         />
       )}
     </View>

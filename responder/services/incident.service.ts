@@ -13,6 +13,7 @@ type IncidentApiRow = {
   status: IncidentStatus;
   responders?: { id: string; name: string; status: ResponderStatus }[];
   myStatus?: MyResponderStatus;
+  createdAt: string;
 };
 
 // Maps a stored category (the citizen-facing CategoryId, plus "sos" for
@@ -47,6 +48,7 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
     team: row.responders ?? [],
     myStatus: row.myStatus ?? "pending",
     incidentCoords,
+    createdAt: row.createdAt,
   };
 }
 

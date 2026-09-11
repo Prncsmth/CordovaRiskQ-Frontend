@@ -50,4 +50,5 @@ export interface Incident {
   etaMinutes?: number;
   responderCoords?: Coordinates;
   incidentCoords?: Coordinates;
+  createdAt: string;
 }

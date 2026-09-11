@@ -1,11 +1,11 @@
 // components/responder/incident-detail/ArrivedView.tsx
 // Phase 4 of the incident-detail flow: on-scene confirmation with a
-// summary card and follow-up actions (head home or cancel the incident).
-// Arrived itself means the responder is already on scene and assisting --
-// there's no separate "start" action.
-import { useRouter } from "expo-router";
+// summary card and a single Mark Resolved action. Arrived itself means
+// the responder is already on scene and assisting -- there's no separate
+// "start" action, and no cancel/back-to-home actions here either (the
+// screen header's own back button already covers navigating away).
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import RippleRings from "@/components/common/RippleRings";
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
@@ -20,47 +20,51 @@ import {
   type ColorPalette,
 } from "@/theme";
 import type { Incident } from "@/responder/types/responder";
+import { formatRelativeTime } from "@/utils/formatter";
 
-import ActionRow from "./ActionRow";
+import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 export default function ArrivedView({
   incident,
   onCompleteIncident,
-  onCancelIncident,
 }: {
   incident: Incident;
   onCompleteIncident: () => void;
-  onCancelIncident: () => void;
 }) {
-  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
 
   return (
     <View style={styles.body}>
-      <View style={styles.centeredBody}>
-        <View style={styles.pulseWrap}>
-          <RippleRings
-            size={120}
-            ringCount={2}
-            animated
-            color={`${COLORS.success}33`}
-            style={styles.pulseRings}
-          />
-          <GradientIconCircle
-            color={COLORS.success}
-            size={88}
-            iconSize={40}
-            icon="checkmark"
-            COLORS={COLORS}
-          />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.centeredBody}>
+          <View style={styles.pulseWrap}>
+            <RippleRings
+              size={120}
+              ringCount={2}
+              animated
+              color={`${COLORS.success}33`}
+              style={styles.pulseRings}
+            />
+            <GradientIconCircle
+              color={COLORS.success}
+              size={88}
+              iconSize={40}
+              icon="checkmark"
+              COLORS={COLORS}
+            />
+          </View>
+          <Text style={styles.arrivedText}>You've Arrived</Text>
+          <Text style={styles.arrivedSubtext}>
+            You're on scene and assisting.
+          </Text>
         </View>
-        <Text style={styles.arrivedText}>You've Arrived</Text>
-        <Text style={styles.arrivedSubtext}>
-          You're on scene and assisting.
-        </Text>
 
         <View style={[styles.summaryCard, styles.arrivedSummaryCard]}>
           <GradientIconCircle
@@ -75,26 +79,22 @@ export default function ArrivedView({
             <Text style={styles.summarySubtitle}>{incident.location}</Text>
           </View>
         </View>
-      </View>
+
+        <Text style={styles.sectionLabel}>Incident Details</Text>
+        <DetailRow label="Location" value={incident.location} />
+        <DetailRow
+          label="Reported time"
+          value={formatRelativeTime(incident.createdAt)}
+        />
+        <DetailRow label="Priority" value={capitalize(incident.urgency)} />
+      </ScrollView>
 
       <RButton
         label="Mark Resolved"
         icon="checkmark-done"
         variant="primary"
         onPress={onCompleteIncident}
-      />
-
-      <Text style={styles.sectionLabel}>Actions</Text>
-      <ActionRow
-        icon="home-outline"
-        label="Back to Home"
-        onPress={() => router.dismissTo("/responder")}
-      />
-      <ActionRow
-        icon="close-circle-outline"
-        label="Cancel Incident"
-        onPress={onCancelIncident}
-        danger
+        style={styles.markResolvedButton}
       />
     </View>
   );
@@ -161,7 +161,7 @@ function createStyles(COLORS: ColorPalette) {
     },
     arrivedSummaryCard: {
       alignSelf: "stretch",
-      marginBottom: SPACING.xl,
+      marginBottom: SPACING.sm,
     },
     sectionLabel: {
       fontSize: TYPOGRAPHY.caption,
@@ -169,6 +169,9 @@ function createStyles(COLORS: ColorPalette) {
       fontWeight: "700",
       marginBottom: SPACING.sm,
       marginTop: SPACING.sm,
+    },
+    markResolvedButton: {
+      marginTop: SPACING.md,
     },
   });
 }
