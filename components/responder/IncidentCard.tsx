@@ -16,10 +16,32 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { getIncidentVisual } from "@/components/responder/incidentVisual";
+import { responderStatusColor } from "@/components/responder/responderStatusColors";
 import UrgencyBadge from "@/components/responder/UrgencyBadge";
 import { RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
-import type { Incident } from "@/types/responder";
+import type { Incident, ResponderStatus } from "@/types/responder";
 import { formatRelativeTime } from "@/utils/formatter";
+
+// Only these three roster statuses get a "my status" chip on the card --
+// "pending" (never joined) shows no chip at all, so it doesn't compete
+// with the unrelated freshness "NEW" pill above; "declined"/"left" never
+// reach this list in the first place (see services/incident.service.ts).
+const MY_STATUS_LABELS: Record<ResponderStatus, string> = {
+  joined: "Joined",
+  on_the_way: "On the Way",
+  arrived: "Arrived",
+};
+
+function myStatusMeta(incident: Incident): ResponderStatus | undefined {
+  switch (incident.myStatus) {
+    case "joined":
+    case "on_the_way":
+    case "arrived":
+      return incident.myStatus;
+    default:
+      return undefined;
+  }
+}
 
 export default function IncidentCard({
   incident,
@@ -35,6 +57,7 @@ export default function IncidentCard({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
+  const myStatus = myStatusMeta(incident);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -99,6 +122,29 @@ export default function IncidentCard({
           </View>
           <View style={styles.cardMetaRow}>
             <UrgencyBadge urgency={incident.urgency} />
+            {myStatus && (
+              <View
+                style={[
+                  styles.myStatusChip,
+                  { backgroundColor: `${responderStatusColor(COLORS, myStatus)}1A` },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.myStatusDot,
+                    { backgroundColor: responderStatusColor(COLORS, myStatus) },
+                  ]}
+                />
+                <Text
+                  style={[
+                    styles.myStatusLabel,
+                    { color: responderStatusColor(COLORS, myStatus) },
+                  ]}
+                >
+                  {MY_STATUS_LABELS[myStatus]}
+                </Text>
+              </View>
+            )}
             <Text style={styles.cardDistance}>
               {firstSeenAt > 0
                 ? `${formatRelativeTime(new Date(firstSeenAt)).toLowerCase()} · `
@@ -188,8 +234,27 @@ function createStyles(COLORS: ColorPalette) {
     cardMetaRow: {
       flexDirection: "row",
       alignItems: "center",
+      flexWrap: "wrap",
       gap: SPACING.sm,
+      rowGap: 4,
       marginTop: 2,
+    },
+    myStatusChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      borderRadius: RADIUS.full,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    myStatusDot: {
+      width: 5,
+      height: 5,
+      borderRadius: RADIUS.full,
+    },
+    myStatusLabel: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
     },
     cardDistance: {
       fontSize: TYPOGRAPHY.small,

@@ -10,15 +10,25 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
+import { responderStatusColor } from "@/components/responder/responderStatusColors";
 import type { ResponderStatus, TeamMember } from "@/types/responder";
+
+const STATUS_LABELS: Record<ResponderStatus, string> = {
+  joined: "Preparing",
+  on_the_way: "On the way",
+  arrived: "Arrived",
+};
 
 function getStatusMeta(
   COLORS: ColorPalette,
 ): Record<ResponderStatus, { label: string; color: string }> {
   return {
-    joined: { label: "Preparing", color: COLORS.warning },
-    on_the_way: { label: "On the way", color: COLORS.secondary },
-    arrived: { label: "Arrived", color: COLORS.success },
+    joined: { label: STATUS_LABELS.joined, color: responderStatusColor(COLORS, "joined") },
+    on_the_way: {
+      label: STATUS_LABELS.on_the_way,
+      color: responderStatusColor(COLORS, "on_the_way"),
+    },
+    arrived: { label: STATUS_LABELS.arrived, color: responderStatusColor(COLORS, "arrived") },
   };
 }
 
