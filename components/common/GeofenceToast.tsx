@@ -3,7 +3,7 @@
 // Cordova. Unlike GeofenceBlockedModal, this never blocks interaction: the
 // map stays fully usable, the toast just confirms why nothing was placed.
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 
 import { RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
@@ -23,12 +23,14 @@ export default function GeofenceToast({
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   useEffect(() => {
     if (!visible) return;
-    const timer = setTimeout(onDismiss, AUTO_DISMISS_MS);
+    const timer = setTimeout(() => onDismissRef.current(), AUTO_DISMISS_MS);
     return () => clearTimeout(timer);
-  }, [visible, onDismiss]);
+  }, [visible]);
 
   if (!visible) return null;
 

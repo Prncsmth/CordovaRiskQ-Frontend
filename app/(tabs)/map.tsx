@@ -324,7 +324,10 @@ export default function MapScreen() {
           visible={showOutsideCordovaToast}
           message="Outside Cordova — Please select a location within Cordova."
           onDismiss={() => setShowOutsideCordovaToast(false)}
-          style={{ top: insets.top + SPACING.sm + 60 }}
+          style={{
+            bottom:
+              insets.bottom + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm + 44 + SPACING.sm,
+          }}
         />
 
         <SearchBar
