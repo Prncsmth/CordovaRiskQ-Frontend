@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import GeofenceBlockedModal from "@/components/common/GeofenceBlockedModal";
 import type { CategoryId } from "@/components/report/categories";
 import CategoryGrid from "@/components/report/CategoryGrid";
 import DetailsInput from "@/components/report/DetailsInput";
@@ -24,7 +25,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import * as authStorage from "@/context/authStorage";
 import { useReportLocation } from "@/context/ReportLocationContext";
-import { getCurrentLocation } from "@/services/location.service";
+import { getCurrentLocation, getVerifiedLocation } from "@/services/location.service";
 import { createReport } from "@/services/report.service";
 import {
     FONT_FAMILY,
@@ -33,6 +34,7 @@ import {
     useThemeColors,
     type ColorPalette,
 } from "@/theme";
+import { isInsideCordova } from "@/utils/geofence";
 
 const FALLBACK_COORDS = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
 const FALLBACK_LOCATION = {
@@ -54,11 +56,14 @@ export default function ReportScreen() {
   const { location: pinnedLocation } = useReportLocation();
   const [gpsLocation, setGpsLocation] = useState(FALLBACK_LOCATION);
   const [showReportGuide, setShowReportGuide] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<"idle" | "locating" | "submitting">("idle");
+  const [geofenceModal, setGeofenceModal] = useState<"none" | "reporting-unavailable" | "permission-required">("none");
   const reportScrollRef = useRef<ScrollView>(null);
   const categoryTargetRef = useRef<View>(null);
   const locationTargetRef = useRef<View>(null);
   const detailsTargetRef = useRef<View>(null);
   const submitTargetRef = useRef<View>(null);
+  const submitInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -107,24 +112,55 @@ export default function ReportScreen() {
   const canSubmit = category !== null && details.trim().length > 0;
 
   const handleSubmit = async () => {
-    if (!category || details.trim().length === 0 || !token) return;
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
     try {
-      const result = await createReport(token, {
-        category,
-        details,
-        locationLabel: activeLocation.address,
-        latitude: activeLocation.latitude,
-        longitude: activeLocation.longitude,
-      });
-      router.push({
-        pathname: "/report-confirmation",
-        params: { ref: result.ref, category, location: activeLocation.address },
-      });
-    } catch (err) {
-      Alert.alert(
-        "Couldn't submit report",
-        err instanceof Error ? err.message : "Please try again.",
-      );
+      if (!category || details.trim().length === 0 || !token) return;
+
+      setSubmitPhase("locating");
+      const result = await getVerifiedLocation();
+
+      if (result.status === "denied") {
+        setSubmitPhase("idle");
+        setGeofenceModal("permission-required");
+        return;
+      }
+      if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+        setSubmitPhase("idle");
+        setGeofenceModal("reporting-unavailable");
+        return;
+      }
+      if (!isInsideCordova(activeLocation.latitude, activeLocation.longitude)) {
+        setSubmitPhase("idle");
+        setGeofenceModal("reporting-unavailable");
+        return;
+      }
+
+      setSubmitPhase("submitting");
+      try {
+        const submitResult = await createReport(token, {
+          category,
+          details,
+          locationLabel: activeLocation.address,
+          latitude: activeLocation.latitude,
+          longitude: activeLocation.longitude,
+          reporterLatitude: result.coords.latitude,
+          reporterLongitude: result.coords.longitude,
+        });
+        router.push({
+          pathname: "/report-confirmation",
+          params: { ref: submitResult.ref, category, location: activeLocation.address },
+        });
+      } catch (err) {
+        Alert.alert(
+          "Couldn't submit report",
+          err instanceof Error ? err.message : "Please try again.",
+        );
+      } finally {
+        setSubmitPhase("idle");
+      }
+    } finally {
+      submitInFlightRef.current = false;
     }
   };
 
@@ -180,10 +216,14 @@ export default function ReportScreen() {
           />
         </View>
         <View ref={submitTargetRef} collapsable={false}>
+          {submitPhase === "locating" && (
+            <Text style={styles.locatingCaption}>Getting your accurate location...</Text>
+          )}
           <PrimaryButton
             title="Submit Report"
             onPress={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit || submitPhase !== "idle"}
+            loading={submitPhase !== "idle"}
           />
         </View>
       </ScrollView>
@@ -199,6 +239,15 @@ export default function ReportScreen() {
           onFinish={finishReportGuide}
         />
       ) : null}
+      <GeofenceBlockedModal
+        visible={geofenceModal !== "none"}
+        variant={geofenceModal === "permission-required" ? "permission-required" : "reporting-unavailable"}
+        onDismiss={() => setGeofenceModal("none")}
+        onRetry={() => {
+          setGeofenceModal("none");
+          handleSubmit();
+        }}
+      />
     </View>
   );
 }
@@ -241,6 +290,12 @@ function createStyles(COLORS: ColorPalette) {
     optionalTag: {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
+    },
+    locatingCaption: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+      marginBottom: SPACING.xs,
     },
   });
 }

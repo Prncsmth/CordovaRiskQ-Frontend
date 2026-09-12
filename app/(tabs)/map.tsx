@@ -17,6 +17,8 @@ import PinButton from "@/components/map/PinButton";
 import SearchBar from "@/components/map/SearchBar";
 import ZoomControls from "@/components/map/ZoomControls";
 import MapFirstTimeGuide from "@/components/tour/MapFirstTimeGuide";
+import GeofenceBlockedModal from "@/components/common/GeofenceBlockedModal";
+import GeofenceToast from "@/components/common/GeofenceToast";
 import {
     CORDOVA_BARANGAYS,
     CORDOVA_CENTER,
@@ -30,6 +32,7 @@ import {
     getEvacuationCenters,
     type EvacuationCenter,
 } from "@/services/evacuation.service";
+import { getVerifiedLocation } from "@/services/location.service";
 import {
     FONT_FAMILY,
     RADIUS,
@@ -39,6 +42,7 @@ import {
     useThemeColors,
     type ColorPalette,
 } from "@/theme";
+import { isInsideCordova } from "@/utils/geofence";
 
 const MIN_ZOOM = 12;
 const MAX_ZOOM = 18;
@@ -70,6 +74,14 @@ export default function MapScreen() {
     longitude: number;
   } | null>(null);
   const [showMapGuide, setShowMapGuide] = useState(false);
+  const [showOutsideCordovaToast, setShowOutsideCordovaToast] = useState(false);
+  const [pinButtonLoading, setPinButtonLoading] = useState(false);
+  const [citizenOutsideCordova, setCitizenOutsideCordova] = useState(false);
+  const [showOutsideModal, setShowOutsideModal] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const outsideStreakRef = useRef(0);
+  const wasOutsideRef = useRef(false);
+  const pinModeInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -148,6 +160,21 @@ export default function MapScreen() {
                 15,
               );
             }
+
+            if (isInsideCordova(position.coords.latitude, position.coords.longitude)) {
+              outsideStreakRef.current = 0;
+              wasOutsideRef.current = false;
+              setCitizenOutsideCordova(false);
+            } else {
+              outsideStreakRef.current += 1;
+              if (outsideStreakRef.current >= 2 && !wasOutsideRef.current) {
+                wasOutsideRef.current = true;
+                setCitizenOutsideCordova(true);
+                setShowOutsideModal(true);
+                setPinMode(false);
+                setPickedPoint(null);
+              }
+            }
           },
         );
       } catch (error) {
@@ -219,13 +246,46 @@ export default function MapScreen() {
   // that single tap immediately detects and confirms the emergency location
   // (no separate confirm step) and exits pin mode. Tapping the icon again
   // before tapping the map just cancels out of pin mode.
-  const handleTogglePinMode = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPinMode((v) => !v);
+  const handleTogglePinMode = async () => {
+    if (pinMode) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setPinMode(false);
+      return;
+    }
+
+    if (pinModeInFlightRef.current) return;
+    pinModeInFlightRef.current = true;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setPinButtonLoading(true);
+      const result = await getVerifiedLocation();
+      setPinButtonLoading(false);
+
+      if (result.status === "denied") {
+        setShowPermissionModal(true);
+        return;
+      }
+      if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+        setCitizenOutsideCordova(true);
+        setShowOutsideModal(true);
+        return;
+      }
+
+      setPinMode(true);
+    } finally {
+      pinModeInFlightRef.current = false;
+    }
   };
 
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
     if (!pinMode) return;
+
+    if (!isInsideCordova(coords.latitude, coords.longitude)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setShowOutsideCordovaToast(true);
+      return;
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPickedPoint(coords);
 
@@ -286,6 +346,7 @@ export default function MapScreen() {
           markers={markers}
           userLocation={locationDenied ? null : userLocation}
           showLayerSwitcher
+          showCordovaBoundary
           onMarkerPress={(id) => {
             if (id === "picked-report-location") return;
             router.push(`/evacuation-detail/${id}`);
@@ -309,6 +370,16 @@ export default function MapScreen() {
           </View>
         )}
 
+        <GeofenceToast
+          visible={showOutsideCordovaToast}
+          message="Outside Cordova — Please select a location within Cordova."
+          onDismiss={() => setShowOutsideCordovaToast(false)}
+          style={{
+            bottom:
+              insets.bottom + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm + 44 + SPACING.sm,
+          }}
+        />
+
         <SearchBar
           ref={searchTargetRef}
           value={searchQuery}
@@ -321,6 +392,8 @@ export default function MapScreen() {
         <PinButton
           ref={pinTargetRef}
           active={pinMode}
+          loading={pinButtonLoading}
+          disabled={citizenOutsideCordova}
           onPress={handleTogglePinMode}
           style={{
             bottom:
@@ -351,6 +424,22 @@ export default function MapScreen() {
           onFinish={finishMapGuide}
         />
       ) : null}
+
+      <GeofenceBlockedModal
+        visible={showOutsideModal}
+        variant="reporting-unavailable"
+        onDismiss={() => setShowOutsideModal(false)}
+      />
+
+      <GeofenceBlockedModal
+        visible={showPermissionModal}
+        variant="permission-required"
+        onDismiss={() => setShowPermissionModal(false)}
+        onRetry={() => {
+          setShowPermissionModal(false);
+          handleTogglePinMode();
+        }}
+      />
     </View>
   );
 }
