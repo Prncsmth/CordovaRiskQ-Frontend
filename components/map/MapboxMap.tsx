@@ -175,12 +175,12 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
             onMapPress?.({ latitude: coords[1], longitude: coords[0] });
           }
         }}
-        onRegionDidChange={(feature: any) => {
-          const nextZoom = feature?.properties?.zoomLevel;
+        onMapIdle={(state: any) => {
+          const nextZoom = state?.properties?.zoom;
           if (typeof nextZoom === "number") {
             currentZoomRef.current = nextZoom;
           }
-          const coords = feature?.geometry?.coordinates;
+          const coords = state?.properties?.center;
           onRegionChange?.({
             latitude: coords ? coords[1] : center.latitude,
             longitude: coords ? coords[0] : center.longitude,
