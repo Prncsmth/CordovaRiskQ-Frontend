@@ -17,6 +17,7 @@ import PinButton from "@/components/map/PinButton";
 import SearchBar from "@/components/map/SearchBar";
 import ZoomControls from "@/components/map/ZoomControls";
 import MapFirstTimeGuide from "@/components/tour/MapFirstTimeGuide";
+import GeofenceToast from "@/components/common/GeofenceToast";
 import {
     CORDOVA_BARANGAYS,
     CORDOVA_CENTER,
@@ -39,6 +40,7 @@ import {
     useThemeColors,
     type ColorPalette,
 } from "@/theme";
+import { isInsideCordova } from "@/utils/geofence";
 
 const MIN_ZOOM = 12;
 const MAX_ZOOM = 18;
@@ -70,6 +72,7 @@ export default function MapScreen() {
     longitude: number;
   } | null>(null);
   const [showMapGuide, setShowMapGuide] = useState(false);
+  const [showOutsideCordovaToast, setShowOutsideCordovaToast] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -226,6 +229,13 @@ export default function MapScreen() {
 
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
     if (!pinMode) return;
+
+    if (!isInsideCordova(coords.latitude, coords.longitude)) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setShowOutsideCordovaToast(true);
+      return;
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPickedPoint(coords);
 
@@ -286,6 +296,7 @@ export default function MapScreen() {
           markers={markers}
           userLocation={locationDenied ? null : userLocation}
           showLayerSwitcher
+          showCordovaBoundary
           onMarkerPress={(id) => {
             if (id === "picked-report-location") return;
             router.push(`/evacuation-detail/${id}`);
@@ -308,6 +319,13 @@ export default function MapScreen() {
             </BlurView>
           </View>
         )}
+
+        <GeofenceToast
+          visible={showOutsideCordovaToast}
+          message="Outside Cordova — Please select a location within Cordova."
+          onDismiss={() => setShowOutsideCordovaToast(false)}
+          style={{ top: insets.top + SPACING.sm + 60 }}
+        />
 
         <SearchBar
           ref={searchTargetRef}
