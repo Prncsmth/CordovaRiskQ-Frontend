@@ -1,5 +1,5 @@
 // context/SosContext.tsx
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useRef, useState } from "react";
 
 import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
@@ -26,29 +26,45 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
   const [stage, setStage] = useState<SosStage>("idle");
   const [blockedReason, setBlockedReason] = useState<SosBlockedReason>(null);
   const { token } = useAuth();
+  const inFlightRef = useRef(false);
 
   const runConfirm = async () => {
-    setStage("verifying");
-    const result = await getVerifiedLocation();
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+    try {
+      setStage("verifying");
+      const result = await getVerifiedLocation();
 
-    if (result.status === "denied") {
-      setStage("idle");
-      setBlockedReason("permission");
-      return;
+      if (result.status === "denied") {
+        setStage("idle");
+        setBlockedReason("permission");
+        return;
+      }
+      if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+        setStage("idle");
+        setBlockedReason("unavailable");
+        return;
+      }
+
+      if (!token) {
+        setStage("idle");
+        setBlockedReason("unavailable");
+        return;
+      }
+
+      setStage("active");
+
+      const locationLabel = `Barangay ${getNearestBarangay(result.coords.latitude, result.coords.longitude).name}, Cordova`;
+      try {
+        await triggerSOS(token, result.coords, locationLabel);
+      } catch (error) {
+        console.warn("Failed to send SOS alert", error);
+        setStage("idle");
+        setBlockedReason("unavailable");
+      }
+    } finally {
+      inFlightRef.current = false;
     }
-    if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
-      setStage("idle");
-      setBlockedReason("unavailable");
-      return;
-    }
-
-    setStage("active");
-    if (!token) return;
-
-    const locationLabel = `Barangay ${getNearestBarangay(result.coords.latitude, result.coords.longitude).name}, Cordova`;
-    triggerSOS(token, result.coords, locationLabel).catch((error) =>
-      console.warn("Failed to send SOS alert", error),
-    );
   };
 
   const value = useMemo(

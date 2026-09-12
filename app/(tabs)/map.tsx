@@ -77,9 +77,11 @@ export default function MapScreen() {
   const [showOutsideCordovaToast, setShowOutsideCordovaToast] = useState(false);
   const [pinButtonLoading, setPinButtonLoading] = useState(false);
   const [citizenOutsideCordova, setCitizenOutsideCordova] = useState(false);
+  const [showOutsideModal, setShowOutsideModal] = useState(false);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const outsideStreakRef = useRef(0);
   const wasOutsideRef = useRef(false);
+  const pinModeInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -168,6 +170,7 @@ export default function MapScreen() {
               if (outsideStreakRef.current >= 2 && !wasOutsideRef.current) {
                 wasOutsideRef.current = true;
                 setCitizenOutsideCordova(true);
+                setShowOutsideModal(true);
                 setPinMode(false);
                 setPickedPoint(null);
               }
@@ -250,21 +253,28 @@ export default function MapScreen() {
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPinButtonLoading(true);
-    const result = await getVerifiedLocation();
-    setPinButtonLoading(false);
+    if (pinModeInFlightRef.current) return;
+    pinModeInFlightRef.current = true;
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setPinButtonLoading(true);
+      const result = await getVerifiedLocation();
+      setPinButtonLoading(false);
 
-    if (result.status === "denied") {
-      setShowPermissionModal(true);
-      return;
-    }
-    if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
-      setCitizenOutsideCordova(true);
-      return;
-    }
+      if (result.status === "denied") {
+        setShowPermissionModal(true);
+        return;
+      }
+      if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+        setCitizenOutsideCordova(true);
+        setShowOutsideModal(true);
+        return;
+      }
 
-    setPinMode(true);
+      setPinMode(true);
+    } finally {
+      pinModeInFlightRef.current = false;
+    }
   };
 
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
@@ -416,9 +426,9 @@ export default function MapScreen() {
       ) : null}
 
       <GeofenceBlockedModal
-        visible={citizenOutsideCordova}
+        visible={showOutsideModal}
         variant="reporting-unavailable"
-        onDismiss={() => setCitizenOutsideCordova(false)}
+        onDismiss={() => setShowOutsideModal(false)}
       />
 
       <GeofenceBlockedModal

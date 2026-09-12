@@ -72,22 +72,27 @@ export default function GeofenceBlockedModal({
           <Text style={styles.dialogMessage}>{copy.message}</Text>
 
           {variant === "permission-required" ? (
-            <View style={styles.dialogActions}>
-              <Pressable
-                style={[styles.dialogButton, styles.dialogButtonSecondary]}
-                onPress={onRetry}
-              >
-                <Text style={styles.dialogButtonSecondaryText}>Retry</Text>
+            <>
+              <View style={styles.dialogActions}>
+                <Pressable
+                  style={[styles.dialogButton, styles.dialogButtonSecondary]}
+                  onPress={onRetry}
+                >
+                  <Text style={styles.dialogButtonSecondaryText}>Retry</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.dialogButton, styles.dialogButtonPrimary]}
+                  onPress={() => {
+                    Linking.openSettings();
+                  }}
+                >
+                  <Text style={styles.dialogButtonPrimaryText}>Open Settings</Text>
+                </Pressable>
+              </View>
+              <Pressable style={styles.dialogTertiaryAction} onPress={onDismiss}>
+                <Text style={styles.dialogTertiaryActionText}>Not now</Text>
               </Pressable>
-              <Pressable
-                style={[styles.dialogButton, styles.dialogButtonPrimary]}
-                onPress={() => {
-                  Linking.openSettings();
-                }}
-              >
-                <Text style={styles.dialogButtonPrimaryText}>Open Settings</Text>
-              </Pressable>
-            </View>
+            </>
           ) : (
             <View style={styles.dialogActions}>
               <Pressable
@@ -178,6 +183,17 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.white,
       fontWeight: "700",
       fontSize: TYPOGRAPHY.body,
+    },
+    dialogTertiaryAction: {
+      marginTop: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    dialogTertiaryActionText: {
+      color: COLORS.textSecondary,
+      fontWeight: "600",
+      fontSize: TYPOGRAPHY.caption,
     },
   });
 }

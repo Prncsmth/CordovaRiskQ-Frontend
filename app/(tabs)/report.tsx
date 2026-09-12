@@ -63,6 +63,7 @@ export default function ReportScreen() {
   const locationTargetRef = useRef<View>(null);
   const detailsTargetRef = useRef<View>(null);
   const submitTargetRef = useRef<View>(null);
+  const submitInFlightRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -111,49 +112,55 @@ export default function ReportScreen() {
   const canSubmit = category !== null && details.trim().length > 0;
 
   const handleSubmit = async () => {
-    if (!category || details.trim().length === 0 || !token) return;
-
-    setSubmitPhase("locating");
-    const result = await getVerifiedLocation();
-
-    if (result.status === "denied") {
-      setSubmitPhase("idle");
-      setGeofenceModal("permission-required");
-      return;
-    }
-    if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
-      setSubmitPhase("idle");
-      setGeofenceModal("reporting-unavailable");
-      return;
-    }
-    if (!isInsideCordova(activeLocation.latitude, activeLocation.longitude)) {
-      setSubmitPhase("idle");
-      setGeofenceModal("reporting-unavailable");
-      return;
-    }
-
-    setSubmitPhase("submitting");
+    if (submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
     try {
-      const submitResult = await createReport(token, {
-        category,
-        details,
-        locationLabel: activeLocation.address,
-        latitude: activeLocation.latitude,
-        longitude: activeLocation.longitude,
-        reporterLatitude: result.coords.latitude,
-        reporterLongitude: result.coords.longitude,
-      });
-      router.push({
-        pathname: "/report-confirmation",
-        params: { ref: submitResult.ref, category, location: activeLocation.address },
-      });
-    } catch (err) {
-      Alert.alert(
-        "Couldn't submit report",
-        err instanceof Error ? err.message : "Please try again.",
-      );
+      if (!category || details.trim().length === 0 || !token) return;
+
+      setSubmitPhase("locating");
+      const result = await getVerifiedLocation();
+
+      if (result.status === "denied") {
+        setSubmitPhase("idle");
+        setGeofenceModal("permission-required");
+        return;
+      }
+      if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+        setSubmitPhase("idle");
+        setGeofenceModal("reporting-unavailable");
+        return;
+      }
+      if (!isInsideCordova(activeLocation.latitude, activeLocation.longitude)) {
+        setSubmitPhase("idle");
+        setGeofenceModal("reporting-unavailable");
+        return;
+      }
+
+      setSubmitPhase("submitting");
+      try {
+        const submitResult = await createReport(token, {
+          category,
+          details,
+          locationLabel: activeLocation.address,
+          latitude: activeLocation.latitude,
+          longitude: activeLocation.longitude,
+          reporterLatitude: result.coords.latitude,
+          reporterLongitude: result.coords.longitude,
+        });
+        router.push({
+          pathname: "/report-confirmation",
+          params: { ref: submitResult.ref, category, location: activeLocation.address },
+        });
+      } catch (err) {
+        Alert.alert(
+          "Couldn't submit report",
+          err instanceof Error ? err.message : "Please try again.",
+        );
+      } finally {
+        setSubmitPhase("idle");
+      }
     } finally {
-      setSubmitPhase("idle");
+      submitInFlightRef.current = false;
     }
   };
 
