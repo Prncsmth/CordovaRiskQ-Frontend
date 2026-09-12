@@ -1,3 +1,4 @@
+import { CATEGORY_LABELS } from "@/components/report/categories";
 import { apiGet, apiPatch, apiPost, type ApiError } from "@/services/api";
 import type { Coordinates } from "@/services/location.service";
 import { haversineDistanceKm } from "@/utils/distance";
@@ -16,19 +17,6 @@ type IncidentApiRow = {
   myStatus?: MyResponderStatus;
   createdAt: string;
   updatedAt: string;
-};
-
-// Maps a stored category (the citizen-facing CategoryId, plus "sos" for
-// SOS-sourced incidents) to the display label the responder screens already
-// render via `incident.type` — keeps every existing component (IncidentCard,
-// getIncidentVisual, DetailRow, etc.) unchanged.
-export const CATEGORY_LABELS: Record<string, string> = {
-  flood: "Flood",
-  fire: "Fire",
-  medical: "Medical Emergency",
-  "road-accident": "Road Accident",
-  other: "Other",
-  sos: "SOS Alert",
 };
 
 export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates): Incident {
