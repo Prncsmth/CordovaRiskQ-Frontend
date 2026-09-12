@@ -27,13 +27,26 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
   const [blockedReason, setBlockedReason] = useState<SosBlockedReason>(null);
   const { token } = useAuth();
   const inFlightRef = useRef(false);
+  // Identifies which runConfirm() call is still "live" -- cancelSOS() bumps
+  // this so an abandoned attempt's own async continuation (its getVerifiedLocation
+  // or triggerSOS await resolving after the user already cancelled) can tell
+  // it's stale and skip touching stage/blockedReason or releasing a guard a
+  // newer attempt may since have taken. Without this, cancelling mid-flight
+  // and immediately retrying races the original attempt's `finally` clearing
+  // inFlightRef out from under the new one, and the original attempt's delayed
+  // resolution can pop a blocked-reason modal out of context long after cancel.
+  const attemptIdRef = useRef(0);
 
   const runConfirm = async () => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
+    const myAttemptId = ++attemptIdRef.current;
+    const isCurrent = () => attemptIdRef.current === myAttemptId;
+
     try {
       setStage("verifying");
       const result = await getVerifiedLocation();
+      if (!isCurrent()) return;
 
       if (result.status === "denied") {
         setStage("idle");
@@ -59,11 +72,13 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
         await triggerSOS(token, result.coords, locationLabel);
       } catch (error) {
         console.warn("Failed to send SOS alert", error);
-        setStage("idle");
-        setBlockedReason("unavailable");
+        if (isCurrent()) {
+          setStage("idle");
+          setBlockedReason("unavailable");
+        }
       }
     } finally {
-      inFlightRef.current = false;
+      if (isCurrent()) inFlightRef.current = false;
     }
   };
 
@@ -75,7 +90,11 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
       confirmSOS: () => {
         void runConfirm();
       },
-      cancelSOS: () => setStage("idle"),
+      cancelSOS: () => {
+        attemptIdRef.current += 1;
+        inFlightRef.current = false;
+        setStage("idle");
+      },
       dismissBlocked: () => setBlockedReason(null),
       retryConfirm: () => {
         setBlockedReason(null);
