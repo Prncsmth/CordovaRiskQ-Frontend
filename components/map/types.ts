@@ -41,6 +41,7 @@ export type MapEngineProps = {
   userLocation?: MapUserLocation | null;
   interactive?: boolean;
   showLayerSwitcher?: boolean;
+  showCordovaBoundary?: boolean;
   onMarkerPress?: (id: string) => void;
   onMapPress?: (coords: MapLatLng) => void;
   onRegionChange?: (region: { latitude: number; longitude: number; zoom: number }) => void;
