@@ -26,3 +26,11 @@ export function getCategory(id: CategoryId): Category {
   }
   return category;
 }
+
+// Maps a stored category (a CategoryId, plus "sos" for SOS-sourced
+// incidents) to its display label. Shared by citizen report history and
+// responder incident screens so both read the same category → label mapping.
+export const CATEGORY_LABELS: Record<string, string> = {
+  ...Object.fromEntries(CATEGORIES.map((c) => [c.id, c.label])),
+  sos: "SOS Alert",
+};
