@@ -17,6 +17,7 @@ import WebView, { type WebViewMessageEvent } from "react-native-webview";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
+import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { useThemeColors } from "@/theme";
 import type { MapEngineProps, MapHandle, MapLatLng } from "./types";
 
@@ -37,8 +38,10 @@ function buildHtml(options: {
   maxZoom: number;
   interactive: boolean;
   showLayerSwitcher: boolean;
+  showCordovaBoundary: boolean;
+  boundaryColor: string;
 }): string {
-  const { centerLat, centerLng, zoom, minZoom, maxZoom, interactive, showLayerSwitcher } = options;
+  const { centerLat, centerLng, zoom, minZoom, maxZoom, interactive, showLayerSwitcher, showCordovaBoundary, boundaryColor } = options;
   const riskqLogoDataUri = RISKQ_LOGO_DATA_URI;
   const [swLng, swLat] = CORDOVA_BOUNDS.sw;
   const [neLng, neLat] = CORDOVA_BOUNDS.ne;
@@ -96,6 +99,18 @@ function buildHtml(options: {
     maxZoom: 17,
     attribution: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap'
   });
+
+  var cordovaBoundary = ${JSON.stringify(cordovaBoundary)};
+  if (${showCordovaBoundary}) {
+    L.geoJSON(cordovaBoundary, {
+      style: {
+        color: '${boundaryColor}',
+        weight: 2,
+        fillColor: '${boundaryColor}',
+        fillOpacity: 0.12
+      }
+    }).addTo(map);
+  }
 
   if (${showLayerSwitcher}) {
     L.control.layers(
@@ -233,6 +248,7 @@ const LeafletMap = forwardRef<MapHandle, MapEngineProps>(function LeafletMap(
     userLocation = null,
     interactive = true,
     showLayerSwitcher = true,
+    showCordovaBoundary = false,
     onMarkerPress,
     onMapPress,
     onRegionChange,
@@ -258,6 +274,8 @@ const LeafletMap = forwardRef<MapHandle, MapEngineProps>(function LeafletMap(
         maxZoom,
         interactive,
         showLayerSwitcher,
+        showCordovaBoundary,
+        boundaryColor: COLORS.tide,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
