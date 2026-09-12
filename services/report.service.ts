@@ -20,6 +20,8 @@ export async function createReport(
     locationLabel: string;
     latitude: number;
     longitude: number;
+    reporterLatitude: number;
+    reporterLongitude: number;
   },
 ) {
   const response = await apiPost<{ success: true; incident: IncidentApiRow }>(
