@@ -5,27 +5,65 @@
 // hide behavior in components/tabs/TabBar.tsx.
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import GeofenceBlockedModal, { type GeofenceModalVariant } from "@/components/common/GeofenceBlockedModal";
 import RippleRings from "@/components/common/RippleRings";
 import { useSos } from "@/context/SosContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export default function SosOverlay() {
-  const { stage, confirmSOS, cancelSOS } = useSos();
+  const { stage, blockedReason, confirmSOS, cancelSOS, dismissBlocked, retryConfirm } = useSos();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
-  if (stage === "idle") return null;
+  const blockedVariant: GeofenceModalVariant | null =
+    blockedReason === "permission"
+      ? "permission-required"
+      : blockedReason === "unavailable"
+        ? "sos-unavailable"
+        : null;
 
   return (
-    <View style={styles.container}>
-      {stage === "confirm" ? (
-        <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
-      ) : (
-        <ActiveView onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
+    <>
+      {stage !== "idle" && (
+        <View style={styles.container}>
+          {stage === "confirm" ? (
+            <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
+          ) : stage === "verifying" ? (
+            <VerifyingView COLORS={COLORS} styles={styles} />
+          ) : (
+            <ActiveView onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
+          )}
+        </View>
       )}
+
+      <GeofenceBlockedModal
+        visible={blockedVariant !== null}
+        variant={blockedVariant ?? "sos-unavailable"}
+        onDismiss={dismissBlocked}
+        onRetry={retryConfirm}
+      />
+    </>
+  );
+}
+
+function VerifyingView({
+  COLORS,
+  styles,
+}: {
+  COLORS: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  return (
+    <View style={styles.backdrop}>
+      <View style={styles.dialog}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={[styles.dialogTitle, { marginTop: SPACING.sm }]}>
+          Getting your accurate location...
+        </Text>
+      </View>
     </View>
   );
 }

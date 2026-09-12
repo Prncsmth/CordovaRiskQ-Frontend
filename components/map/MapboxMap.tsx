@@ -17,6 +17,7 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "rea
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
+import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 import type { MapEngineProps, MapHandle, MapLatLng } from "./types";
 
@@ -36,6 +37,7 @@ type MapboxModule = {
   UserLocation: React.ComponentType<any>;
   ShapeSource: React.ComponentType<any>;
   LineLayer: React.ComponentType<any>;
+  FillLayer: React.ComponentType<any>;
 };
 
 const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
@@ -48,6 +50,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
     polylines = [],
     interactive = true,
     showLayerSwitcher = false,
+    showCordovaBoundary = false,
     onMarkerPress,
     onMapPress,
     onRegionChange,
@@ -150,7 +153,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
     );
   }
 
-  const { MapView, Camera, MarkerView, UserLocation, ShapeSource, LineLayer } = mapbox;
+  const { MapView, Camera, MarkerView, UserLocation, ShapeSource, LineLayer, FillLayer } = mapbox;
 
   return (
     <View style={[styles.fill, style]}>
@@ -172,12 +175,12 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
             onMapPress?.({ latitude: coords[1], longitude: coords[0] });
           }
         }}
-        onRegionDidChange={(feature: any) => {
-          const nextZoom = feature?.properties?.zoomLevel;
+        onMapIdle={(state: any) => {
+          const nextZoom = state?.properties?.zoom;
           if (typeof nextZoom === "number") {
             currentZoomRef.current = nextZoom;
           }
-          const coords = feature?.geometry?.coordinates;
+          const coords = state?.properties?.center;
           onRegionChange?.({
             latitude: coords ? coords[1] : center.latitude,
             longitude: coords ? coords[0] : center.longitude,
@@ -195,6 +198,19 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           minZoomLevel={minZoom}
           maxZoomLevel={maxZoom}
         />
+
+        {showCordovaBoundary && (
+          <ShapeSource id="cordova-boundary" shape={cordovaBoundary as any}>
+            <FillLayer
+              id="cordova-boundary-fill"
+              style={{ fillColor: COLORS.tide, fillOpacity: 0.12 }}
+            />
+            <LineLayer
+              id="cordova-boundary-outline"
+              style={{ lineColor: COLORS.tide, lineWidth: 2 }}
+            />
+          </ShapeSource>
+        )}
 
         {interactive && <UserLocation visible showsUserHeadingIndicator />}
 
