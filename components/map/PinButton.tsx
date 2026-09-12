@@ -4,15 +4,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import React, { useMemo } from "react";
-import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { ActivityIndicator, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
 import { RADIUS, SHADOW_LG, SPACING, useThemeColors, type ColorPalette } from "@/theme";
 
 export default React.forwardRef<View, {
   active: boolean;
+  loading?: boolean;
+  disabled?: boolean;
   onPress: () => void;
   style?: StyleProp<ViewStyle>;
-}>(function PinButton({ active, onPress, style }, ref) {
+}>(function PinButton({ active, loading = false, disabled = false, onPress, style }, ref) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
@@ -21,10 +23,15 @@ export default React.forwardRef<View, {
       ref={ref}
       collapsable={false}
       onPress={onPress}
-      style={[styles.pinButtonOuter, style]}
+      disabled={disabled || loading}
+      style={[styles.pinButtonOuter, (disabled || loading) && styles.pinButtonDisabled, style]}
       accessibilityLabel={active ? "Cancel pinning emergency location" : "Pin emergency location"}
     >
-      {active ? (
+      {loading ? (
+        <BlurView intensity={60} tint={COLORS.glassTint} style={styles.pinButton}>
+          <ActivityIndicator size="small" color={COLORS.primary} />
+        </BlurView>
+      ) : active ? (
         <View style={styles.pinButtonActive}>
           <Ionicons name="location" size={22} color={COLORS.white} />
         </View>
@@ -47,6 +54,9 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: RADIUS.full,
       overflow: "hidden",
       ...SHADOW_LG,
+    },
+    pinButtonDisabled: {
+      opacity: 0.5,
     },
     pinButton: {
       flex: 1,

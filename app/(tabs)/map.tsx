@@ -17,6 +17,7 @@ import PinButton from "@/components/map/PinButton";
 import SearchBar from "@/components/map/SearchBar";
 import ZoomControls from "@/components/map/ZoomControls";
 import MapFirstTimeGuide from "@/components/tour/MapFirstTimeGuide";
+import GeofenceBlockedModal from "@/components/common/GeofenceBlockedModal";
 import GeofenceToast from "@/components/common/GeofenceToast";
 import {
     CORDOVA_BARANGAYS,
@@ -31,6 +32,7 @@ import {
     getEvacuationCenters,
     type EvacuationCenter,
 } from "@/services/evacuation.service";
+import { getVerifiedLocation } from "@/services/location.service";
 import {
     FONT_FAMILY,
     RADIUS,
@@ -73,6 +75,11 @@ export default function MapScreen() {
   } | null>(null);
   const [showMapGuide, setShowMapGuide] = useState(false);
   const [showOutsideCordovaToast, setShowOutsideCordovaToast] = useState(false);
+  const [pinButtonLoading, setPinButtonLoading] = useState(false);
+  const [citizenOutsideCordova, setCitizenOutsideCordova] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
+  const outsideStreakRef = useRef(0);
+  const wasOutsideRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -151,6 +158,20 @@ export default function MapScreen() {
                 15,
               );
             }
+
+            if (isInsideCordova(position.coords.latitude, position.coords.longitude)) {
+              outsideStreakRef.current = 0;
+              wasOutsideRef.current = false;
+              setCitizenOutsideCordova(false);
+            } else {
+              outsideStreakRef.current += 1;
+              if (outsideStreakRef.current >= 2 && !wasOutsideRef.current) {
+                wasOutsideRef.current = true;
+                setCitizenOutsideCordova(true);
+                setPinMode(false);
+                setPickedPoint(null);
+              }
+            }
           },
         );
       } catch (error) {
@@ -222,9 +243,28 @@ export default function MapScreen() {
   // that single tap immediately detects and confirms the emergency location
   // (no separate confirm step) and exits pin mode. Tapping the icon again
   // before tapping the map just cancels out of pin mode.
-  const handleTogglePinMode = () => {
+  const handleTogglePinMode = async () => {
+    if (pinMode) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setPinMode(false);
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPinMode((v) => !v);
+    setPinButtonLoading(true);
+    const result = await getVerifiedLocation();
+    setPinButtonLoading(false);
+
+    if (result.status === "denied") {
+      setShowPermissionModal(true);
+      return;
+    }
+    if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+      setCitizenOutsideCordova(true);
+      return;
+    }
+
+    setPinMode(true);
   };
 
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
@@ -342,6 +382,8 @@ export default function MapScreen() {
         <PinButton
           ref={pinTargetRef}
           active={pinMode}
+          loading={pinButtonLoading}
+          disabled={citizenOutsideCordova}
           onPress={handleTogglePinMode}
           style={{
             bottom:
@@ -372,6 +414,22 @@ export default function MapScreen() {
           onFinish={finishMapGuide}
         />
       ) : null}
+
+      <GeofenceBlockedModal
+        visible={citizenOutsideCordova}
+        variant="reporting-unavailable"
+        onDismiss={() => setCitizenOutsideCordova(false)}
+      />
+
+      <GeofenceBlockedModal
+        visible={showPermissionModal}
+        variant="permission-required"
+        onDismiss={() => setShowPermissionModal(false)}
+        onRetry={() => {
+          setShowPermissionModal(false);
+          handleTogglePinMode();
+        }}
+      />
     </View>
   );
 }
