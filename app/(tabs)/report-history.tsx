@@ -1,6 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
@@ -8,7 +9,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import ReportHistoryCard from "@/components/report-history/ReportHistoryCard";
 import { useAuth } from "@/context/AuthContext";
 import { getReportHistory, type ReportHistoryItem } from "@/services/report.service";
-import { FONT_FAMILY, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import { FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 export default function ReportHistoryScreen() {
   const insets = useSafeAreaInsets();
@@ -18,15 +19,21 @@ export default function ReportHistoryScreen() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [reports, setReports] = useState<ReportHistoryItem[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  useEffect(() => {
+  const loadReports = useCallback(() => {
     if (!token) return;
 
+    setLoadFailed(false);
     getReportHistory(token)
       .then((history) => setReports(history))
-      .catch(() => {})
+      .catch(() => setLoadFailed(true))
       .finally(() => setLoaded(true));
   }, [token]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
 
   return (
     <ScrollView
@@ -46,7 +53,15 @@ export default function ReportHistoryScreen() {
         onPress={() => router.push("/(tabs)/report")}
       />
 
-      {loaded && reports.length === 0 ? (
+      {loaded && loadFailed ? (
+        <View style={styles.errorState}>
+          <Ionicons name="cloud-offline-outline" size={28} color={COLORS.textTertiary} />
+          <Text style={styles.errorText}>Couldn&apos;t load your reports. Check your connection.</Text>
+          <Pressable onPress={loadReports} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
+      ) : loaded && reports.length === 0 ? (
         <EmptyState
           icon="document-text-outline"
           message="No reports yet."
@@ -100,6 +115,27 @@ function createStyles(COLORS: ColorPalette) {
   },
   list: {
     gap: SPACING.sm,
+  },
+  errorState: {
+    marginTop: SPACING.xl,
+    alignItems: "center",
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  errorText: {
+    color: COLORS.textTertiary,
+    fontSize: TYPOGRAPHY.caption,
+    textAlign: "center",
+  },
+  retryButton: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontWeight: "700",
   },
   });
 }

@@ -8,8 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
@@ -33,17 +33,38 @@ export default function EvacuationNavigateScreen() {
   const insets = useSafeAreaInsets();
   const [center, setCenter] = useState<EvacuationCenter | undefined>(undefined);
   const [citizenCoords, setCitizenCoords] = useState<Coordinates | undefined>();
+  const [isLoading, setIsLoading] = useState(true);
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
   const centerCoords = center ? { latitude: center.latitude, longitude: center.longitude } : undefined;
   const route = useRoute(citizenCoords, centerCoords, "walking");
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     if (!id) return;
-    getEvacuationCenterById(id).then(setCenter);
-    getCurrentLocation().then(setCitizenCoords).catch(() => {});
+    setIsLoading(true);
+    Promise.all([getEvacuationCenterById(id), getCurrentLocation()])
+      .then(([centerData, coords]) => {
+        setCenter(centerData);
+        setCitizenCoords(coords);
+      })
+      .finally(() => setIsLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  if (isLoading) {
+    return (
+      <View style={styles.fallbackScreen}>
+        <Stack.Screen
+          options={{ headerShown: false, presentation: "fullScreenModal" }}
+        />
+        <ActivityIndicator color={COLORS.primary} />
+      </View>
+    );
+  }
 
   if (!center || !citizenCoords) {
     return (
@@ -52,6 +73,11 @@ export default function EvacuationNavigateScreen() {
           options={{ headerShown: false, presentation: "fullScreenModal" }}
         />
         <Text style={styles.fallbackText}>Location data unavailable.</Text>
+        {!citizenCoords && (
+          <Pressable onPress={loadData} style={styles.fallbackRetry}>
+            <Text style={styles.fallbackRetryText}>Retry</Text>
+          </Pressable>
+        )}
         <Pressable onPress={() => router.back()} style={styles.fallbackClose}>
           <Text style={styles.fallbackCloseText}>Close</Text>
         </Pressable>
@@ -236,6 +262,16 @@ function createStyles(COLORS: ColorPalette) {
   fallbackText: {
     color: COLORS.textTertiary,
     fontSize: TYPOGRAPHY.body,
+  },
+  fallbackRetry: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  fallbackRetryText: {
+    color: COLORS.white,
+    fontWeight: "700",
   },
   fallbackClose: {
     paddingHorizontal: SPACING.lg,

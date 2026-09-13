@@ -86,7 +86,12 @@ export default function ProfileAvatarEdit() {
   }
 
   return (
-    <Pressable style={styles.wrap} onPress={handlePress}>
+    <Pressable
+      style={styles.wrap}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel="Change profile photo"
+    >
       <LinearGradient
         colors={[COLORS.primary, COLORS.secondary]}
         start={{ x: 0, y: 0 }}

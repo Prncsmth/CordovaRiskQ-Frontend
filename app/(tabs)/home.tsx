@@ -38,6 +38,7 @@ import { haversineDistanceKm } from "@/utils/distance";
 import { formatTime } from "@/utils/formatter";
 
 const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
+const NOTIFICATIONS_POLL_INTERVAL_MS = 12000;
 
 const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
   normal: "No flood risk detected in your area",
@@ -142,9 +143,20 @@ export default function HomeScreen() {
     useCallback(() => {
       if (!token) return;
 
-      getNotifications(token)
-        .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
-        .catch(() => {});
+      // Best-effort badge, not a data screen -- there's no error/retry UI for
+      // a bell-icon dot to show. A failed fetch leaves hasUnread at its last
+      // known value instead of resetting it, and the poll below retries on
+      // its own within NOTIFICATIONS_POLL_INTERVAL_MS, so a transient
+      // failure self-heals without needing to surface it here.
+      const pollUnread = () => {
+        getNotifications(token)
+          .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
+          .catch(() => {});
+      };
+
+      pollUnread();
+      const interval = setInterval(pollUnread, NOTIFICATIONS_POLL_INTERVAL_MS);
+      return () => clearInterval(interval);
     }, [token]),
   );
 

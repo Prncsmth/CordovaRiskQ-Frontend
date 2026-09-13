@@ -1,10 +1,11 @@
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,7 +19,7 @@ import ProfileAvatarEdit from "@/components/user-profile/ProfileAvatarEdit";
 import ProfileFieldInput from "@/components/user-profile/ProfileFieldInput";
 import { useAuth } from "@/context/AuthContext";
 import { getProfile, updateProfile } from "@/services/user.service";
-import { useThemeColors, FONT_FAMILY, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 function splitName(name: string | null | undefined): {
   firstName: string;
@@ -47,9 +48,11 @@ export default function UserProfileScreen() {
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
 
-  useEffect(() => {
+  const loadProfile = useCallback(() => {
     if (!token) return;
 
+    setIsLoading(true);
+    setLoadError(false);
     getProfile(token)
       .then((profile) => {
         const split = splitName(profile.name);
@@ -67,6 +70,10 @@ export default function UserProfileScreen() {
       })
       .finally(() => setIsLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   async function handleSave() {
     if (!token) return;
@@ -114,9 +121,12 @@ export default function UserProfileScreen() {
         {isLoading ? (
           <ActivityIndicator color={COLORS.primary} style={styles.loading} />
         ) : loadError ? (
-          <Text style={styles.errorText}>
-            We could not load your profile. Please go back and try again.
-          </Text>
+          <View style={styles.errorState}>
+            <Text style={styles.errorText}>We could not load your profile.</Text>
+            <Pressable onPress={loadProfile} style={styles.retryButton}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </Pressable>
+          </View>
         ) : (
           <>
             <View style={styles.avatarSection}>
@@ -193,11 +203,25 @@ function createStyles(COLORS: ColorPalette) {
   loading: {
     marginTop: SPACING.xl,
   },
-  errorText: {
+  errorState: {
     marginTop: SPACING.xl,
+    alignItems: "center",
+    gap: SPACING.sm,
+  },
+  errorText: {
     textAlign: "center",
     fontSize: TYPOGRAPHY.body,
     color: COLORS.textSecondary,
+  },
+  retryButton: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontWeight: "700",
   },
   avatarSection: {
     alignItems: "center",

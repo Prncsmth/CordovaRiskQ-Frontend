@@ -1,21 +1,21 @@
 // components/common/GeofenceBlockedModal.tsx
 // Shared blocking overlay for the three Cordova-geofence "you can't proceed"
-// states. Follows the same backdrop+dialog visual pattern as
-// components/sos/SosOverlay.tsx's ConfirmView.
+// states. Built on the shared Dialog pieces in ./Dialog.tsx.
 import { Ionicons } from "@expo/vector-icons";
 import * as Linking from "expo-linking";
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import {
-  FONT_FAMILY,
-  RADIUS,
-  SHADOW_LG,
-  SPACING,
-  TYPOGRAPHY,
-  useThemeColors,
-  type ColorPalette,
-} from "@/theme";
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTertiaryAction,
+  DialogTitle,
+} from "@/components/common/Dialog";
+import { useThemeColors } from "@/theme";
 
 export type GeofenceModalVariant =
   | "reporting-unavailable"
@@ -54,7 +54,7 @@ export default function GeofenceBlockedModal({
   onRetry?: () => void;
 }) {
   const COLORS = useThemeColors();
-  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const styles = useMemo(() => createStyles(), []);
 
   if (!visible) return null;
 
@@ -63,137 +63,41 @@ export default function GeofenceBlockedModal({
 
   return (
     <View style={styles.container}>
-      <View style={styles.backdrop}>
-        <View style={styles.dialog}>
-          <View style={styles.dialogIcon}>
-            <Ionicons name={copy.icon} size={28} color={iconColor} />
-          </View>
-          <Text style={styles.dialogTitle}>{copy.title}</Text>
-          <Text style={styles.dialogMessage}>{copy.message}</Text>
+      <Dialog>
+        <DialogIcon name={copy.icon} color={iconColor} />
+        <DialogTitle>{copy.title}</DialogTitle>
+        <DialogMessage>{copy.message}</DialogMessage>
 
-          {variant === "permission-required" ? (
-            <>
-              <View style={styles.dialogActions}>
-                <Pressable
-                  style={[styles.dialogButton, styles.dialogButtonSecondary]}
-                  onPress={onRetry}
-                >
-                  <Text style={styles.dialogButtonSecondaryText}>Retry</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.dialogButton, styles.dialogButtonPrimary]}
-                  onPress={() => {
-                    Linking.openSettings();
-                  }}
-                >
-                  <Text style={styles.dialogButtonPrimaryText}>Open Settings</Text>
-                </Pressable>
-              </View>
-              <Pressable style={styles.dialogTertiaryAction} onPress={onDismiss}>
-                <Text style={styles.dialogTertiaryActionText}>Not now</Text>
-              </Pressable>
-            </>
-          ) : (
-            <View style={styles.dialogActions}>
-              <Pressable
-                style={[styles.dialogButton, styles.dialogButtonPrimary]}
-                onPress={onDismiss}
-              >
-                <Text style={styles.dialogButtonPrimaryText}>OK</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </View>
+        {variant === "permission-required" ? (
+          <>
+            <DialogActions>
+              <DialogButton label="Retry" variant="secondary" onPress={onRetry} />
+              <DialogButton
+                label="Open Settings"
+                variant="primary"
+                onPress={() => {
+                  Linking.openSettings();
+                }}
+              />
+            </DialogActions>
+            <DialogTertiaryAction label="Not now" onPress={onDismiss} />
+          </>
+        ) : (
+          <DialogActions>
+            <DialogButton label="OK" variant="primary" onPress={onDismiss} />
+          </DialogActions>
+        )}
+      </Dialog>
     </View>
   );
 }
 
-function createStyles(COLORS: ColorPalette) {
+function createStyles() {
   return StyleSheet.create({
     container: {
       ...StyleSheet.absoluteFill,
       zIndex: 200,
       elevation: 200,
-    },
-    backdrop: {
-      flex: 1,
-      backgroundColor: COLORS.scrim,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: SPACING.lg,
-    },
-    dialog: {
-      width: "100%",
-      backgroundColor: COLORS.background,
-      borderRadius: RADIUS.xl,
-      padding: SPACING.lg,
-      alignItems: "center",
-      ...SHADOW_LG,
-    },
-    dialogIcon: {
-      width: 56,
-      height: 56,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primaryTint,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: SPACING.sm,
-    },
-    dialogTitle: {
-      fontFamily: FONT_FAMILY.display,
-      fontSize: TYPOGRAPHY.subtitle,
-      color: COLORS.text,
-      textAlign: "center",
-    },
-    dialogMessage: {
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
-      textAlign: "center",
-      marginTop: SPACING.xs,
-      lineHeight: 20,
-    },
-    dialogActions: {
-      flexDirection: "row",
-      gap: SPACING.sm,
-      marginTop: SPACING.lg,
-      width: "100%",
-    },
-    dialogButton: {
-      flex: 1,
-      height: 48,
-      borderRadius: RADIUS.md,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    dialogButtonSecondary: {
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-    dialogButtonSecondaryText: {
-      color: COLORS.text,
-      fontWeight: "700",
-      fontSize: TYPOGRAPHY.body,
-    },
-    dialogButtonPrimary: {
-      backgroundColor: COLORS.primary,
-    },
-    dialogButtonPrimaryText: {
-      color: COLORS.white,
-      fontWeight: "700",
-      fontSize: TYPOGRAPHY.body,
-    },
-    dialogTertiaryAction: {
-      marginTop: SPACING.sm,
-      paddingVertical: SPACING.xs,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    dialogTertiaryActionText: {
-      color: COLORS.textSecondary,
-      fontWeight: "600",
-      fontSize: TYPOGRAPHY.caption,
     },
   });
 }

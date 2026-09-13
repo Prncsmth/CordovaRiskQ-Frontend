@@ -31,6 +31,8 @@ export default function ProfileHeader({ name, onLogout }: ProfileHeaderProps) {
         }}
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel="Log out"
       >
         <Ionicons name="log-out-outline" size={19} color={COLORS.primary} />
       </TouchableOpacity>

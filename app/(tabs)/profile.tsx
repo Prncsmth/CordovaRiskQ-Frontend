@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -8,6 +8,7 @@ import ContactSupportCard from "@/components/profile/ContactSupportCard";
 import MenuRow from "@/components/profile/MenuRow";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import { useAuth } from "@/context/AuthContext";
+import { usePreferences } from "@/context/PreferencesContext";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -32,7 +33,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const [notificationsOn, setNotificationsOn] = useState(true);
+  const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
 
   function handleLogout() {
     Alert.alert("Log out", "Are you sure you want to log out?", [
@@ -85,8 +86,8 @@ export default function ProfileScreen() {
       label: "Push Notification",
       right: (
         <Switch
-          value={notificationsOn}
-          onValueChange={setNotificationsOn}
+          value={pushNotificationsEnabled}
+          onValueChange={setPushNotificationsEnabled}
           trackColor={{ true: COLORS.primary }}
           thumbColor={COLORS.white}
         />

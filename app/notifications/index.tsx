@@ -1,6 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -40,20 +41,28 @@ export default function NotificationsScreen() {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  useEffect(() => {
+  const loadNotifications = useCallback(() => {
     if (!token) {
+      setIsLoading(false);
       return;
     }
+    setIsLoading(true);
+    setLoadFailed(false);
 
     getNotifications(token)
       .then((result) => {
         setNotifications(result);
-        return markAllNotificationsRead(token);
+        markAllNotificationsRead(token).catch(() => {});
       })
-      .catch(() => {})
+      .catch(() => setLoadFailed(true))
       .finally(() => setIsLoading(false));
   }, [token]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const today = notifications.filter((n) => isToday(n.createdAt));
   const earlier = notifications.filter((n) => !isToday(n.createdAt));
@@ -75,6 +84,14 @@ export default function NotificationsScreen() {
 
       {isLoading && token ? (
         <ActivityIndicator color={COLORS.primary} style={styles.loading} />
+      ) : loadFailed ? (
+        <View style={styles.errorState}>
+          <Ionicons name="cloud-offline-outline" size={28} color={COLORS.textTertiary} />
+          <Text style={styles.errorText}>Couldn&apos;t load notifications. Check your connection.</Text>
+          <Pressable onPress={loadNotifications} style={styles.retryButton}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </Pressable>
+        </View>
       ) : notifications.length === 0 ? (
         <EmptyState
           icon="notifications-off-outline"
@@ -140,6 +157,27 @@ function createStyles(COLORS: ColorPalette) {
   },
   loading: {
     marginTop: SPACING.xl,
+  },
+  errorState: {
+    marginTop: SPACING.xl,
+    alignItems: "center",
+    gap: SPACING.sm,
+    paddingHorizontal: SPACING.lg,
+  },
+  errorText: {
+    color: COLORS.textTertiary,
+    fontSize: TYPOGRAPHY.caption,
+    textAlign: "center",
+  },
+  retryButton: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontWeight: "700",
   },
   section: {
     gap: SPACING.sm,

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap from "@/components/map/AppMap";
@@ -32,21 +32,44 @@ export default function ReportDetailScreen() {
 
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  useEffect(() => {
+  const loadReport = useCallback(() => {
     if (!token || !id) {
       setIsLoading(false);
       return;
     }
+    setIsLoading(true);
+    setLoadFailed(false);
     getReportDetailById(token, id)
       .then((result) => setReport(result ?? null))
+      .catch(() => setLoadFailed(true))
       .finally(() => setIsLoading(false));
   }, [token, id]);
+
+  useEffect(() => {
+    loadReport();
+  }, [loadReport]);
 
   if (isLoading) {
     return (
       <View style={[styles.centerFlex, { paddingTop: insets.top }]}>
+        <BackButton onPress={() => router.back()} style={styles.notFoundBack} />
         <ActivityIndicator color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <View style={[styles.centerFlex, { paddingTop: insets.top }]}>
+        <BackButton onPress={() => router.back()} style={styles.notFoundBack} />
+        <Ionicons name="alert-circle-outline" size={32} color={COLORS.textTertiary} />
+        <Text style={styles.notFoundTitle}>Couldn&apos;t load this report</Text>
+        <Text style={styles.notFoundText}>Check your connection and try again.</Text>
+        <Pressable onPress={loadReport} style={styles.retryButton}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -159,6 +182,17 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textSecondary,
       textAlign: "center",
+    },
+    retryButton: {
+      marginTop: SPACING.sm,
+      paddingHorizontal: SPACING.lg,
+      paddingVertical: SPACING.sm,
+      borderRadius: RADIUS.md,
+      backgroundColor: COLORS.primary,
+    },
+    retryButtonText: {
+      color: COLORS.white,
+      fontWeight: "700",
     },
     content: {
       paddingHorizontal: SPACING.md,

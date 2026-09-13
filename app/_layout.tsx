@@ -1,6 +1,7 @@
 import SosOverlay from "@/components/sos/SosOverlay";
 import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { PreferencesProvider, usePreferences } from "@/context/PreferencesContext";
 import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
 import { ReportLocationProvider } from "@/context/ReportLocationContext";
 import { SosProvider } from "@/context/SosContext";
@@ -49,6 +50,7 @@ function RootLayoutNav() {
   const COLORS = useThemeColors();
   const router = useRouter();
   const segments = useSegments();
+  const { pushNotificationsEnabled } = usePreferences();
 
   useEffect(() => {
     if (isLoading) return;
@@ -159,10 +161,10 @@ function RootLayoutNav() {
   ]);
 
   useEffect(() => {
-    if (isAuthenticated && token) {
+    if (isAuthenticated && token && pushNotificationsEnabled) {
       registerForPushNotifications(token).catch(() => {});
     }
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, token, pushNotificationsEnabled]);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session
@@ -258,11 +260,13 @@ export default function RootLayout() {
       <AuthProvider>
         <UserProvider>
           <ProfilePhotoProvider>
-            <ReportLocationProvider>
-              <AppThemeProvider>
-                <ThemedApp />
-              </AppThemeProvider>
-            </ReportLocationProvider>
+            <PreferencesProvider>
+              <ReportLocationProvider>
+                <AppThemeProvider>
+                  <ThemedApp />
+                </AppThemeProvider>
+              </ReportLocationProvider>
+            </PreferencesProvider>
           </ProfilePhotoProvider>
         </UserProvider>
       </AuthProvider>

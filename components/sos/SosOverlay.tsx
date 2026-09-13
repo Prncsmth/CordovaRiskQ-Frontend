@@ -3,15 +3,22 @@
 // app/_layout.tsx above the tab navigator so it appears over whichever
 // screen the user is on, matching the tab bar's own `stage !== "idle"`
 // hide behavior in components/tabs/TabBar.tsx.
-import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import {
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTitle,
+} from "@/components/common/Dialog";
 import GeofenceBlockedModal, { type GeofenceModalVariant } from "@/components/common/GeofenceBlockedModal";
 import RippleRings from "@/components/common/RippleRings";
 import { useSos } from "@/context/SosContext";
-import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export default function SosOverlay() {
   const { stage, blockedReason, confirmSOS, cancelSOS, dismissBlocked, retryConfirm } = useSos();
@@ -30,9 +37,9 @@ export default function SosOverlay() {
       {stage !== "idle" && (
         <View style={styles.container}>
           {stage === "confirm" ? (
-            <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
+            <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} />
           ) : stage === "verifying" ? (
-            <VerifyingView COLORS={COLORS} styles={styles} />
+            <VerifyingView COLORS={COLORS} />
           ) : (
             <ActiveView onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
           )}
@@ -49,64 +56,37 @@ export default function SosOverlay() {
   );
 }
 
-function VerifyingView({
-  COLORS,
-  styles,
-}: {
-  COLORS: ColorPalette;
-  styles: ReturnType<typeof createStyles>;
-}) {
+function VerifyingView({ COLORS }: { COLORS: ColorPalette }) {
   return (
-    <View style={styles.backdrop}>
-      <View style={styles.dialog}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={[styles.dialogTitle, { marginTop: SPACING.sm }]}>
-          Getting your accurate location...
-        </Text>
-      </View>
-    </View>
+    <Dialog>
+      <ActivityIndicator size="large" color={COLORS.primary} />
+      <DialogTitle style={{ marginTop: SPACING.sm }}>
+        Getting your accurate location...
+      </DialogTitle>
+    </Dialog>
   );
 }
 
 function ConfirmView({
   onConfirm,
   onCancel,
-  COLORS,
-  styles,
 }: {
   onConfirm: () => void;
   onCancel: () => void;
-  COLORS: ColorPalette;
-  styles: ReturnType<typeof createStyles>;
 }) {
   return (
-    <View style={styles.backdrop}>
-      <View style={styles.dialog}>
-        <View style={styles.dialogIcon}>
-          <Ionicons name="warning" size={28} color={COLORS.primary} />
-        </View>
-        <Text style={styles.dialogTitle}>Send Emergency SOS?</Text>
-        <Text style={styles.dialogMessage}>
-          Emergency responders will be notified with your current location.
-          Only do this in a real emergency.
-        </Text>
-
-        <View style={styles.dialogActions}>
-          <Pressable
-            style={[styles.dialogButton, styles.dialogButtonSecondary]}
-            onPress={onCancel}
-          >
-            <Text style={styles.dialogButtonSecondaryText}>Cancel</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.dialogButton, styles.dialogButtonPrimary]}
-            onPress={onConfirm}
-          >
-            <Text style={styles.dialogButtonPrimaryText}>Send SOS</Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
+    <Dialog>
+      <DialogIcon name="warning" />
+      <DialogTitle>Send Emergency SOS?</DialogTitle>
+      <DialogMessage>
+        Emergency responders will be notified with your current location.
+        Only do this in a real emergency.
+      </DialogMessage>
+      <DialogActions>
+        <DialogButton label="Cancel" variant="secondary" onPress={onCancel} />
+        <DialogButton label="Send SOS" variant="primary" onPress={onConfirm} />
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -129,11 +109,6 @@ function ActiveView({
         <Text style={styles.activeSubtitle}>
           Your location has been shared with emergency responders.
         </Text>
-
-        <View style={styles.etaPill}>
-          <Ionicons name="time-outline" size={16} color={COLORS.white} />
-          <Text style={styles.etaText}>Estimated arrival: ~8 mins</Text>
-        </View>
       </View>
 
       <Pressable style={styles.cancelButton} onPress={onCancel}>
@@ -168,74 +143,6 @@ function createStyles(COLORS: ColorPalette) {
       ...StyleSheet.absoluteFill,
       zIndex: 100,
       elevation: 100,
-    },
-    backdrop: {
-      flex: 1,
-      backgroundColor: COLORS.scrim,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: SPACING.lg,
-    },
-    dialog: {
-      width: "100%",
-      backgroundColor: COLORS.background,
-      borderRadius: RADIUS.xl,
-      padding: SPACING.lg,
-      alignItems: "center",
-      ...SHADOW_LG,
-    },
-    dialogIcon: {
-      width: 56,
-      height: 56,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primaryTint,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: SPACING.sm,
-    },
-    dialogTitle: {
-      fontFamily: FONT_FAMILY.display,
-      fontSize: TYPOGRAPHY.subtitle,
-      color: COLORS.text,
-      textAlign: "center",
-    },
-    dialogMessage: {
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
-      textAlign: "center",
-      marginTop: SPACING.xs,
-      lineHeight: 20,
-    },
-    dialogActions: {
-      flexDirection: "row",
-      gap: SPACING.sm,
-      marginTop: SPACING.lg,
-      width: "100%",
-    },
-    dialogButton: {
-      flex: 1,
-      height: 48,
-      borderRadius: RADIUS.md,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    dialogButtonSecondary: {
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-    dialogButtonSecondaryText: {
-      color: COLORS.text,
-      fontWeight: "700",
-      fontSize: TYPOGRAPHY.body,
-    },
-    dialogButtonPrimary: {
-      backgroundColor: COLORS.primary,
-    },
-    dialogButtonPrimaryText: {
-      color: COLORS.white,
-      fontWeight: "700",
-      fontSize: TYPOGRAPHY.body,
     },
     activeScreen: {
       flex: 1,
@@ -288,21 +195,6 @@ function createStyles(COLORS: ColorPalette) {
       opacity: 0.9,
       textAlign: "center",
       paddingHorizontal: SPACING.md,
-    },
-    etaPill: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.xs,
-      backgroundColor: "rgba(255, 255, 255, 0.18)",
-      borderRadius: RADIUS.full,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.xs,
-      marginTop: SPACING.sm,
-    },
-    etaText: {
-      color: COLORS.white,
-      fontWeight: "600",
-      fontSize: TYPOGRAPHY.caption,
     },
     cancelButton: {
       width: "100%",

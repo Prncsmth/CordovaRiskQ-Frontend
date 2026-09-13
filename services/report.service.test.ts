@@ -1,6 +1,6 @@
 import { File as FileClass } from "expo-file-system";
 
-import { photoFileExists, uploadReportPhoto } from "./report.service";
+import { getReportDetailById, photoFileExists, uploadReportPhoto } from "./report.service";
 
 jest.mock("expo-file-system", () => ({
   File: jest.fn().mockImplementation((uri: string) => ({
@@ -83,5 +83,41 @@ describe("uploadReportPhoto", () => {
     await expect(
       uploadReportPhoto("token123", "file:///exists.jpg", "photo.jpg"),
     ).rejects.toThrow("Network request failed");
+  });
+});
+
+describe("getReportDetailById", () => {
+  // @ts-ignore - global.fetch type
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    // @ts-ignore - global.fetch type
+    global.fetch = originalFetch;
+  });
+
+  it("returns undefined for a real 404", async () => {
+    // @ts-ignore - global.fetch type
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      text: async () => "",
+    }) as unknown as typeof fetch;
+
+    const result = await getReportDetailById("token123", "missing-id");
+
+    expect(result).toBeUndefined();
+  });
+
+  it("propagates a network/server failure instead of returning undefined", async () => {
+    // @ts-ignore - global.fetch type
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      text: async () => "",
+    }) as unknown as typeof fetch;
+
+    await expect(
+      getReportDetailById("token123", "some-id"),
+    ).rejects.toThrow();
   });
 });

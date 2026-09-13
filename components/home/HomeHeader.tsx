@@ -54,6 +54,8 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
         }}
         activeOpacity={0.7}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={hasUnread ? "Notifications, unread" : "Notifications"}
       >
         <Ionicons name="notifications" size={26} color={COLORS.primary} />
         {hasUnread ? <View style={styles.dot} /> : null}

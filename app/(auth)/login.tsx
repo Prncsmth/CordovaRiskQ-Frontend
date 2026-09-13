@@ -40,8 +40,12 @@ export default function LoginScreen() {
     try {
       const response = await loginUser(email, password);
       await login(response.token, response.user);
-    } catch {
-      setError("Login failed. Please check your credentials and try again.");
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Login failed. Please try again.";
+      setError(message);
     } finally {
       setLoading(false);
     }

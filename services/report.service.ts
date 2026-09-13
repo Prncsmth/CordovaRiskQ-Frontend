@@ -1,7 +1,7 @@
 // services/report.service.ts
 import { File } from "expo-file-system";
 
-import { API_BASE_URL, apiGet, apiPost } from "./api";
+import { API_BASE_URL, apiGet, apiPost, type ApiError } from "./api";
 import { CATEGORY_LABELS, type CategoryId } from "@/components/report/categories";
 import { formatDate } from "@/utils/formatter";
 
@@ -187,7 +187,13 @@ export async function getReportDetailById(
       submittedDate: formatDate(row.createdAt),
       updatedDate: formatDate(row.updatedAt),
     };
-  } catch {
-    return undefined;
+  } catch (err) {
+    // Only a real 404 means "no such report" -- a network/server failure
+    // should propagate so the screen can distinguish and offer a retry
+    // instead of silently looking like the report doesn't exist.
+    if ((err as Partial<ApiError>)?.status === 404) {
+      return undefined;
+    }
+    throw err;
   }
 }

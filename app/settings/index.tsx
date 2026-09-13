@@ -10,6 +10,7 @@ import BackButton from "@/components/common/BackButton";
 import NavSettingRow, { type NavRow } from "@/components/settings/NavSettingRow";
 import ToggleSettingRow, { type ToggleRow } from "@/components/settings/ToggleSettingRow";
 import { useAuth } from "@/context/AuthContext";
+import { usePreferences } from "@/context/PreferencesContext";
 import { useTour } from "@/context/TourContext";
 import { useThemeMode } from "@/context/ThemeContext";
 import {
@@ -34,7 +35,7 @@ export default function SettingsScreen() {
   const tour = useTour();
   const isResponder = user?.role === "responder";
 
-  const [pushNotifications, setPushNotifications] = useState(true);
+  const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
   const [locationAccess, setLocationAccess] = useState(true);
 
   const handleLogout = () => {
@@ -93,8 +94,8 @@ export default function SettingsScreen() {
       icon: "notifications-outline",
       label: "Push Notifications",
       description: "Alerts, advisories, and report updates",
-      value: pushNotifications,
-      onValueChange: setPushNotifications,
+      value: pushNotificationsEnabled,
+      onValueChange: setPushNotificationsEnabled,
     },
     {
       key: "location",
