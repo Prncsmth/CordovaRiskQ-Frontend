@@ -5,8 +5,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Linking,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,7 +15,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as Haptics from "expo-haptics";
 
-import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import {
@@ -102,18 +99,6 @@ export default function EvacuationDetailScreen() {
   const previewRoute = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({ pathname: "/evacuation-detail/navigate", params: { id: center.id } });
-  };
-
-  const openDirections = () => {
-    const label = encodeURIComponent(center.name);
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${center.latitude},${center.longitude}`,
-      android: `geo:${center.latitude},${center.longitude}?q=${center.latitude},${center.longitude}(${label})`,
-      default: `https://www.google.com/maps/search/?api=1&query=${center.latitude},${center.longitude}`,
-    });
-    if (url) {
-      void Linking.openURL(url);
-    }
   };
 
   return (
@@ -222,10 +207,8 @@ export default function EvacuationDetailScreen() {
 
         <Pressable style={styles.previewRouteButton} onPress={previewRoute}>
           <Ionicons name="navigate-outline" size={18} color={COLORS.primary} />
-          <Text style={styles.previewRouteText}>PREVIEW ROUTE</Text>
+          <Text style={styles.previewRouteText}>View Route</Text>
         </Pressable>
-
-        <PrimaryButton title="GET DIRECTIONS" onPress={openDirections} />
       </View>
     </ScrollView>
   );
