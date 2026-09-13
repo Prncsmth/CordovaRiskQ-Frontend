@@ -18,10 +18,12 @@ import {
 } from "@/components/common/Dialog";
 import GeofenceBlockedModal, { type GeofenceModalVariant } from "@/components/common/GeofenceBlockedModal";
 import RippleRings from "@/components/common/RippleRings";
+import { useAuth } from "@/context/AuthContext";
 import { useSos } from "@/context/SosContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export default function SosOverlay() {
+  const { token } = useAuth();
   const {
     stage,
     blockedReason,
@@ -35,6 +37,13 @@ export default function SosOverlay() {
   } = useSos();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+
+  // Belt-and-suspenders: SosContext already wipes its own state on logout,
+  // but this guarantees nothing SOS-related ever renders while logged out,
+  // even for a stray frame -- an emergency status is for the signed-in
+  // account's own eyes only, never the login screen or a different account
+  // that logs in next on the same device.
+  if (!token) return null;
 
   const blockedVariant: GeofenceModalVariant | null =
     blockedReason === "permission"

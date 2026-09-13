@@ -1,5 +1,5 @@
 // context/SosContext.tsx
-import React, { createContext, useContext, useMemo, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert } from "react-native";
 
 import { getNearestBarangay } from "@/constants/cordovaBarangays";
@@ -146,6 +146,21 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
     setIncidentId(null);
     setIsMinimized(false);
   };
+
+  // Wipe all SOS state on logout -- otherwise a leftover active/minimized
+  // SOS from the previous session would keep showing on the login screen,
+  // or worse, bleed into whichever account logs in next on the same device.
+  useEffect(() => {
+    if (token) return;
+    attemptIdRef.current += 1;
+    inFlightRef.current = false;
+    clearMinimizeTimer();
+    setStage("idle");
+    setBlockedReason(null);
+    setIncidentId(null);
+    setIsMinimized(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const value = useMemo(
     () => ({
