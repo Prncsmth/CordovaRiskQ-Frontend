@@ -1,8 +1,9 @@
 // components/notifications/NotificationRow.tsx
-// Tappable row used by the Notifications screen's Today/Earlier sections;
+// Tappable card used by the Notifications screen's Today/Earlier sections;
 // owns the per-type icon and the tap-through route for each notification.
+// Styled to match components/report-history/ReportHistoryCard.tsx: one
+// bordered/shadowed card per item instead of a shared card with dividers.
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
@@ -13,8 +14,9 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { getNotificationReadDisplay } from "@/components/notifications/notificationReadDisplay";
 import type { AppNotification, NotificationType } from "@/services/notification.service";
-import { SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import { FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 import { formatRelativeTime } from "@/utils/formatter";
 
 const ICON_BY_TYPE: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
@@ -54,13 +56,7 @@ function getNotificationRoute(item: AppNotification) {
   return FALLBACK_ROUTE_BY_TYPE[item.type] ?? "/(tabs)/home";
 }
 
-export default function NotificationRow({
-  item,
-  isLast,
-}: {
-  item: AppNotification;
-  isLast: boolean;
-}) {
+export default function NotificationRow({ item }: { item: AppNotification }) {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -68,11 +64,15 @@ export default function NotificationRow({
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+  const { color, bg, border } = getNotificationReadDisplay(item.read, COLORS);
 
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        style={[styles.row, !isLast && styles.rowDivider]}
+        style={[
+          styles.card,
+          { borderColor: border, borderWidth: item.read ? 1 : 1.5 },
+        ]}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           router.push(getNotificationRoute(item));
@@ -84,25 +84,34 @@ export default function NotificationRow({
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        <LinearGradient
-          colors={COLORS.iconTileGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.iconCircle}
+        <View
+          style={[
+            styles.iconCircle,
+            { backgroundColor: bg, borderColor: border, borderWidth: item.read ? 0 : 1.5 },
+          ]}
         >
           <Ionicons
             name={ICON_BY_TYPE[item.type] ?? "notifications-outline"}
-            size={17}
-            color={COLORS.primary}
+            size={18}
+            color={color}
           />
-        </LinearGradient>
+        </View>
+
         <View style={styles.textCol}>
-          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {item.title}
+          </Text>
           <Text style={styles.body} numberOfLines={2}>
             {item.body}
           </Text>
+          <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
         </View>
-        <Text style={styles.timestamp}>{formatRelativeTime(item.createdAt)}</Text>
+
+        {!item.read && (
+          <View style={[styles.pill, { backgroundColor: COLORS.primaryTint }]}>
+            <Text style={[styles.pillText, { color: COLORS.primary }]}>New</Text>
+          </View>
+        )}
       </Pressable>
     </Animated.View>
   );
@@ -110,20 +119,19 @@ export default function NotificationRow({
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-    row: {
+    card: {
       flexDirection: "row",
       alignItems: "center",
       gap: SPACING.sm,
-      paddingVertical: SPACING.sm + 2,
-    },
-    rowDivider: {
-      borderBottomWidth: 1,
-      borderBottomColor: COLORS.borderMuted,
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.lg,
+      padding: SPACING.md,
+      ...SHADOW,
     },
     iconCircle: {
       width: 40,
       height: 40,
-      borderRadius: 20,
+      borderRadius: RADIUS.full,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -132,8 +140,8 @@ function createStyles(COLORS: ColorPalette) {
       gap: 2,
     },
     title: {
+      fontFamily: FONT_FAMILY.displaySemibold,
       fontSize: TYPOGRAPHY.caption,
-      fontWeight: "700",
       color: COLORS.text,
     },
     body: {
@@ -141,11 +149,20 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textSecondary,
       lineHeight: 18,
     },
-    timestamp: {
-      fontSize: 11,
+    meta: {
+      fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
-      alignSelf: "flex-start",
       marginTop: 2,
+    },
+    pill: {
+      borderRadius: RADIUS.full,
+      paddingVertical: 4,
+      paddingHorizontal: SPACING.sm,
+      alignSelf: "flex-start",
+    },
+    pillText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
     },
   });
 }

@@ -17,7 +17,6 @@ import {
   useThemeColors,
   FONT_FAMILY,
   RADIUS,
-  SHADOW,
   SPACING,
   TYPOGRAPHY,
   type ColorPalette,
@@ -103,13 +102,9 @@ export default function NotificationsScreen() {
           {today.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Today</Text>
-              <View style={styles.card}>
-                {today.map((item, index) => (
-                  <NotificationRow
-                    key={item.id}
-                    item={item}
-                    isLast={index === today.length - 1}
-                  />
+              <View style={styles.list}>
+                {today.map((item) => (
+                  <NotificationRow key={item.id} item={item} />
                 ))}
               </View>
             </View>
@@ -118,13 +113,9 @@ export default function NotificationsScreen() {
           {earlier.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionLabel}>Earlier</Text>
-              <View style={styles.card}>
-                {earlier.map((item, index) => (
-                  <NotificationRow
-                    key={item.id}
-                    item={item}
-                    isLast={index === earlier.length - 1}
-                  />
+              <View style={styles.list}>
+                {earlier.map((item) => (
+                  <NotificationRow key={item.id} item={item} />
                 ))}
               </View>
             </View>
@@ -190,13 +181,8 @@ function createStyles(COLORS: ColorPalette) {
     letterSpacing: 0.6,
     marginLeft: SPACING.xs,
   },
-  card: {
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    paddingHorizontal: SPACING.md,
-    ...SHADOW,
+  list: {
+    gap: SPACING.sm,
   },
   });
 }
