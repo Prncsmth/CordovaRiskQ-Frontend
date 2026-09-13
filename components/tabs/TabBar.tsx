@@ -47,7 +47,7 @@ const RIGHT_TABS: TabConfig[] = [
 
 export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const { stage } = useSos();
+  const { stage, isMinimized } = useSos();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
@@ -69,7 +69,10 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
     };
   }, [registerTarget, unregisterTarget]);
 
-  if (stage === "active") return null;
+  // Once the SOS overlay auto-minimizes to its persistent banner, the
+  // citizen gets normal navigation back -- only the full-screen overlay
+  // needs the bar out of the way.
+  if (stage === "active" && !isMinimized) return null;
 
   const activeName = state.routes[state.index].name;
 

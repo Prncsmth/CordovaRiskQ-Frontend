@@ -3,6 +3,7 @@
 // app/_layout.tsx above the tab navigator so it appears over whichever
 // screen the user is on, matching the tab bar's own `stage !== "idle"`
 // hide behavior in components/tabs/TabBar.tsx.
+import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,7 +22,17 @@ import { useSos } from "@/context/SosContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export default function SosOverlay() {
-  const { stage, blockedReason, confirmSOS, cancelSOS, dismissBlocked, retryConfirm } = useSos();
+  const {
+    stage,
+    blockedReason,
+    isMinimized,
+    confirmSOS,
+    cancelSOS,
+    expandSOS,
+    minimizeSOS,
+    dismissBlocked,
+    retryConfirm,
+  } = useSos();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
@@ -32,18 +43,26 @@ export default function SosOverlay() {
         ? "sos-unavailable"
         : null;
 
+  const showFullScreen = stage !== "idle" && !(stage === "active" && isMinimized);
+
   return (
     <>
-      {stage !== "idle" && (
+      {showFullScreen && (
         <View style={styles.container}>
           {stage === "confirm" ? (
             <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} />
           ) : stage === "verifying" ? (
-            <VerifyingView COLORS={COLORS} />
+            <LoadingView COLORS={COLORS} message="Getting your accurate location..." />
+          ) : stage === "sending" ? (
+            <LoadingView COLORS={COLORS} message="Sending your SOS alert..." />
           ) : (
-            <ActiveView onCancel={cancelSOS} COLORS={COLORS} styles={styles} />
+            <ActiveView onCancel={cancelSOS} onMinimize={minimizeSOS} COLORS={COLORS} styles={styles} />
           )}
         </View>
+      )}
+
+      {stage === "active" && isMinimized && (
+        <MinimizedBanner onPress={expandSOS} COLORS={COLORS} styles={styles} />
       )}
 
       <GeofenceBlockedModal
@@ -56,14 +75,39 @@ export default function SosOverlay() {
   );
 }
 
-function VerifyingView({ COLORS }: { COLORS: ColorPalette }) {
+function LoadingView({ COLORS, message }: { COLORS: ColorPalette; message: string }) {
   return (
     <Dialog>
       <ActivityIndicator size="large" color={COLORS.primary} />
-      <DialogTitle style={{ marginTop: SPACING.sm }}>
-        Getting your accurate location...
-      </DialogTitle>
+      <DialogTitle style={{ marginTop: SPACING.sm }}>{message}</DialogTitle>
     </Dialog>
+  );
+}
+
+function MinimizedBanner({
+  onPress,
+  COLORS,
+  styles,
+}: {
+  onPress: () => void;
+  COLORS: ColorPalette;
+  styles: ReturnType<typeof createStyles>;
+}) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <Pressable
+      style={[styles.minimizedBanner, { top: insets.top + SPACING.sm }]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="SOS active, responders notified. Tap to view status."
+    >
+      <Ionicons name="warning" size={16} color={COLORS.white} />
+      <Text style={styles.minimizedBannerText} numberOfLines={1}>
+        SOS Active — Responders Notified
+      </Text>
+      <Ionicons name="chevron-forward" size={16} color={COLORS.white} />
+    </Pressable>
   );
 }
 
@@ -92,10 +136,12 @@ function ConfirmView({
 
 function ActiveView({
   onCancel,
+  onMinimize,
   COLORS,
   styles,
 }: {
   onCancel: () => void;
+  onMinimize: () => void;
   COLORS: ColorPalette;
   styles: ReturnType<typeof createStyles>;
 }) {
@@ -103,7 +149,22 @@ function ActiveView({
 
   return (
     <View style={[styles.activeScreen, { paddingBottom: insets.bottom + SPACING.lg }]}>
+      <View style={[styles.activeHeader, { top: insets.top + SPACING.sm }]}>
+        <Pressable
+          style={styles.minimizeButton}
+          onPress={onMinimize}
+          accessibilityRole="button"
+          accessibilityLabel="Minimize"
+        >
+          <Ionicons name="chevron-down" size={20} color={COLORS.white} />
+        </Pressable>
+      </View>
+
       <View style={styles.activeBody}>
+        <View style={styles.sentBadge}>
+          <Ionicons name="checkmark-circle" size={16} color={COLORS.white} />
+          <Text style={styles.sentBadgeText}>SOS sent successfully</Text>
+        </View>
         <PulseRings styles={styles} />
         <Text style={styles.activeTitle}>Help Is On The Way</Text>
         <Text style={styles.activeSubtitle}>
@@ -144,6 +205,30 @@ function createStyles(COLORS: ColorPalette) {
       zIndex: 100,
       elevation: 100,
     },
+    minimizedBanner: {
+      position: "absolute",
+      left: SPACING.md,
+      right: SPACING.md,
+      zIndex: 100,
+      elevation: 100,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+      backgroundColor: COLORS.primary,
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+      shadowColor: "#000",
+      shadowOpacity: 0.2,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 3 },
+    },
+    minimizedBannerText: {
+      flex: 1,
+      color: COLORS.white,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.small,
+    },
     activeScreen: {
       flex: 1,
       backgroundColor: COLORS.primary,
@@ -151,11 +236,39 @@ function createStyles(COLORS: ColorPalette) {
       justifyContent: "space-between",
       paddingHorizontal: SPACING.lg,
     },
+    activeHeader: {
+      position: "absolute",
+      right: SPACING.lg,
+      alignItems: "flex-end",
+    },
+    minimizeButton: {
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.full,
+      backgroundColor: "rgba(255, 255, 255, 0.18)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     activeBody: {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
       gap: SPACING.sm,
+    },
+    sentBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: "rgba(255, 255, 255, 0.18)",
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      marginBottom: SPACING.md,
+    },
+    sentBadgeText: {
+      color: COLORS.white,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.caption,
     },
     pulseWrap: {
       width: RING_SIZE,
