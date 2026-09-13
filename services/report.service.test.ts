@@ -1,12 +1,12 @@
+import { File as FileClass } from "expo-file-system";
+
+import { photoFileExists, uploadReportPhoto } from "./report.service";
+
 jest.mock("expo-file-system", () => ({
   File: jest.fn().mockImplementation((uri: string) => ({
     exists: uri === "file:///exists.jpg",
   })),
 }));
-
-import { File as FileClass } from "expo-file-system";
-
-import { photoFileExists, uploadReportPhoto } from "./report.service";
 
 const File = FileClass as unknown as jest.Mock;
 

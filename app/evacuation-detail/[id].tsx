@@ -5,7 +5,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import * as Haptics from "expo-haptics";
 
+import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import {
@@ -44,7 +44,10 @@ const CATEGORY_LABEL: Record<EvacuationCenter["category"], string> = {
   evacuation_center: "Evacuation Center",
 };
 
-const CATEGORY_ICON: Record<EvacuationCenter["category"], keyof typeof Ionicons.glyphMap> = {
+const CATEGORY_ICON: Record<
+  EvacuationCenter["category"],
+  keyof typeof Ionicons.glyphMap
+> = {
   school: "school-outline",
   evacuation_center: "business-outline",
 };
@@ -81,7 +84,11 @@ export default function EvacuationDetailScreen() {
     return (
       <View style={[styles.centerFlex, { paddingTop: insets.top }]}>
         <BackButton onPress={() => router.back()} style={styles.notFoundBack} />
-        <Ionicons name="alert-circle-outline" size={32} color={COLORS.textTertiary} />
+        <Ionicons
+          name="alert-circle-outline"
+          size={32}
+          color={COLORS.textTertiary}
+        />
         <Text style={styles.notFoundTitle}>Center not found</Text>
         <Text style={styles.notFoundText}>
           This evacuation center may no longer be available.
@@ -98,119 +105,145 @@ export default function EvacuationDetailScreen() {
 
   const previewRoute = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.push({ pathname: "/evacuation-detail/navigate", params: { id: center.id } });
+    router.push({
+      pathname: "/evacuation-detail/navigate",
+      params: { id: center.id },
+    });
   };
 
   return (
-    <ScrollView
-      style={styles.flex}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={styles.heroWrap}>
-        {center.photo ? (
-          <Image
-            source={center.photo}
-            style={styles.heroThumb}
-            resizeMode="cover"
+    <View style={styles.screen}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.heroWrap}>
+          {center.photo ? (
+            <Image
+              source={center.photo}
+              style={styles.heroThumb}
+              resizeMode="cover"
+            />
+          ) : (
+            <PlaceholderThumb style={styles.heroThumb} />
+          )}
+          <BackButton
+            onPress={() => router.back()}
+            style={[styles.backButton, { top: insets.top + SPACING.xs }]}
           />
-        ) : (
-          <PlaceholderThumb style={styles.heroThumb} />
-        )}
-        <BackButton
-          onPress={() => router.back()}
-          style={[styles.backButton, { top: insets.top + SPACING.xs }]}
-        />
-      </View>
+        </View>
 
-      <View style={styles.body}>
-        <View style={styles.titleRow}>
-          <Text style={styles.name}>{center.name}</Text>
-          <View
-            style={[
-              styles.statusPill,
-              { backgroundColor: isOpen ? COLORS.successBg : COLORS.primaryTint },
-            ]}
-          >
-            <Text
+        <View style={styles.body}>
+          <View style={styles.titleRow}>
+            <Text style={styles.name}>{center.name}</Text>
+            <View
               style={[
-                styles.statusText,
-                { color: isOpen ? COLORS.success : COLORS.primary },
+                styles.statusPill,
+                {
+                  backgroundColor: isOpen
+                    ? COLORS.successBg
+                    : COLORS.primaryTint,
+                },
               ]}
             >
-              {isOpen ? "Open" : "Full"}
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: isOpen ? COLORS.success : COLORS.primary },
+                ]}
+              >
+                {isOpen ? "Open" : "Full"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.categoryRow}>
+            <Ionicons
+              name={CATEGORY_ICON[center.category]}
+              size={13}
+              color={COLORS.primary}
+            />
+            <Text style={styles.categoryText}>
+              {CATEGORY_LABEL[center.category]}
             </Text>
           </View>
-        </View>
 
-        <View style={styles.categoryRow}>
-          <Ionicons
-            name={CATEGORY_ICON[center.category]}
-            size={13}
-            color={COLORS.primary}
-          />
-          <Text style={styles.categoryText}>{CATEGORY_LABEL[center.category]}</Text>
-        </View>
-
-        <View style={styles.addressRow}>
-          <Ionicons name="location-outline" size={15} color={COLORS.textSecondary} />
-          <Text style={styles.address}>{center.address}</Text>
-        </View>
-
-        <View style={styles.distanceRow}>
-          <Ionicons name="navigate-outline" size={14} color={COLORS.textSecondary} />
-          <Text style={styles.distance}>{center.distanceKm} km away</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Capacity</Text>
-          <View style={styles.capacityCard}>
-            <View style={styles.capacityHeader}>
-              <Text style={styles.capacityValue}>
-                {center.capacity.current} / {center.capacity.max} people
-              </Text>
-              <Text style={styles.capacityPct}>{occupancyPct}% full</Text>
-            </View>
-            <View style={styles.progressTrack}>
-              <LinearGradient
-                colors={isOpen ? [COLORS.tide, COLORS.tide] : [COLORS.primary, COLORS.primaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.progressFill, { width: `${occupancyPct}%` }]}
-              />
-            </View>
+          <View style={styles.addressRow}>
+            <Ionicons
+              name="location-outline"
+              size={15}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.address}>{center.address}</Text>
           </View>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Facilities Available</Text>
-          <View style={styles.facilitiesGrid}>
-            {center.facilities.map((facility) => (
-              <View key={facility} style={styles.facilityChip}>
-                <LinearGradient
-                  colors={COLORS.iconTileGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.facilityIcon}
-                >
-                  <Ionicons
-                    name={FACILITY_ICONS[facility] ?? "checkmark-circle-outline"}
-                    size={15}
-                    color={COLORS.primary}
-                  />
-                </LinearGradient>
-                <Text style={styles.facilityLabel}>{facility}</Text>
+          <View style={styles.distanceRow}>
+            <Ionicons
+              name="navigate-outline"
+              size={14}
+              color={COLORS.textSecondary}
+            />
+            <Text style={styles.distance}>{center.distanceKm} km away</Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Capacity</Text>
+            <View style={styles.capacityCard}>
+              <View style={styles.capacityHeader}>
+                <Text style={styles.capacityValue}>
+                  {center.capacity.current} / {center.capacity.max} people
+                </Text>
+                <Text style={styles.capacityPct}>{occupancyPct}% full</Text>
               </View>
-            ))}
+              <View style={styles.progressTrack}>
+                <LinearGradient
+                  colors={
+                    isOpen
+                      ? [COLORS.tide, COLORS.tide]
+                      : [COLORS.primary, COLORS.primaryDark]
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.progressFill, { width: `${occupancyPct}%` }]}
+                />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Facilities Available</Text>
+            <View style={styles.facilitiesGrid}>
+              {center.facilities.map((facility) => (
+                <View key={facility} style={styles.facilityChip}>
+                  <LinearGradient
+                    colors={COLORS.iconTileGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.facilityIcon}
+                  >
+                    <Ionicons
+                      name={
+                        FACILITY_ICONS[facility] ?? "checkmark-circle-outline"
+                      }
+                      size={15}
+                      color={COLORS.primary}
+                    />
+                  </LinearGradient>
+                  <Text style={styles.facilityLabel}>{facility}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
+      </ScrollView>
 
-        <Pressable style={styles.previewRouteButton} onPress={previewRoute}>
-          <Ionicons name="navigate-outline" size={18} color={COLORS.primary} />
-          <Text style={styles.previewRouteText}>View Route</Text>
-        </Pressable>
+      <View
+        style={[styles.footer, { paddingBottom: insets.bottom + SPACING.sm }]}
+      >
+        <PrimaryButton title="View Route" onPress={previewRoute} />
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -218,202 +251,194 @@ const HERO_HEIGHT = 240;
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  centerFlex: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: COLORS.background,
-    gap: SPACING.xs,
-    paddingHorizontal: SPACING.lg,
-  },
-  notFoundBack: {
-    position: "absolute",
-    left: SPACING.md,
-  },
-  notFoundTitle: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.text,
-    marginTop: SPACING.xs,
-  },
-  notFoundText: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-  },
-  content: {
-    paddingBottom: SPACING.xl,
-  },
-  heroWrap: {
-    ...SHADOW_LG,
-  },
-  heroThumb: {
-    width: "100%",
-    height: HERO_HEIGHT,
-    borderRadius: 0,
-    borderBottomLeftRadius: RADIUS.xl,
-    borderBottomRightRadius: RADIUS.xl,
-  },
-  backButton: {
-    position: "absolute",
-    left: SPACING.md,
-  },
-  body: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.lg,
-    gap: SPACING.xs,
-  },
-  titleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: SPACING.sm,
-  },
-  name: {
-    flex: 1,
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.heading,
-    color: COLORS.text,
-  },
-  statusPill: {
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 4,
-    marginTop: 2,
-  },
-  statusText: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-  },
-  categoryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: SPACING.xs,
-  },
-  categoryText: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.primary,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  addressRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    marginTop: SPACING.xs,
-  },
-  address: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-  },
-  distanceRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  distance: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-  },
-  section: {
-    marginTop: SPACING.lg,
-    gap: SPACING.sm,
-  },
-  sectionLabel: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-    marginLeft: 2,
-  },
-  capacityCard: {
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    padding: SPACING.md,
-    gap: SPACING.sm,
-    ...SHADOW,
-  },
-  capacityHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-  },
-  capacityValue: {
-    fontSize: TYPOGRAPHY.caption,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  capacityPct: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-  },
-  progressTrack: {
-    height: 8,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: RADIUS.full,
-  },
-  facilitiesGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: SPACING.sm,
-  },
-  facilityChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.xs,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    paddingVertical: 6,
-    paddingRight: SPACING.md,
-    paddingLeft: 6,
-    ...SHADOW,
-  },
-  facilityIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  facilityLabel: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  previewRouteButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: SPACING.xs,
-    height: 52,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    backgroundColor: COLORS.background,
-    marginTop: SPACING.md,
-    ...SHADOW,
-  },
-  previewRouteText: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.primary,
-    letterSpacing: 0.3,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    flex: {
+      flex: 1,
+      backgroundColor: COLORS.background,
+    },
+    footer: {
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.sm,
+      backgroundColor: COLORS.background,
+      borderTopWidth: 1,
+      borderTopColor: COLORS.borderMuted,
+    },
+    centerFlex: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.background,
+      gap: SPACING.xs,
+      paddingHorizontal: SPACING.lg,
+    },
+    notFoundBack: {
+      position: "absolute",
+      left: SPACING.md,
+    },
+    notFoundTitle: {
+      fontSize: TYPOGRAPHY.body,
+      fontWeight: "700",
+      color: COLORS.text,
+      marginTop: SPACING.xs,
+    },
+    notFoundText: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+    },
+    content: {
+      paddingBottom: SPACING.xl,
+    },
+    heroWrap: {
+      ...SHADOW_LG,
+    },
+    heroThumb: {
+      width: "100%",
+      height: HERO_HEIGHT,
+      borderRadius: 0,
+      borderBottomLeftRadius: RADIUS.xl,
+      borderBottomRightRadius: RADIUS.xl,
+    },
+    backButton: {
+      position: "absolute",
+      left: SPACING.md,
+    },
+    body: {
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.lg,
+      gap: SPACING.xs,
+    },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      justifyContent: "space-between",
+      gap: SPACING.sm,
+    },
+    name: {
+      flex: 1,
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.heading,
+      color: COLORS.text,
+    },
+    statusPill: {
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 4,
+      marginTop: 2,
+    },
+    statusText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+    },
+    categoryRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      marginTop: SPACING.xs,
+    },
+    categoryText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.primary,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
+    addressRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      marginTop: SPACING.xs,
+    },
+    address: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+    },
+    distanceRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    distance: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+    },
+    section: {
+      marginTop: SPACING.lg,
+      gap: SPACING.sm,
+    },
+    sectionLabel: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      marginLeft: 2,
+    },
+    capacityCard: {
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      padding: SPACING.md,
+      gap: SPACING.sm,
+      ...SHADOW,
+    },
+    capacityHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+    },
+    capacityValue: {
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "700",
+      color: COLORS.text,
+    },
+    capacityPct: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+    },
+    progressTrack: {
+      height: 8,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.surface,
+      overflow: "hidden",
+    },
+    progressFill: {
+      height: "100%",
+      borderRadius: RADIUS.full,
+    },
+    facilitiesGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: SPACING.sm,
+    },
+    facilityChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.full,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      paddingVertical: 6,
+      paddingRight: SPACING.md,
+      paddingLeft: 6,
+      ...SHADOW,
+    },
+    facilityIcon: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    facilityLabel: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.text,
+    },
   });
 }

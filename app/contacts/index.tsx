@@ -16,41 +16,68 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
 import ContactRow from "@/components/contacts/ContactRow";
-import {
-  getHotlines,
-  getMyContacts,
-  type Contact,
-  type Hotline,
-} from "@/services/contacts.service";
+import { getHotlines, type Hotline } from "@/services/contacts.service";
 import {
   useThemeColors,
   FONT_FAMILY,
   RADIUS,
   SHADOW,
-  SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
   type ColorPalette,
 } from "@/theme";
 
-// Local hotline agencies -> their real photo, shown in place of a generic
-// icon in the Local Hotlines list. Keyed by Hotline.id from
-// services/contacts.service.ts.
-const HOTLINE_IMAGES: Record<string, ImageSourcePropType> = {
-  pnp: require("@/assets/images/pulis.jpg"),
-  bfp: require("@/assets/images/bfp.jpg"),
-  "coast-guard": require("@/assets/images/coastguard.png"),
-  "disaster-office": require("@/assets/images/mdrrmo.png"),
+// Each hotline's agency -> its real-world role, expressed as an icon +
+// accent color (ambulance/rescue amber, police navy, fire red, coast guard
+// blue, medical green) instead of one generic call icon for every row.
+// Keyed by Hotline.id from services/contacts.service.ts.
+const HOTLINE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  mdrrmo: "medkit-outline",
+  police: "shield-checkmark-outline",
+  bfp: "flame-outline",
+  "coast-guard": "boat-outline",
+  "health-center": "medical-outline",
+  "red-cross": "heart-outline",
 };
 
-// Each agency's real-world designated color -- the same "colored left
-// border on a neutral card" accent used on the home screen's
-// EvacuationCenterCard, applied here per hotline row.
 const HOTLINE_ACCENT_COLORS: Record<string, string> = {
-  pnp: "#1E3A8A",
+  mdrrmo: "#F59E0B",
+  police: "#1E3A8A",
   bfp: "#DC2626",
   "coast-guard": "#0369A1",
-  "disaster-office": "#F59E0B",
+  "health-center": "#16A34A",
+  "red-cross": "#DC2626",
+};
+
+// Official agency seals, shown in place of the icon tile.
+const HOTLINE_IMAGES: Record<string, ImageSourcePropType> = {
+  mdrrmo: require("@/assets/images/mdrrmo.png"),
+  police: require("@/assets/images/police.png"),
+  bfp: require("@/assets/images/bfp.png"),
+  "coast-guard": require("@/assets/images/coastguard.png"),
+  "health-center": require("@/assets/images/health-center.png"),
+  "red-cross": require("@/assets/images/red-cross.png"),
+};
+
+// Groups hotlines by the kind of emergency they respond to, so the list
+// reads as scannable sections instead of one flat stack. Order here is the
+// display order.
+type CategoryKey = "police" | "fire" | "medical" | "maritime";
+
+const CATEGORIES: { key: CategoryKey; label: string; color: string }[] = [
+  { key: "police", label: "Police & Safety", color: "#1E3A8A" },
+  { key: "fire", label: "Fire & Rescue", color: "#DC2626" },
+  { key: "medical", label: "Medical & Health", color: "#16A34A" },
+  { key: "maritime", label: "Maritime", color: "#0369A1" },
+];
+
+const HOTLINE_CATEGORY: Record<string, CategoryKey> = {
+  police: "police",
+  bfp: "fire",
+  mdrrmo: "medical",
+  "health-center": "medical",
+  "red-cross": "medical",
+  "coast-guard": "maritime",
 };
 
 export default function ContactsScreen() {
@@ -59,22 +86,29 @@ export default function ContactsScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [hotlines, setHotlines] = useState<Hotline[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([getHotlines(), getMyContacts()]).then(
-      ([loadedHotlines, loadedContacts]) => {
-        setHotlines(loadedHotlines);
-        setContacts(loadedContacts);
-        setIsLoading(false);
-      },
-    );
+    getHotlines().then((loadedHotlines) => {
+      setHotlines(loadedHotlines);
+      setIsLoading(false);
+    });
   }, []);
+
+  const groupedHotlines = useMemo(
+    () =>
+      CATEGORIES.map((category) => ({
+        ...category,
+        hotlines: hotlines.filter((h) => HOTLINE_CATEGORY[h.id] === category.key),
+      })).filter((group) => group.hotlines.length > 0),
+    [hotlines],
+  );
 
   const callNumber = (number: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    void Linking.openURL(`tel:${number.replace(/[^+\d]/g, "")}`);
+    // Some rows list more than one number ("A / B") -- dial the primary one.
+    const primary = number.split("/")[0];
+    void Linking.openURL(`tel:${primary.replace(/[^+\d]/g, "")}`);
   };
 
   return (
@@ -88,19 +122,65 @@ export default function ContactsScreen() {
     >
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} style={styles.backButton} />
-        <Text style={styles.headerTitle}>Emergency Contacts</Text>
+        <Text style={styles.headerTitle}>Emergency Hotlines</Text>
       </View>
 
-      <View style={styles.hero}>
-        <View style={[styles.heroIcon, { backgroundColor: COLORS.primary }]}>
-          <Ionicons name="call" size={22} color={COLORS.white} />
+      <View style={styles.heroCard}>
+        <View style={[styles.heroIcon, { backgroundColor: COLORS.primaryTint }]}>
+          <Ionicons name="call" size={18} color={COLORS.primary} />
         </View>
-        <Text style={styles.eyebrow}>CORDOVA RESPONSE NETWORK</Text>
-        <Text style={styles.title}>Help is closer than you think.</Text>
-        <Text style={styles.subtitle}>
-          Reach the right team quickly. Tap any number to call.
-        </Text>
+        <View style={styles.heroCopy}>
+          <Text style={styles.heroTitle}>One tap connects you to help</Text>
+          <Text style={styles.heroSubtitle}>
+            Official Cordova responders, ready when you need them.
+          </Text>
+        </View>
       </View>
+
+      <View style={styles.sectionHeading}>
+        <Text style={styles.sectionTitle}>Official Cordova Hotlines</Text>
+        <View style={styles.available}>
+          <View style={styles.availableDot} />
+          <Text style={styles.availableText}>Available</Text>
+        </View>
+      </View>
+
+      {isLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={COLORS.primary} />
+        </View>
+      ) : (
+        <View style={styles.categoryList}>
+          {groupedHotlines.map((group) => (
+            <View key={group.key} style={styles.categoryBlock}>
+              <View style={styles.categoryHeading}>
+                <Text style={[styles.categoryLabel, { color: group.color }]}>
+                  {group.label}
+                </Text>
+              </View>
+              <View style={styles.card}>
+                {group.hotlines.map((hotline, index) => (
+                  <View
+                    key={hotline.id}
+                    style={
+                      index < group.hotlines.length - 1 ? styles.rowDivider : undefined
+                    }
+                  >
+                    <ContactRow
+                      icon={HOTLINE_ICONS[hotline.id] ?? "call-outline"}
+                      accentColor={HOTLINE_ACCENT_COLORS[hotline.id] ?? COLORS.primary}
+                      image={HOTLINE_IMAGES[hotline.id]}
+                      name={hotline.name}
+                      number={hotline.number}
+                      onPress={() => callNumber(hotline.number)}
+                    />
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
 
       <Pressable
         style={({ pressed }) => [styles.sosBanner, pressed && styles.pressed]}
@@ -120,73 +200,6 @@ export default function ContactsScreen() {
         </View>
         <Ionicons name="arrow-forward" size={18} color={COLORS.primary} />
       </Pressable>
-
-      <View style={styles.sectionHeading}>
-        <Text style={styles.sectionTitle}>Local Hotlines</Text>
-        <View style={styles.available}>
-          <View style={styles.availableDot} />
-          <Text style={styles.availableText}>Available</Text>
-        </View>
-      </View>
-
-      {isLoading ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={COLORS.primary} />
-        </View>
-      ) : (
-        <View style={styles.card}>
-          {hotlines.map((hotline, index) => (
-            <View
-              key={hotline.id}
-              style={index < hotlines.length - 1 ? styles.rowDivider : undefined}
-            >
-              <ContactRow
-                image={HOTLINE_IMAGES[hotline.id]}
-                accentColor={HOTLINE_ACCENT_COLORS[hotline.id]}
-                icon="call-outline"
-                iconTint="primary"
-                name={hotline.name}
-                number={hotline.number}
-                onPress={() => callNumber(hotline.number)}
-              />
-            </View>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.sectionHeading}>
-        <Text style={styles.sectionTitle}>My Trusted Contacts</Text>
-        <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.tide} />
-      </View>
-
-      {contacts.length > 0 ? (
-        <View style={styles.card}>
-          {contacts.map((contact, index) => (
-            <View
-              key={contact.id}
-              style={index < contacts.length - 1 ? styles.rowDivider : undefined}
-            >
-              <ContactRow
-                icon="person-outline"
-                iconTint="tide"
-                name={contact.name}
-                number={contact.number}
-                onPress={() => callNumber(contact.number)}
-              />
-            </View>
-          ))}
-        </View>
-      ) : (
-        <View style={styles.emptyState}>
-          <Ionicons name="person-add-outline" size={24} color={COLORS.textTertiary} />
-          <Text style={styles.emptyText}>No trusted contacts yet.</Text>
-        </View>
-      )}
-
-      <Text style={styles.disclaimer}>
-        Keep your trusted contacts updated so someone you know can be reached
-        when it matters.
-      </Text>
     </ScrollView>
   );
 }
@@ -199,7 +212,7 @@ function createStyles(COLORS: ColorPalette) {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.xs,
+    marginBottom: -10,
   },
   backButton: {
     position: "absolute",
@@ -210,34 +223,33 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.subtitle,
     color: COLORS.text,
   },
-  hero: { paddingTop: SPACING.xs, paddingBottom: SPACING.sm },
+  heroCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    padding: SPACING.md,
+  },
   heroIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: SPACING.md,
-    ...SHADOW_LG,
   },
-  eyebrow: {
-    color: COLORS.primary,
-    fontSize: 11,
-    fontWeight: "800",
-    letterSpacing: 1.1,
-    marginBottom: SPACING.xs,
-  },
-  title: {
-    fontFamily: FONT_FAMILY.display,
+  heroCopy: { flex: 1, gap: 2 },
+  heroTitle: {
     color: COLORS.text,
-    fontSize: TYPOGRAPHY.title,
-    lineHeight: 36,
-  },
-  subtitle: {
-    color: COLORS.textSecondary,
     fontSize: TYPOGRAPHY.caption,
-    lineHeight: 22,
-    marginTop: SPACING.sm,
+    fontWeight: "800",
+  },
+  heroSubtitle: {
+    color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.small,
+    lineHeight: 18,
   },
   sosBanner: {
     backgroundColor: COLORS.primaryTint,
@@ -294,6 +306,17 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
   },
+  categoryList: { gap: SPACING.lg },
+  categoryBlock: { gap: SPACING.xs + 2 },
+  categoryHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 2,
+  },
+  categoryLabel: {
+    fontSize: TYPOGRAPHY.caption,
+    fontWeight: "800",
+  },
   card: {
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
@@ -307,24 +330,5 @@ function createStyles(COLORS: ColorPalette) {
     borderBottomColor: COLORS.borderMuted,
   },
   loading: { height: 140, alignItems: "center", justifyContent: "center" },
-  emptyState: {
-    alignItems: "center",
-    gap: SPACING.xs,
-    paddingVertical: SPACING.lg,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-  },
-  emptyText: {
-    color: COLORS.textSecondary,
-    fontSize: TYPOGRAPHY.small,
-  },
-  disclaimer: {
-    color: COLORS.textTertiary,
-    fontSize: TYPOGRAPHY.small,
-    lineHeight: 19,
-    textAlign: "center",
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.xs,
-  },
   });
 }

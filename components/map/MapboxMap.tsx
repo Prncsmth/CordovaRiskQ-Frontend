@@ -192,7 +192,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
             zoom: typeof nextZoom === "number" ? nextZoom : currentZoomRef.current,
           });
         }}
-      >e
+      >
         <Camera
           ref={cameraRef}
           defaultSettings={{
@@ -208,7 +208,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           <ShapeSource id="cordova-boundary" shape={cordovaBoundary as any}>
             <FillLayer
               id="cordova-boundary-fill"
-              style={{ fillColor: COLORS.tide, fillOpacity: 0.12 }}
+              style={{ fillColor: COLORS.tide, fillOpacity: 0.06 }}
             />
             <LineLayer
               id="cordova-boundary-outline"
