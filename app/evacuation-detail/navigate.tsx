@@ -1,10 +1,9 @@
 // app/evacuation-detail/navigate.tsx
-// Full-screen route preview, opened from the "Preview Route" button on an
+// Full-screen route preview, opened from the "View Route" button on an
 // evacuation center's detail screen. Shows the real walking route from the
 // citizen's current location to the center (via useRoute()/directions.service.ts,
 // falling back to a straight line while loading or on failure). This is a
-// quick in-app glance, not turn-by-turn navigation -- "GET DIRECTIONS" on the
-// detail screen still opens the device's native Maps app for that.
+// quick in-app glance, not turn-by-turn navigation.
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -64,6 +63,8 @@ export default function EvacuationNavigateScreen() {
     latitude: (citizenCoords.latitude + center.latitude) / 2,
     longitude: (citizenCoords.longitude + center.longitude) / 2,
   };
+  const isOpen = center.status === "open";
+  const statusColor = isOpen ? COLORS.success : COLORS.danger;
 
   return (
     <View style={styles.screen}>
@@ -78,9 +79,9 @@ export default function EvacuationNavigateScreen() {
         zoom={14}
         showLayerSwitcher
         markers={[
-          { id: "citizen", ...citizenCoords, color: COLORS.secondary, icon: "logo" },
-          { id: "center", latitude: center.latitude, longitude: center.longitude, color: COLORS.primary },
+          { id: "center", latitude: center.latitude, longitude: center.longitude, color: statusColor },
         ]}
+        userLocation={citizenCoords}
         polylines={[
           {
             points: route ? route.coordinates : [citizenCoords, { latitude: center.latitude, longitude: center.longitude }],
@@ -100,10 +101,10 @@ export default function EvacuationNavigateScreen() {
       <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>
         <View style={styles.topCardHeader}>
           <LinearGradient
-            colors={[COLORS.primary, COLORS.primaryDark]}
+            colors={[statusColor, statusColor]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.infoIcon, { shadowColor: COLORS.primary }]}
+            style={[styles.infoIcon, { shadowColor: statusColor }]}
           >
             <Ionicons name="home" size={16} color={COLORS.white} />
           </LinearGradient>

@@ -1,5 +1,7 @@
 // services/report.service.ts
-import { apiGet, apiPost } from "./api";
+import { File } from "expo-file-system";
+
+import { API_BASE_URL, apiGet, apiPost } from "./api";
 import { CATEGORY_LABELS, type CategoryId } from "@/components/report/categories";
 import { formatDate } from "@/utils/formatter";
 
@@ -11,6 +13,59 @@ type IncidentApiRow = {
   createdAt: string;
 };
 
+export function photoFileExists(uri: string): boolean {
+  try {
+    return new File(uri).exists;
+  } catch {
+    return false;
+  }
+}
+
+function guessPhotoMimeType(fileName: string): string {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "png":
+      return "image/png";
+    case "heic":
+      return "image/heic";
+    case "webp":
+      return "image/webp";
+    default:
+      return "image/jpeg";
+  }
+}
+
+// Contract assumed pending backend confirmation — see
+// docs/superpowers/specs/2026-09-12-report-photo-evidence-design.md.
+// Until the backend implements this route, calls here fail (404/network
+// error), which correctly drives the "upload failed" UI path rather than
+// silently pretending success.
+export async function uploadReportPhoto(
+  token: string,
+  uri: string,
+  fileName: string,
+): Promise<{ photoUrl: string }> {
+  const formData = new FormData();
+  formData.append("photo", {
+    uri,
+    name: fileName,
+    type: guessPhotoMimeType(fileName),
+  } as unknown as Blob);
+
+  const response = await fetch(`${API_BASE_URL}/api/incidents/photo`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Photo upload failed with status ${response.status}`);
+  }
+
+  const data = (await response.json()) as { success: true; photoUrl: string };
+  return { photoUrl: data.photoUrl };
+}
+
 export async function createReport(
   token: string,
   payload: {
@@ -21,6 +76,7 @@ export async function createReport(
     longitude: number;
     reporterLatitude: number;
     reporterLongitude: number;
+    photoUrl?: string;
   },
 ) {
   const response = await apiPost<{ success: true; incident: IncidentApiRow }>(

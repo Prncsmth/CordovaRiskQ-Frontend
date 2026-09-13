@@ -15,7 +15,7 @@ import GeofenceBlockedModal from "@/components/common/GeofenceBlockedModal";
 import type { CategoryId } from "@/components/report/categories";
 import CategoryGrid from "@/components/report/CategoryGrid";
 import DetailsInput from "@/components/report/DetailsInput";
-import PhotoPicker from "@/components/report/PhotoPicker";
+import PhotoPicker, { type SelectedPhoto } from "@/components/report/PhotoPicker";
 import PinnedLocationCard from "@/components/report/PinnedLocationCard";
 import ReportFirstTimeGuide from "@/components/tour/ReportFirstTimeGuide";
 import {
@@ -26,7 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import * as authStorage from "@/context/authStorage";
 import { useReportLocation } from "@/context/ReportLocationContext";
 import { getCurrentLocation, getVerifiedLocation } from "@/services/location.service";
-import { createReport } from "@/services/report.service";
+import { createReport, photoFileExists, uploadReportPhoto } from "@/services/report.service";
 import {
     FONT_FAMILY,
     SPACING,
@@ -52,11 +52,11 @@ export default function ReportScreen() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [details, setDetails] = useState("");
-  const [photoAttached, setPhotoAttached] = useState(false);
+  const [photo, setPhoto] = useState<SelectedPhoto | null>(null);
   const { location: pinnedLocation } = useReportLocation();
   const [gpsLocation, setGpsLocation] = useState(FALLBACK_LOCATION);
   const [showReportGuide, setShowReportGuide] = useState(false);
-  const [submitPhase, setSubmitPhase] = useState<"idle" | "locating" | "submitting">("idle");
+  const [submitPhase, setSubmitPhase] = useState<"idle" | "locating" | "uploading-photo" | "submitting">("idle");
   const [geofenceModal, setGeofenceModal] = useState<"none" | "reporting-unavailable" | "permission-required">("none");
   const reportScrollRef = useRef<ScrollView>(null);
   const categoryTargetRef = useRef<View>(null);
@@ -136,6 +136,24 @@ export default function ReportScreen() {
         return;
       }
 
+      let photoUrl: string | undefined;
+      if (photo) {
+        setSubmitPhase("uploading-photo");
+        if (!photoFileExists(photo.uri)) {
+          setSubmitPhase("idle");
+          Alert.alert("Photo upload failed", "Please try again or remove the photo.");
+          return;
+        }
+        try {
+          const uploaded = await uploadReportPhoto(token, photo.uri, photo.fileName);
+          photoUrl = uploaded.photoUrl;
+        } catch {
+          setSubmitPhase("idle");
+          Alert.alert("Photo upload failed", "Please try again or remove the photo.");
+          return;
+        }
+      }
+
       setSubmitPhase("submitting");
       try {
         const submitResult = await createReport(token, {
@@ -146,6 +164,7 @@ export default function ReportScreen() {
           longitude: activeLocation.longitude,
           reporterLatitude: result.coords.latitude,
           reporterLongitude: result.coords.longitude,
+          photoUrl,
         });
         router.push({
           pathname: "/report-confirmation",
@@ -211,13 +230,17 @@ export default function ReportScreen() {
             <Text style={styles.optionalTag}>Optional</Text>
           </View>
           <PhotoPicker
-            attached={photoAttached}
-            onToggle={() => setPhotoAttached((value) => !value)}
+            photo={photo}
+            onSelect={setPhoto}
+            onRemove={() => setPhoto(null)}
           />
         </View>
         <View ref={submitTargetRef} collapsable={false}>
           {submitPhase === "locating" && (
             <Text style={styles.locatingCaption}>Getting your accurate location...</Text>
+          )}
+          {submitPhase === "uploading-photo" && (
+            <Text style={styles.locatingCaption}>Uploading photo...</Text>
           )}
           <PrimaryButton
             title="Submit Report"

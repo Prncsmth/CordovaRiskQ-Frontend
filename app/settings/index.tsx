@@ -132,7 +132,7 @@ export default function SettingsScreen() {
     {
       key: "emergency-contacts",
       icon: "call-outline",
-      label: "Emergency Contacts",
+      label: "Emergency Hotlines",
       onPress: () => router.push("/contacts"),
     },
     ...(isResponder

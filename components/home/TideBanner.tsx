@@ -32,7 +32,18 @@ function getLevelDotColor(COLORS: ColorPalette, level: TideLevel | null): string
 function getLevelTextColor(COLORS: ColorPalette, level: TideLevel | null): string {
   if (level === "warning") return COLORS.danger;
   if (level === "watch") return COLORS.warning;
+  if (level === "normal") return COLORS.tideCardAccent;
   return COLORS.white;
+}
+
+// The card's own background follows the same alert color as the headline
+// text, but as a dark muted tint rather than the bright highlight color --
+// keeps every other white/near-white label on the card legible while still
+// reading as "this card is currently in a watch/warning state."
+function getCardBackground(COLORS: ColorPalette, level: TideLevel | null): string {
+  if (level === "warning") return COLORS.tideCardBgWarning;
+  if (level === "watch") return COLORS.tideCardBgWatch;
+  return COLORS.tideCardBg;
 }
 
 export default function TideBanner({
@@ -56,7 +67,10 @@ export default function TideBanner({
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.card} onLayout={handleLayout}>
+      <View
+        style={[styles.card, { backgroundColor: getCardBackground(COLORS, level) }]}
+        onLayout={handleLayout}
+      >
         <TideCardBackground width={cardSize.width} height={cardSize.height} />
 
         <View style={styles.topRow}>
@@ -98,7 +112,6 @@ function createStyles(COLORS: ColorPalette) {
       ...SHADOW,
     },
     card: {
-      backgroundColor: COLORS.tideCardBg,
       borderRadius: RADIUS.xl,
       padding: SPACING.lg,
       overflow: "hidden",

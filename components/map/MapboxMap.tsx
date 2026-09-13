@@ -72,6 +72,11 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
     let mounted = true;
 
     try {
+      // Must stay a synchronous require() inside this try/catch: a static import
+      // is hoisted and evaluated eagerly, so it would throw at module-load time
+      // (crashing Expo Go, where @rnmapbox/maps isn't available) instead of being
+      // caught here.
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const module = require("@rnmapbox/maps");
       const mapboxModule = (module as any).default ? (module as any).default : module;
       const setAccessTokenFn =
@@ -203,7 +208,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           <ShapeSource id="cordova-boundary" shape={cordovaBoundary as any}>
             <FillLayer
               id="cordova-boundary-fill"
-              style={{ fillColor: COLORS.tide, fillOpacity: 0.12 }}
+              style={{ fillColor: COLORS.tide, fillOpacity: 0.06 }}
             />
             <LineLayer
               id="cordova-boundary-outline"

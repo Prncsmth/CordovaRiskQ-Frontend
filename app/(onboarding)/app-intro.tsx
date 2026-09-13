@@ -52,6 +52,9 @@ export default function AppIntroScreen() {
   const actionOpacity = useSharedValue(0);
 
   const playEntranceAnimation = useCallback(() => {
+    // Reanimated shared values are mutable refs by design; react-hooks/immutability
+    // doesn't know about them and flags every `.value` assignment as a state mutation.
+    /* eslint-disable react-hooks/immutability */
     visualOpacity.value = 0;
     visualScale.value = 0.82;
     contentOpacity.value = 0;
@@ -72,6 +75,7 @@ export default function AppIntroScreen() {
       withSpring(0, { damping: 14, stiffness: 120 }),
     );
     actionOpacity.value = withDelay(380, withTiming(1, { duration: 380 }));
+    /* eslint-enable react-hooks/immutability */
   }, [
     actionOpacity,
     contentOpacity,

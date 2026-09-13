@@ -70,14 +70,16 @@ function CategoryCard({
           onSelect(category.id);
         }}
         onPressIn={() => {
+          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(0.96, { duration: 100 });
         }}
         onPressOut={() => {
+          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
         <View style={[styles.iconCircle, { backgroundColor: `${category.color}1A` }]}>
-          <Ionicons name={category.icon} size={24} color={category.color} />
+          <Ionicons name={category.icon} size={18} color={category.color} />
         </View>
         <Text style={[styles.label, { color: category.color }]}>
           {category.label}
@@ -105,25 +107,25 @@ function createStyles(COLORS: ColorPalette) {
   },
   card: {
     backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.borderMuted,
-    borderLeftWidth: 4,
-    paddingVertical: SPACING.md,
+    borderLeftWidth: 3,
+    paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.sm,
     alignItems: "center",
     ...SHADOW,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
+    width: 36,
+    height: 36,
     borderRadius: RADIUS.full,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: SPACING.xs,
   },
   label: {
-    fontSize: TYPOGRAPHY.caption,
+    fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
     textAlign: "center",
   },

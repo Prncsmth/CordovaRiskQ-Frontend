@@ -19,6 +19,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
+import { isInsideCordova } from "@/utils/geofence";
 
 type PinnedLocationCardProps = {
   address: string;
@@ -26,7 +27,7 @@ type PinnedLocationCardProps = {
   longitude: number;
 };
 
-const MAP_HEIGHT = 170;
+const MAP_HEIGHT = 210;
 
 export default function PinnedLocationCard({
   address,
@@ -36,6 +37,7 @@ export default function PinnedLocationCard({
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const withinCordova = isInsideCordova(latitude, longitude);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -49,9 +51,11 @@ export default function PinnedLocationCard({
           router.push("/(tabs)/map");
         }}
         onPressIn={() => {
+          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(0.98, { duration: 100 });
         }}
         onPressOut={() => {
+          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(1, { duration: 100 });
         }}
         style={styles.wrap}
@@ -66,6 +70,29 @@ export default function PinnedLocationCard({
           markers={[{ id: "pin", latitude, longitude, color: COLORS.primary }]}
         />
 
+        <View
+          style={[
+            styles.geofenceBadge,
+            {
+              backgroundColor: withinCordova ? COLORS.successBg : COLORS.warningBg,
+            },
+          ]}
+        >
+          <Ionicons
+            name={withinCordova ? "checkmark-circle" : "alert-circle"}
+            size={12}
+            color={withinCordova ? COLORS.success : COLORS.warning}
+          />
+          <Text
+            style={[
+              styles.geofenceBadgeText,
+              { color: withinCordova ? COLORS.success : COLORS.warning },
+            ]}
+          >
+            {withinCordova ? "Within Cordova" : "Outside Cordova"}
+          </Text>
+        </View>
+
         <View style={styles.changeBadge}>
           <Ionicons name="create-outline" size={13} color={COLORS.white} />
           <Text style={styles.changeText}>Change</Text>
@@ -73,7 +100,7 @@ export default function PinnedLocationCard({
       </View>
 
       <View style={styles.addressRow}>
-        <Ionicons name="location" size={14} color={COLORS.primary} />
+        <Ionicons name="location" size={15} color={COLORS.primary} />
         <Text style={styles.caption}>{address}</Text>
         <View style={styles.autoBadge}>
           <Text style={styles.autoBadgeText}>Auto-detected</Text>
@@ -87,18 +114,37 @@ export default function PinnedLocationCard({
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
   wrap: {
-    borderRadius: RADIUS.lg,
+    borderRadius: RADIUS.xl,
     backgroundColor: COLORS.background,
-    padding: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.primaryLight,
+    padding: SPACING.md,
     ...SHADOW_LG,
+  },
+  geofenceBadge: {
+    position: "absolute",
+    top: SPACING.sm,
+    left: SPACING.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: 5,
+  },
+  geofenceBadgeText: {
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "700",
   },
   mapBox: {
     height: MAP_HEIGHT,
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
   },
   map: {
     ...StyleSheet.absoluteFill,
@@ -123,15 +169,15 @@ function createStyles(COLORS: ColorPalette) {
   addressRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     paddingHorizontal: SPACING.xs,
-    paddingTop: SPACING.sm,
+    paddingTop: SPACING.md,
     paddingBottom: SPACING.xs,
   },
   caption: {
     flex: 1,
     fontFamily: FONT_FAMILY.displaySemibold,
-    fontSize: TYPOGRAPHY.caption,
+    fontSize: TYPOGRAPHY.body,
     color: COLORS.text,
   },
   autoBadge: {
