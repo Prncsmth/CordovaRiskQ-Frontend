@@ -222,7 +222,7 @@ export default function ReportScreen() {
         </View>
         <View ref={detailsTargetRef} collapsable={false} style={styles.section}>
           <Text style={styles.sectionHeading}>Details</Text>
-          <DetailsInput value={details} onChangeText={setDetails} />
+          <DetailsInput value={details} onChangeText={setDetails} category={category} />
         </View>
         <View style={styles.section}>
           <View style={styles.sectionHeadingRow}>

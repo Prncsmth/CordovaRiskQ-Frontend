@@ -27,7 +27,7 @@ type PinnedLocationCardProps = {
   longitude: number;
 };
 
-const MAP_HEIGHT = 210;
+const MAP_HEIGHT = 100;
 
 export default function PinnedLocationCard({
   address,

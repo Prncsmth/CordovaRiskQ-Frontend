@@ -19,6 +19,16 @@ export const CATEGORIES: Category[] = [
   { id: "other", label: "Other", icon: "ellipsis-horizontal-circle", color: "#6B7280" },
 ];
 
+// Tappable starter phrases shown above the Details input once a category is
+// picked -- gives a quick starting point instead of a blank textarea.
+export const DETAIL_SUGGESTIONS: Record<CategoryId, string[]> = {
+  flood: ["Flooding on the road", "Water is rising", "Road is impassable"],
+  fire: ["Fire spreading", "Heavy smoke", "House is on fire"],
+  medical: ["Person is injured", "Person needs medical help", "Unconscious person"],
+  "road-accident": ["Vehicle collision", "Person is injured", "Road is blocked"],
+  other: ["Emergency situation", "Need immediate assistance", "Area is unsafe"],
+};
+
 export function getCategory(id: CategoryId): Category {
   const category = CATEGORIES.find((c) => c.id === id);
   if (!category) {

@@ -72,7 +72,11 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   if (stage === "active") return null;
 
   const activeName = state.routes[state.index].name;
-  const fabFocused = activeName === "report";
+
+  // The report screen is its own focused flow (no navigation away from it
+  // makes sense mid-form) -- hiding the bar here matches the SOS "active"
+  // hide above and frees up the full screen for the form.
+  if (activeName === "report") return null;
 
   function renderTab(tab: TabConfig) {
     const focused = activeName === tab.name;
@@ -142,13 +146,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
               <Ionicons name="document-text" size={26} color={COLORS.white} />
             </LinearGradient>
           </TouchableOpacity>
-          <Text
-            style={[
-              styles.label,
-              styles.fabLabel,
-              { color: fabFocused ? COLORS.primary : COLORS.textTertiary },
-            ]}
-          >
+          <Text style={[styles.label, styles.fabLabel, { color: COLORS.textTertiary }]}>
             Report
           </Text>
         </View>
