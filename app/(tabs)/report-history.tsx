@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -31,9 +31,16 @@ export default function ReportHistoryScreen() {
       .finally(() => setLoaded(true));
   }, [token]);
 
-  useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+  // The tab stays mounted for the app's lifetime (no unmountOnBlur), so a
+  // plain mount-once effect would never pick up a status change made
+  // elsewhere (e.g. cancelling an SOS alert) until the app restarts --
+  // refetch every time this tab regains focus instead, the same pattern
+  // already used for other data that can change off-screen (see home.tsx).
+  useFocusEffect(
+    useCallback(() => {
+      loadReports();
+    }, [loadReports]),
+  );
 
   return (
     <ScrollView
