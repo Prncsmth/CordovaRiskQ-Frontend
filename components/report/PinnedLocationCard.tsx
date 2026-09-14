@@ -48,7 +48,7 @@ export default function PinnedLocationCard({
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push("/(tabs)/map");
+          router.push({ pathname: "/(tabs)/map", params: { intent: "change-location" } });
         }}
         onPressIn={() => {
           // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -12,6 +12,7 @@ import AppMap, {
     type MapMarker,
     type MapUserLocation,
 } from "@/components/map/AppMap";
+import ConfirmLocationDialog from "@/components/map/ConfirmLocationDialog";
 import LocateButton from "@/components/map/LocateButton";
 import MapLegend from "@/components/map/MapLegend";
 import PinButton from "@/components/map/PinButton";
@@ -52,6 +53,8 @@ const MAP_GUIDE_SEEN_KEY = "map_guide_seen_users";
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { intent } = useLocalSearchParams<{ intent?: string }>();
+  const isChangingLocation = intent === "change-location";
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { user } = useAuth();
@@ -75,6 +78,11 @@ export default function MapScreen() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [pendingPoint, setPendingPoint] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+  } | null>(null);
   const [showMapGuide, setShowMapGuide] = useState(false);
   const [showOutsideCordovaToast, setShowOutsideCordovaToast] = useState(false);
   const [pinButtonLoading, setPinButtonLoading] = useState(false);
@@ -84,6 +92,7 @@ export default function MapScreen() {
   const outsideStreakRef = useRef(0);
   const wasOutsideRef = useRef(false);
   const pinModeInFlightRef = useRef(false);
+  const autoStartHandledRef = useRef(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -279,6 +288,17 @@ export default function MapScreen() {
     }
   };
 
+  // Arriving here specifically to change an already-set report location (via
+  // the Pinned Location card's "Change" button) skips the extra tap on the
+  // pin button -- there's nothing left to explain beyond "tap the map",
+  // which the hint banner below already covers.
+  useEffect(() => {
+    if (!isChangingLocation || autoStartHandledRef.current) return;
+    autoStartHandledRef.current = true;
+    handleTogglePinMode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isChangingLocation]);
+
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
     if (!pinMode) return;
 
@@ -290,14 +310,14 @@ export default function MapScreen() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setPickedPoint(coords);
+    setPinMode(false);
 
     const nearest = getNearestBarangay(coords.latitude, coords.longitude);
-    setReportLocation({
-      address: `Near Barangay ${nearest.name}, Cordova`,
+    setPendingPoint({
       latitude: coords.latitude,
       longitude: coords.longitude,
+      address: `Near Barangay ${nearest.name}, Cordova`,
     });
-    setPinMode(false);
 
     // Upgrade to a full street-level address in the background so a
     // responder knows exactly which part of the barangay to go to -- falls
@@ -307,12 +327,31 @@ export default function MapScreen() {
     const requestId = ++pinRequestIdRef.current;
     reverseGeocode(coords).then((address) => {
       if (!address || pinRequestIdRef.current !== requestId) return;
-      setReportLocation({
-        address,
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-      });
+      setPendingPoint((prev) =>
+        prev && prev.latitude === coords.latitude && prev.longitude === coords.longitude
+          ? { ...prev, address }
+          : prev,
+      );
     });
+  };
+
+  const handleConfirmLocation = () => {
+    if (!pendingPoint) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setReportLocation({
+      address: pendingPoint.address,
+      latitude: pendingPoint.latitude,
+      longitude: pendingPoint.longitude,
+    });
+    setPendingPoint(null);
+    router.push("/(tabs)/report");
+  };
+
+  const handleChooseAgain = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPendingPoint(null);
+    setPickedPoint(null);
+    setPinMode(true);
   };
 
   const markers: MapMarker[] = [
@@ -368,7 +407,9 @@ export default function MapScreen() {
             >
               <Ionicons name="location" size={15} color={COLORS.primary} />
               <Text style={styles.pinHintText}>
-                Tap the map to mark the emergency location
+                {isChangingLocation
+                  ? "Tap your exact location on the map to update it"
+                  : "Tap the map to mark the emergency location"}
               </Text>
             </BlurView>
           </View>
@@ -447,6 +488,14 @@ export default function MapScreen() {
           handleTogglePinMode();
         }}
       />
+
+      {pendingPoint && (
+        <ConfirmLocationDialog
+          address={pendingPoint.address}
+          onConfirm={handleConfirmLocation}
+          onChooseAgain={handleChooseAgain}
+        />
+      )}
     </View>
   );
 }
