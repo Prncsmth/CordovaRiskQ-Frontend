@@ -42,6 +42,10 @@ export type MapEngineProps = {
   interactive?: boolean;
   showLayerSwitcher?: boolean;
   showCordovaBoundary?: boolean;
+  // Pushes the layer-switcher button down by this many px -- for screens
+  // where the map runs full-bleed under the status bar/notch instead of
+  // starting below a header that already accounted for that inset.
+  topInset?: number;
   onMarkerPress?: (id: string) => void;
   onMapPress?: (coords: MapLatLng) => void;
   onRegionChange?: (region: { latitude: number; longitude: number; zoom: number }) => void;

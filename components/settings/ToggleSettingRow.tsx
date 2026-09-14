@@ -24,12 +24,12 @@ export default function ToggleSettingRow({ row }: { row: ToggleRow }) {
   return (
     <View style={styles.row}>
       <LinearGradient
-        colors={COLORS.iconTileGradient}
+        colors={[COLORS.surface, COLORS.surface]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.iconCircle}
       >
-        <Ionicons name={row.icon} size={18} color={COLORS.primary} />
+        <Ionicons name={row.icon} size={18} color={COLORS.gray} />
       </LinearGradient>
       <View style={styles.textCol}>
         <Text style={styles.label}>{row.label}</Text>

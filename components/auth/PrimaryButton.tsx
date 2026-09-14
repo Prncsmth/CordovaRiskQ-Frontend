@@ -22,6 +22,10 @@ interface PrimaryButtonProps extends Omit<PressableProps, "style"> {
   title: string;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
+  // Overrides the default red brand gradient -- for CTAs on a page themed
+  // around a different accent (e.g. Contact Support's teal), so the button
+  // doesn't clash with the rest of that screen.
+  colors?: readonly [string, string];
 }
 
 export default function PrimaryButton({
@@ -32,10 +36,13 @@ export default function PrimaryButton({
   onPress,
   onPressIn,
   onPressOut,
+  colors,
   ...props
 }: PrimaryButtonProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const gradientColors = colors ?? [COLORS.primary, COLORS.primaryDark];
+  const shadowColor = colors ? colors[0] : COLORS.primary;
 
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
@@ -45,7 +52,12 @@ export default function PrimaryButton({
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        style={[styles.wrap, (disabled || loading) && styles.disabled, style]}
+        style={[
+          styles.wrap,
+          { shadowColor },
+          (disabled || loading) && styles.disabled,
+          style,
+        ]}
         disabled={disabled || loading}
         onPress={(e) => {
           if (!disabled && !loading) {
@@ -64,7 +76,7 @@ export default function PrimaryButton({
         {...props}
       >
         <LinearGradient
-          colors={[COLORS.primary, COLORS.primaryDark]}
+          colors={gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.button}

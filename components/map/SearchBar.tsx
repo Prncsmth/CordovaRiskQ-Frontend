@@ -3,7 +3,6 @@
 // screen. Forwards its ref to the outer positioned View so
 // MapFirstTimeGuide can measure it as a tour target.
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import React, { useMemo } from "react";
 import {
   Pressable,
@@ -41,7 +40,7 @@ export default React.forwardRef<View, {
 
   return (
     <View ref={ref} collapsable={false} style={[styles.searchContainer, style]}>
-      <BlurView intensity={60} tint={COLORS.glassTint} style={styles.searchBar}>
+      <View style={styles.searchBar}>
         <Ionicons name="search" size={18} color={COLORS.textSecondary} />
         <TextInput
           value={value}
@@ -56,7 +55,7 @@ export default React.forwardRef<View, {
             <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
           </Pressable>
         )}
-      </BlurView>
+      </View>
 
       {results.length > 0 && (
         <View style={styles.searchResults}>
@@ -94,10 +93,10 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       gap: SPACING.sm,
       overflow: "hidden",
-      backgroundColor: COLORS.glassOverlay,
+      backgroundColor: COLORS.surface,
       borderRadius: RADIUS.md,
       borderWidth: 1,
-      borderColor: COLORS.glassBorder,
+      borderColor: COLORS.borderMuted,
       paddingHorizontal: SPACING.md,
       height: 44,
       ...SHADOW_LG,

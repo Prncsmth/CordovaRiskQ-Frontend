@@ -28,7 +28,7 @@ export default function MenuRow({ icon, label, onPress, right }: MenuRowProps) {
   const content = (
     <View style={styles.row}>
       <View style={styles.iconCircle}>
-        <Ionicons name={icon} size={18} color={COLORS.primary} />
+        <Ionicons name={icon} size={18} color={COLORS.gray} />
       </View>
       <Text style={styles.label}>{label}</Text>
       {right ?? (
@@ -73,7 +73,7 @@ function createStyles(COLORS: ColorPalette) {
     width: 36,
     height: 36,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
+    backgroundColor: COLORS.surface,
     alignItems: "center",
     justifyContent: "center",
   },
