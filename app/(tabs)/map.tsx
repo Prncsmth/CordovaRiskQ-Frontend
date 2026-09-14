@@ -32,6 +32,7 @@ import {
     getEvacuationCenters,
     type EvacuationCenter,
 } from "@/services/evacuation.service";
+import { reverseGeocode } from "@/services/geocoding.service";
 import { getVerifiedLocation } from "@/services/location.service";
 import {
     FONT_FAMILY,
@@ -59,6 +60,7 @@ export default function MapScreen() {
   const pinTargetRef = useRef<View>(null);
   const locateTargetRef = useRef<View>(null);
   const hasCenteredOnUser = useRef(false);
+  const pinRequestIdRef = useRef(0);
   const { setLocation: setReportLocation } = useReportLocation();
   const [centers, setCenters] = useState<EvacuationCenter[]>([]);
   const [locationDenied, setLocationDenied] = useState(false);
@@ -296,6 +298,21 @@ export default function MapScreen() {
       longitude: coords.longitude,
     });
     setPinMode(false);
+
+    // Upgrade to a full street-level address in the background so a
+    // responder knows exactly which part of the barangay to go to -- falls
+    // back to (and never regresses below) the barangay-only address above
+    // if geocoding is slow, offline, or unavailable. Guarded against a
+    // second pin drop landing before this one's geocode resolves.
+    const requestId = ++pinRequestIdRef.current;
+    reverseGeocode(coords).then((address) => {
+      if (!address || pinRequestIdRef.current !== requestId) return;
+      setReportLocation({
+        address,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+    });
   };
 
   const markers: MapMarker[] = [

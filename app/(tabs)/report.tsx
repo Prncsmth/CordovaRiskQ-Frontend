@@ -25,6 +25,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import * as authStorage from "@/context/authStorage";
 import { useReportLocation } from "@/context/ReportLocationContext";
+import { reverseGeocode } from "@/services/geocoding.service";
 import { getCurrentLocation, getVerifiedLocation } from "@/services/location.service";
 import { createReport, photoFileExists, uploadReportPhoto } from "@/services/report.service";
 import {
@@ -94,17 +95,29 @@ export default function ReportScreen() {
 
   useFocusEffect(
     useCallback(() => {
+      let cancelled = false;
       getCurrentLocation()
         .then((fix) => {
-          if (!fix) return;
+          if (!fix || cancelled) return;
           const nearest = getNearestBarangay(fix.latitude, fix.longitude);
           setGpsLocation({
             address: `Barangay ${nearest.name}, Cordova`,
             latitude: fix.latitude,
             longitude: fix.longitude,
           });
+          // Upgrade to a full street-level address in the background so a
+          // responder knows exactly which part of the barangay to go to --
+          // falls back to (and never regresses below) the barangay-only
+          // address above if geocoding is slow, offline, or unavailable.
+          reverseGeocode(fix).then((address) => {
+            if (cancelled || !address) return;
+            setGpsLocation((prev) => ({ ...prev, address }));
+          });
         })
         .catch(() => {});
+      return () => {
+        cancelled = true;
+      };
     }, []),
   );
 

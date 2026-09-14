@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -10,7 +10,6 @@ import Animated, {
 } from "react-native-reanimated";
 
 import AppMap from "@/components/map/AppMap";
-import type { MapHandle } from "@/components/map/types";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -39,25 +38,7 @@ export default function PinnedLocationCard({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const withinCordova = isInsideCordova(latitude, longitude);
-  const mapRef = useRef<MapHandle>(null);
-  const [isMapReady, setIsMapReady] = useState(false);
   const scale = useSharedValue(1);
-
-  // Both map engines only apply `center` on initial mount (see
-  // components/map/types.ts) -- any later change, like the fallback
-  // Cordova-center coordinates here being replaced once the real GPS fix
-  // resolves, has to be applied imperatively via flyTo, the same pattern
-  // app/(tabs)/map.tsx already uses. Gated on isMapReady rather than firing
-  // as soon as latitude/longitude change: flyTo is a no-op if the engine's
-  // WebView/camera hasn't finished initializing yet (e.g. a cached GPS fix
-  // resolving before Leaflet's CDN-loaded JS has run), and nothing would
-  // otherwise re-issue it once the map does become ready. Depending on
-  // isMapReady means the effect re-runs the moment that happens, flying to
-  // whatever coordinates are current at that point.
-  useEffect(() => {
-    if (!isMapReady) return;
-    mapRef.current?.flyTo(latitude, longitude, 15);
-  }, [isMapReady, latitude, longitude]);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
@@ -81,14 +62,22 @@ export default function PinnedLocationCard({
       >
       <View style={styles.mapBox}>
         <AppMap
-          ref={mapRef}
+          // Both map engines only apply `center` on initial mount (see
+          // components/map/types.ts); moving an already-mounted camera
+          // imperatively via flyTo turned out unreliable in practice (the
+          // engine's WebView/camera isn't guaranteed ready by the time a
+          // location change fires, and there's no dependable signal for
+          // when it becomes so). Keying on the coordinates instead forces a
+          // clean remount whenever the location changes, so the map always
+          // uses the one code path proven to place it correctly: its own
+          // initial mount.
+          key={`${latitude.toFixed(5)}-${longitude.toFixed(5)}`}
           style={styles.map}
           center={{ latitude, longitude }}
           zoom={15}
           interactive={false}
           showLayerSwitcher={false}
           markers={[{ id: "pin", latitude, longitude, color: COLORS.primary }]}
-          onReady={() => setIsMapReady(true)}
         />
 
         <View
