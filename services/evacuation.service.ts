@@ -9,7 +9,6 @@ export type EvacuationCenter = {
   address: string;
   category: EvacuationCenterCategory;
   distanceKm: number;
-  capacity: { current: number; max: number };
   status: "open" | "full";
   facilities: string[];
   latitude: number;
@@ -24,9 +23,7 @@ export type EvacuationCenter = {
 // not barangay centroids or invented placeholders. `distanceKm` is a
 // straight-line placeholder from the municipal center; the app recomputes
 // real distance from the user's live location at render time (see
-// app/(tabs)/home.tsx and app/(tabs)/map.tsx). `capacity` is not backed by a
-// live API yet, so current/max are estimates pending real data -- they don't
-// affect location accuracy.
+// app/(tabs)/home.tsx and app/(tabs)/map.tsx).
 //
 // One facility per barangay, all 13 covered:
 //   Alegria, Bangbang, Buagsong, Catarman, Cogon, Dapitan, Day-as, Gabi,
@@ -51,7 +48,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Manuel L. Quezon National Highway, Poblacion, Cordova, Cebu",
     category: "school",
     distanceKm: 0.3,
-    capacity: { current: 280, max: 450 },
     status: "open",
     facilities: ["Water", "Medical Aid", "Restrooms", "Power"],
     latitude: 10.2541979,
@@ -63,7 +59,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Victorio Pacaldo Sr. Street, Day-as, Cordova, Cebu",
     category: "school",
     distanceKm: 0.6,
-    capacity: { current: 340, max: 600 },
     status: "open",
     facilities: ["Water", "Medical Aid", "Restrooms", "Power"],
     latitude: 10.2552507,
@@ -75,7 +70,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Martin Francisco Street, Poblacion, Cordova, Cebu",
     category: "evacuation_center",
     distanceKm: 0.1,
-    capacity: { current: 150, max: 300 },
     status: "open",
     facilities: ["Water", "Medical Aid", "Restrooms", "Power"],
     latitude: 10.2523257,
@@ -87,7 +81,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Martin Francisco Street, Poblacion, Cordova, Cebu",
     category: "evacuation_center",
     distanceKm: 0.2,
-    capacity: { current: 320, max: 700 },
     status: "open",
     facilities: ["Water", "Medical Aid", "Restrooms", "Power"],
     latitude: 10.2506231,
@@ -100,7 +93,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Victor Wahing Street, Alegria, Cordova, Cebu",
     category: "school",
     distanceKm: 1.7,
-    capacity: { current: 210, max: 300 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2569616,
@@ -112,7 +104,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Valeriano Inoc Street, Bangbang, Cordova, Cebu",
     category: "school",
     distanceKm: 1.1,
-    capacity: { current: 170, max: 280 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2590618,
@@ -124,7 +115,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Victorio Degamo Tirol Street, Buagsong, Cordova, Cebu",
     category: "school",
     distanceKm: 1.2,
-    capacity: { current: 200, max: 320 },
     status: "open",
     facilities: ["Water", "Medical Aid", "Restrooms"],
     latitude: 10.2490338,
@@ -137,7 +127,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Filimon Nuñez Street, Catarman, Cordova, Cebu",
     category: "school",
     distanceKm: 0.9,
-    capacity: { current: 180, max: 300 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2481715,
@@ -149,7 +138,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Sergio Baguio Street, Cogon, Cordova, Cebu",
     category: "school",
     distanceKm: 1.9,
-    capacity: { current: 150, max: 260 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2654046,
@@ -161,7 +149,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Victorio Pacaldo Sr. Street, Day-as, Cordova, Cebu",
     category: "school",
     distanceKm: 0.6,
-    capacity: { current: 190, max: 350 },
     status: "open",
     facilities: ["Water", "Restrooms", "Power"],
     latitude: 10.2543706,
@@ -173,7 +160,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Lilivian Berind Drive, Dapitan, Cordova, Cebu",
     category: "evacuation_center",
     distanceKm: 1.6,
-    capacity: { current: 60, max: 150 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2662002,
@@ -185,7 +171,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Dinagat Street, Gabi, Cordova, Cebu",
     category: "school",
     distanceKm: 1.8,
-    capacity: { current: 220, max: 320 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2625845,
@@ -197,7 +182,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Brgy. Gilutongan, Cordova, Cebu (Gilutongan Island)",
     category: "school",
     distanceKm: 5.6,
-    capacity: { current: 80, max: 150 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2072150,
@@ -209,7 +193,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Cordova Bypass Road, Ibabao, Cordova, Cebu",
     category: "school",
     distanceKm: 2.5,
-    capacity: { current: 230, max: 380 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2717843,
@@ -221,7 +204,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Manuel L. Quezon National Highway, Pilipog, Cordova, Cebu",
     category: "school",
     distanceKm: 2.1,
-    capacity: { current: 160, max: 280 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2662362,
@@ -237,7 +219,6 @@ const CENTERS: EvacuationCenter[] = [
     address: "Brgy. San Miguel, Cordova, Cebu",
     category: "school",
     distanceKm: 1.9,
-    capacity: { current: 190, max: 310 },
     status: "open",
     facilities: ["Water", "Restrooms"],
     latitude: 10.2626036,

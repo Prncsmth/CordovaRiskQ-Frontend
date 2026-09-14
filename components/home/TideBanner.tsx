@@ -1,8 +1,9 @@
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import { LayoutChangeEvent, StyleSheet, Text, View } from "react-native";
 
 import TideCardBackground from "@/components/home/TideCardBackground";
-import WeatherIcon from "@/components/home/WeatherIcon";
+import WeatherIcon, { getWeatherGradient, getWeatherKind } from "@/components/home/WeatherIcon";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export type TideLevel = "normal" | "watch" | "warning";
@@ -32,18 +33,16 @@ function getLevelDotColor(COLORS: ColorPalette, level: TideLevel | null): string
 function getLevelTextColor(COLORS: ColorPalette, level: TideLevel | null): string {
   if (level === "warning") return COLORS.danger;
   if (level === "watch") return COLORS.warning;
-  if (level === "normal") return COLORS.tideCardAccent;
   return COLORS.white;
 }
 
-// The card's own background follows the same alert color as the headline
-// text, but as a dark muted tint rather than the bright highlight color --
-// keeps every other white/near-white label on the card legible while still
-// reading as "this card is currently in a watch/warning state."
-function getCardBackground(COLORS: ColorPalette, level: TideLevel | null): string {
-  if (level === "warning") return COLORS.tideCardBgWarning;
-  if (level === "watch") return COLORS.tideCardBgWatch;
-  return COLORS.tideCardBg;
+// During a watch/warning, the card's background overrides the weather sky
+// gradient with a solid alert tint -- a dark muted color in the same hue as
+// the headline text, rather than the bright highlight color, so every other
+// white/near-white label on the card stays legible while the whole card
+// still reads as "this is currently in a watch/warning state" at a glance.
+function getAlertCardBackground(COLORS: ColorPalette, level: TideLevel): string {
+  return level === "warning" ? COLORS.tideCardBgWarning : COLORS.tideCardBgWatch;
 }
 
 export default function TideBanner({
@@ -65,10 +64,19 @@ export default function TideBanner({
     setCardSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }));
   }
 
+  const isAlert = level === "watch" || level === "warning";
+  const weatherGradient = getWeatherGradient(getWeatherKind(weatherDescription ?? ""), isNight);
+  const cardColors = isAlert
+    ? ([getAlertCardBackground(COLORS, level), getAlertCardBackground(COLORS, level)] as const)
+    : weatherGradient;
+
   return (
     <View style={styles.wrap}>
-      <View
-        style={[styles.card, { backgroundColor: getCardBackground(COLORS, level) }]}
+      <LinearGradient
+        colors={cardColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.card}
         onLayout={handleLayout}
       >
         <TideCardBackground width={cardSize.width} height={cardSize.height} />
@@ -84,7 +92,7 @@ export default function TideBanner({
 
           <View style={styles.right}>
             <View style={styles.weatherRow}>
-              <WeatherIcon weatherDescription={weatherDescription ?? ""} isNight={isNight} size={28} />
+              <WeatherIcon weatherDescription={weatherDescription ?? ""} isNight={isNight} size={38} />
               <Text style={styles.temp}>{temperatureC != null ? `${temperatureC}°` : "—°"}</Text>
             </View>
             <Text style={styles.weatherDesc}>{weatherDescription ?? "Weather unavailable"}</Text>
@@ -100,7 +108,7 @@ export default function TideBanner({
           </View>
           <Text style={styles.updated}>{updatedLabel}</Text>
         </View>
-      </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -115,6 +123,8 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: RADIUS.xl,
       padding: SPACING.lg,
       overflow: "hidden",
+      borderWidth: 1,
+      borderColor: "rgba(255, 255, 255, 0.35)",
     },
     topRow: {
       flexDirection: "row",
@@ -149,7 +159,7 @@ function createStyles(COLORS: ColorPalette) {
       gap: 6,
     },
     temp: {
-      fontSize: TYPOGRAPHY.subtitle,
+      fontSize: TYPOGRAPHY.title,
       fontWeight: "800",
       color: COLORS.white,
     },
