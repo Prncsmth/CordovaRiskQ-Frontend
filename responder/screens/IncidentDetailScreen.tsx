@@ -29,6 +29,7 @@ import {
 } from "@/responder/services/incident.service";
 import { connectToIncidentSocket } from "@/responder/services/incidentSocket.service";
 import { mergeIncidentUpdate } from "@/responder/components/incident-detail/mergeIncidentUpdate";
+import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import {
   FONT_FAMILY,
   SPACING,
@@ -53,6 +54,11 @@ export default function IncidentDetailScreen() {
   const [tab, setTab] = useState<LobbyTab>("lobby");
   const isClosingRef = useRef(false);
   const hasFocusedOnceRef = useRef(false);
+  // Fetched once and reused for the rest of this screen's lifetime, matching
+  // the merge logic below that already carries distanceKm forward unchanged
+  // across refreshes -- null means "not yet attempted", undefined means
+  // "attempted but unavailable" (permission denied, no fix, etc.).
+  const responderLocationRef = useRef<Coordinates | null | undefined>(null);
 
   const loadIncident = useCallback(
     (options?: { silent?: boolean }) => {
@@ -61,14 +67,25 @@ export default function IncidentDetailScreen() {
         setIsLoading(true);
         setLoadFailed(false);
       }
-      getIncidentById(token, id)
-        .then(setIncident)
-        .catch(() => {
-          if (!options?.silent) setLoadFailed(true);
-        })
-        .finally(() => {
-          if (!options?.silent) setIsLoading(false);
+
+      const fetchIncident = (responderLocation: Coordinates | undefined) =>
+        getIncidentById(token, id, responderLocation)
+          .then(setIncident)
+          .catch(() => {
+            if (!options?.silent) setLoadFailed(true);
+          })
+          .finally(() => {
+            if (!options?.silent) setIsLoading(false);
+          });
+
+      if (responderLocationRef.current !== null) {
+        fetchIncident(responderLocationRef.current);
+      } else {
+        getCurrentLocation().then((fix) => {
+          responderLocationRef.current = fix;
+          fetchIncident(fix);
         });
+      }
     },
     [token, id],
   );
