@@ -98,10 +98,6 @@ export default function EvacuationDetailScreen() {
   }
 
   const isOpen = center.status === "open";
-  const occupancyPct = Math.min(
-    100,
-    Math.round((center.capacity.current / center.capacity.max) * 100),
-  );
 
   const previewRoute = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -185,30 +181,6 @@ export default function EvacuationDetailScreen() {
               color={COLORS.textSecondary}
             />
             <Text style={styles.distance}>{center.distanceKm} km away</Text>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Capacity</Text>
-            <View style={styles.capacityCard}>
-              <View style={styles.capacityHeader}>
-                <Text style={styles.capacityValue}>
-                  {center.capacity.current} / {center.capacity.max} people
-                </Text>
-                <Text style={styles.capacityPct}>{occupancyPct}% full</Text>
-              </View>
-              <View style={styles.progressTrack}>
-                <LinearGradient
-                  colors={
-                    isOpen
-                      ? [COLORS.tide, COLORS.tide]
-                      : [COLORS.primary, COLORS.primaryDark]
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.progressFill, { width: `${occupancyPct}%` }]}
-                />
-              </View>
-            </View>
           </View>
 
           <View style={styles.section}>
@@ -376,39 +348,6 @@ function createStyles(COLORS: ColorPalette) {
       textTransform: "uppercase",
       letterSpacing: 0.6,
       marginLeft: 2,
-    },
-    capacityCard: {
-      backgroundColor: COLORS.background,
-      borderRadius: RADIUS.lg,
-      borderWidth: 1,
-      borderColor: COLORS.borderMuted,
-      padding: SPACING.md,
-      gap: SPACING.sm,
-      ...SHADOW,
-    },
-    capacityHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "baseline",
-    },
-    capacityValue: {
-      fontSize: TYPOGRAPHY.caption,
-      fontWeight: "700",
-      color: COLORS.text,
-    },
-    capacityPct: {
-      fontSize: TYPOGRAPHY.small,
-      color: COLORS.textSecondary,
-    },
-    progressTrack: {
-      height: 8,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.surface,
-      overflow: "hidden",
-    },
-    progressFill: {
-      height: "100%",
-      borderRadius: RADIUS.full,
     },
     facilitiesGrid: {
       flexDirection: "row",
