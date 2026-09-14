@@ -8,7 +8,6 @@ export type ColorPalette = {
 
   tide: string;
   tideTint: string;
-  tideCardBg: string;
   tideCardBgWatch: string;
   tideCardBgWarning: string;
   tideCardMuted: string;
@@ -64,10 +63,10 @@ export const LIGHT_COLORS: ColorPalette = {
   // accent. Keeps primary red reserved exclusively for danger/SOS.
   tide: "#0E7B86",
   tideTint: "#E3F4F3",
-  tideCardBg: "#285C4A",
-  // Same dark-card treatment as tideCardBg, retinted toward the watch/warning
-  // alert hue instead of green -- kept dark so the card's existing white text
-  // stays legible; the level headline itself carries the bright highlight.
+  // Dark alert-tinted card background shown during a watch/warning, in place
+  // of the normal-state weather sky gradient -- kept dark so the card's
+  // existing white text stays legible; the level headline itself carries
+  // the bright highlight.
   tideCardBgWatch: "#4A3B14",
   tideCardBgWarning: "#4A1E1E",
   tideCardMuted: "rgba(255, 255, 255, 0.72)",
@@ -117,7 +116,6 @@ export const DARK_COLORS: ColorPalette = {
 
   tide: "#4FD1C5",
   tideTint: "#123A3A",
-  tideCardBg: "#1C4236",
   tideCardBgWatch: "#332912",
   tideCardBgWarning: "#331515",
   tideCardMuted: "rgba(255, 255, 255, 0.65)",

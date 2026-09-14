@@ -14,7 +14,7 @@ import Svg, {
   Stop,
 } from "react-native-svg";
 
-type WeatherKind = "clear" | "partly-cloudy" | "cloudy" | "light-rain" | "heavy-rain";
+export type WeatherKind = "clear" | "partly-cloudy" | "cloudy" | "light-rain" | "heavy-rain";
 
 type WeatherIconProps = {
   weatherDescription: string;
@@ -30,8 +30,37 @@ const KIND_BY_DESCRIPTION: Record<string, WeatherKind> = {
   "Heavy rain": "heavy-rain",
 };
 
+export function getWeatherKind(weatherDescription: string): WeatherKind {
+  return KIND_BY_DESCRIPTION[weatherDescription] ?? "cloudy";
+}
+
+// Sky-gradient backdrop for the Home tide card, keyed by the same weather
+// kind as the icon above plus time of day -- kept as fixed hex pairs rather
+// than theme tokens since these represent the sky itself, not an app-theme
+// surface, and shouldn't shift between light/dark app mode.
+const GRADIENT_BY_KIND: Record<WeatherKind, readonly [string, string]> = {
+  clear: ["#5AA9DE", "#3E86C4"],
+  "partly-cloudy": ["#4E86C4", "#3568A0"],
+  cloudy: ["#3E6FA8", "#2A527F"],
+  "light-rain": ["#3C5470", "#263647"],
+  "heavy-rain": ["#3A4658", "#20262F"],
+};
+
+const NIGHT_GRADIENT_BY_KIND: Partial<Record<WeatherKind, readonly [string, string]>> = {
+  clear: ["#2A2F72", "#1B1E52"],
+  "partly-cloudy": ["#2C3868", "#1E2650"],
+  cloudy: ["#2A3F5C", "#1C2C42"],
+};
+
+export function getWeatherGradient(kind: WeatherKind, isNight: boolean): readonly [string, string] {
+  if (isNight) {
+    return NIGHT_GRADIENT_BY_KIND[kind] ?? GRADIENT_BY_KIND[kind];
+  }
+  return GRADIENT_BY_KIND[kind];
+}
+
 export default function WeatherIcon({ weatherDescription, isNight, size = 34 }: WeatherIconProps) {
-  const kind = KIND_BY_DESCRIPTION[weatherDescription] ?? "cloudy";
+  const kind = getWeatherKind(weatherDescription);
 
   const showSun = (kind === "clear" || kind === "partly-cloudy") && !isNight;
   const showMoon = (kind === "clear" || kind === "partly-cloudy") && isNight;
