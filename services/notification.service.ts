@@ -1,5 +1,5 @@
 // services/notification.service.ts
-import { apiGet, apiPatch } from "./api";
+import { apiDelete, apiGet, apiPatch } from "./api";
 
 export type NotificationType =
   | "announcement"
@@ -29,4 +29,13 @@ export async function getNotifications(token: string): Promise<AppNotification[]
 
 export async function markAllNotificationsRead(token: string): Promise<void> {
   await apiPatch("/api/notifications/read-all", {}, token);
+}
+
+// Contract assumed pending backend confirmation, same situation as
+// uploadReportPhoto in report.service.ts: no DELETE /api/notifications/:id
+// route exists on the backend yet, so calls here will fail (404/network
+// error) until it's added. The UI only removes a notification locally once
+// this actually succeeds -- see app/notifications/index.tsx.
+export async function deleteNotification(token: string, id: string): Promise<void> {
+  await apiDelete(`/api/notifications/${id}`, token);
 }

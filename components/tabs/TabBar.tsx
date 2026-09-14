@@ -54,7 +54,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const mapTabRef = useRef<View>(null);
   const historyTabRef = useRef<View>(null);
   const profileTabRef = useRef<View>(null);
-  const reportTabRef = useRef<TouchableOpacity>(null);
+  const reportTabRef = useRef<View>(null);
 
   useEffect(() => {
     registerTarget("map", mapTabRef);

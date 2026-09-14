@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
+import { getCategoryVisual } from "@/components/report/categories";
 import { getReportStatusDisplay } from "@/components/report/reportStatusDisplay";
 import type { ReportHistoryItem } from "@/services/report.service";
 import {
@@ -24,14 +25,17 @@ export default function ReportHistoryCard({ item }: ReportHistoryCardProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { label, color, bg } = getReportStatusDisplay(item.status, COLORS);
+  const categoryVisual = getCategoryVisual(item.categoryId);
 
   return (
     <Pressable
       style={styles.card}
       onPress={() => router.push(`/report-detail/${item.id}`)}
     >
-      <View style={[styles.iconCircle, { backgroundColor: bg }]}>
-        <Ionicons name="document-text" size={18} color={color} />
+      <View
+        style={[styles.iconCircle, { backgroundColor: `${categoryVisual.color}1A` }]}
+      >
+        <Ionicons name={categoryVisual.icon} size={18} color={categoryVisual.color} />
       </View>
 
       <View style={styles.textCol}>

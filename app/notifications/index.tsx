@@ -1,7 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -9,6 +18,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import NotificationRow from "@/components/notifications/NotificationRow";
 import { useAuth } from "@/context/AuthContext";
 import {
+  deleteNotification,
   getNotifications,
   markAllNotificationsRead,
   type AppNotification,
@@ -41,6 +51,8 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadNotifications = useCallback(() => {
     if (!token) {
@@ -63,6 +75,49 @@ export default function NotificationsScreen() {
     loadNotifications();
   }, [loadNotifications]);
 
+  const handleRefresh = useCallback(() => {
+    if (!token) return;
+    setRefreshing(true);
+    setLoadFailed(false);
+    getNotifications(token)
+      .then((result) => {
+        setNotifications(result);
+        markAllNotificationsRead(token).catch(() => {});
+      })
+      .catch(() => setLoadFailed(true))
+      .finally(() => setRefreshing(false));
+  }, [token]);
+
+  // Only removes the row once the backend confirms the delete -- this route
+  // doesn't exist yet (see deleteNotification's comment in
+  // notification.service.ts), so every attempt currently fails and the
+  // notification correctly stays put rather than silently disappearing and
+  // reappearing on the next refresh.
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (!token) return;
+      setDeletingIds((prev) => new Set(prev).add(id));
+      deleteNotification(token, id)
+        .then(() => {
+          setNotifications((prev) => prev.filter((n) => n.id !== id));
+        })
+        .catch(() => {
+          Alert.alert(
+            "Couldn't delete notification",
+            "Please try again in a moment.",
+          );
+        })
+        .finally(() => {
+          setDeletingIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        });
+    },
+    [token],
+  );
+
   const today = notifications.filter((n) => isToday(n.createdAt));
   const earlier = notifications.filter((n) => !isToday(n.createdAt));
 
@@ -74,6 +129,13 @@ export default function NotificationsScreen() {
         { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
       ]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={COLORS.primary}
+        />
+      }
     >
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
@@ -104,7 +166,12 @@ export default function NotificationsScreen() {
               <Text style={styles.sectionLabel}>Today</Text>
               <View style={styles.list}>
                 {today.map((item) => (
-                  <NotificationRow key={item.id} item={item} />
+                  <NotificationRow
+                    key={item.id}
+                    item={item}
+                    onDelete={() => handleDelete(item.id)}
+                    deleting={deletingIds.has(item.id)}
+                  />
                 ))}
               </View>
             </View>
@@ -115,7 +182,12 @@ export default function NotificationsScreen() {
               <Text style={styles.sectionLabel}>Earlier</Text>
               <View style={styles.list}>
                 {earlier.map((item) => (
-                  <NotificationRow key={item.id} item={item} />
+                  <NotificationRow
+                    key={item.id}
+                    item={item}
+                    onDelete={() => handleDelete(item.id)}
+                    deleting={deletingIds.has(item.id)}
+                  />
                 ))}
               </View>
             </View>

@@ -7,7 +7,7 @@ import React, {
   useState,
   useSyncExternalStore,
 } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -94,6 +94,7 @@ export default function HomeScreen() {
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const now = useSyncExternalStore(subscribeToClockTick, getClockSnapshot);
   const homeOpacity = useSharedValue(0);
   const homeTranslateY = useSharedValue(18);
@@ -160,12 +161,14 @@ export default function HomeScreen() {
     }, [token]),
   );
 
-  useEffect(() => {
-    getTideStatus()
+  // Shared by the mount-time load and pull-to-refresh so there's one place
+  // that knows how to fetch the screen's data, instead of duplicating it.
+  const loadHomeData = useCallback(() => {
+    const tidePromise = getTideStatus()
       .then(setTideStatus)
       .catch(() => {});
 
-    Promise.all([getEvacuationCenters(), getCurrentLocation()])
+    const restPromise = Promise.all([getEvacuationCenters(), getCurrentLocation()])
       .then(([centers, fix]) => {
         let barangayName: string | undefined;
         if (fix) {
@@ -193,7 +196,25 @@ export default function HomeScreen() {
         setNearestCenter(nearest);
       })
       .catch(() => {});
+
+    return Promise.all([tidePromise, restPromise]);
   }, []);
+
+  useEffect(() => {
+    loadHomeData();
+  }, [loadHomeData]);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    Promise.all([
+      loadHomeData(),
+      token
+        ? getNotifications(token)
+            .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
+            .catch(() => {})
+        : Promise.resolve(),
+    ]).finally(() => setRefreshing(false));
+  }, [loadHomeData, token]);
 
   const STALE_TIDE_THRESHOLD_MS = 16 * 60 * 60 * 1000; // 2x the backend's 8h poll interval
   const displayTide =
@@ -211,9 +232,25 @@ export default function HomeScreen() {
         { paddingTop: insets.top + SPACING.xs },
       ]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={COLORS.primary}
+        />
+      }
     >
       <HomeHeader hasUnread={hasUnread} />
       <GreetingBlock name={firstName} location={location ?? FALLBACK_LOCATION} />
+
+      {announcement ? (
+        <AdvisoryBanner
+          priority={announcement.priority}
+          time={formatTime(announcement.createdAt)}
+          title={announcement.title}
+          message={announcement.content}
+        />
+      ) : null}
 
       <TideBanner
         level={displayTide?.floodRiskLevel ?? null}
@@ -235,15 +272,6 @@ export default function HomeScreen() {
             : "Not available"
         }
       />
-
-      {announcement ? (
-        <AdvisoryBanner
-          priority={announcement.priority}
-          time={formatTime(announcement.createdAt)}
-          title={announcement.title}
-          message={announcement.content}
-        />
-      ) : null}
 
       <View
         style={styles.sosSection}

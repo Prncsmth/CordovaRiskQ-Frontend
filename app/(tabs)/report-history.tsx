@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
@@ -20,6 +20,7 @@ export default function ReportHistoryScreen() {
   const [reports, setReports] = useState<ReportHistoryItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadReports = useCallback(() => {
     if (!token) return;
@@ -29,6 +30,16 @@ export default function ReportHistoryScreen() {
       .then((history) => setReports(history))
       .catch(() => setLoadFailed(true))
       .finally(() => setLoaded(true));
+  }, [token]);
+
+  const handleRefresh = useCallback(() => {
+    if (!token) return;
+    setRefreshing(true);
+    setLoadFailed(false);
+    getReportHistory(token)
+      .then((history) => setReports(history))
+      .catch(() => setLoadFailed(true))
+      .finally(() => setRefreshing(false));
   }, [token]);
 
   // The tab stays mounted for the app's lifetime (no unmountOnBlur), so a
@@ -49,6 +60,13 @@ export default function ReportHistoryScreen() {
         styles.content,
         { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
       ]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={COLORS.primary}
+        />
+      }
     >
       <View style={styles.section}>
         <Text style={styles.title}>Report History</Text>
