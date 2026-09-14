@@ -5,7 +5,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Linking,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -64,11 +63,11 @@ const HOTLINE_IMAGES: Record<string, ImageSourcePropType> = {
 // display order.
 type CategoryKey = "police" | "fire" | "medical" | "maritime";
 
-const CATEGORIES: { key: CategoryKey; label: string; color: string }[] = [
-  { key: "police", label: "Police & Safety", color: "#1E3A8A" },
-  { key: "fire", label: "Fire & Rescue", color: "#DC2626" },
-  { key: "medical", label: "Medical & Health", color: "#16A34A" },
-  { key: "maritime", label: "Maritime", color: "#0369A1" },
+const CATEGORIES: { key: CategoryKey; label: string }[] = [
+  { key: "police", label: "Police & Safety" },
+  { key: "fire", label: "Fire & Rescue" },
+  { key: "medical", label: "Medical & Health" },
+  { key: "maritime", label: "Maritime" },
 ];
 
 const HOTLINE_CATEGORY: Record<string, CategoryKey> = {
@@ -154,9 +153,7 @@ export default function ContactsScreen() {
           {groupedHotlines.map((group) => (
             <View key={group.key} style={styles.categoryBlock}>
               <View style={styles.categoryHeading}>
-                <Text style={[styles.categoryLabel, { color: group.color }]}>
-                  {group.label}
-                </Text>
+                <Text style={styles.categoryLabel}>{group.label}</Text>
               </View>
               <View style={styles.card}>
                 {group.hotlines.map((hotline, index) => (
@@ -181,25 +178,6 @@ export default function ContactsScreen() {
           ))}
         </View>
       )}
-
-      <Pressable
-        style={({ pressed }) => [styles.sosBanner, pressed && styles.pressed]}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push("/(tabs)/home");
-        }}
-      >
-        <View style={[styles.sosIcon, { backgroundColor: COLORS.primary }]}>
-          <Ionicons name="warning" size={18} color={COLORS.white} />
-        </View>
-        <View style={styles.sosCopy}>
-          <Text style={styles.sosTitle}>Immediate danger?</Text>
-          <Text style={styles.sosText}>
-            Use SOS to share your location with responders.
-          </Text>
-        </View>
-        <Ionicons name="arrow-forward" size={18} color={COLORS.primary} />
-      </Pressable>
     </ScrollView>
   );
 }
@@ -251,36 +229,6 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.small,
     lineHeight: 18,
   },
-  sosBanner: {
-    backgroundColor: COLORS.primaryTint,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.md,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  pressed: { opacity: 0.85 },
-  sosIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  sosCopy: { flex: 1 },
-  sosTitle: {
-    color: COLORS.text,
-    fontSize: TYPOGRAPHY.caption,
-    fontWeight: "800",
-  },
-  sosText: {
-    color: COLORS.textSecondary,
-    fontSize: TYPOGRAPHY.small,
-    lineHeight: 18,
-    marginTop: 2,
-  },
   sectionHeading: {
     flexDirection: "row",
     alignItems: "center",
@@ -316,6 +264,7 @@ function createStyles(COLORS: ColorPalette) {
   categoryLabel: {
     fontSize: TYPOGRAPHY.caption,
     fontWeight: "800",
+    color: COLORS.gray,
   },
   card: {
     backgroundColor: COLORS.background,

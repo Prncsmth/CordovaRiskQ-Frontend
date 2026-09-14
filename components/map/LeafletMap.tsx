@@ -24,6 +24,10 @@ import type { MapEngineProps, MapHandle, MapLatLng } from "./types";
 const DEFAULT_MIN_ZOOM = 12;
 const DEFAULT_MAX_ZOOM = 18;
 
+// The classic "you are here" blue -- distinct from any theme accent since
+// it needs to read as GPS/location, not a brand color.
+const USER_LOCATION_BLUE = "#2563EB";
+
 // Small (64px-wide) version of assets/images/riskq.png, inlined as a data
 // URI so the WebView can render it without needing to load a bundled asset
 // across its own separate origin. Used for markers with `icon: "logo"`.
@@ -40,8 +44,20 @@ function buildHtml(options: {
   showLayerSwitcher: boolean;
   showCordovaBoundary: boolean;
   boundaryColor: string;
+  userDotColor: string;
 }): string {
-  const { centerLat, centerLng, zoom, minZoom, maxZoom, interactive, showLayerSwitcher, showCordovaBoundary, boundaryColor } = options;
+  const {
+    centerLat,
+    centerLng,
+    zoom,
+    minZoom,
+    maxZoom,
+    interactive,
+    showLayerSwitcher,
+    showCordovaBoundary,
+    boundaryColor,
+    userDotColor,
+  } = options;
   const riskqLogoDataUri = RISKQ_LOGO_DATA_URI;
   const [swLng, swLat] = CORDOVA_BOUNDS.sw;
   const [neLng, neLat] = CORDOVA_BOUNDS.ne;
@@ -54,7 +70,10 @@ function buildHtml(options: {
 <style>
   html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; background: #dbe4ea; }
   .leaflet-control-attribution { font-size: 9px; }
-  .rq-user-dot { width: 16px; height: 16px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 2px rgba(37,99,235,0.35); }
+  .rq-user-wrap { position: relative; width: 16px; height: 16px; }
+  .rq-user-dot { position: absolute; inset: 0; width: 16px; height: 16px; border-radius: 50%; background: ${userDotColor}; border: 3px solid #fff; }
+  .rq-user-pulse { position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: ${userDotColor}; opacity: 0.35; animation: rq-pulse 1.6s ease-out infinite; }
+  @keyframes rq-pulse { 0% { transform: scale(1); opacity: 0.35; } 100% { transform: scale(2.4); opacity: 0; } }
   .rq-logo-marker { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35)); }
 </style>
 </head>
@@ -134,7 +153,7 @@ function buildHtml(options: {
   function pinIcon(color) {
     return L.divIcon({
       className: '',
-      html: '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:' + color + ';border:2px solid #fff;transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.35);"></div>',
+      html: '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:' + color + ';transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.35);"></div>',
       iconSize: [28, 28],
       iconAnchor: [14, 28],
       popupAnchor: [0, -28]
@@ -186,7 +205,7 @@ function buildHtml(options: {
     var latlng = [loc.latitude, loc.longitude];
     if (!userMarker) {
       userMarker = L.marker(latlng, {
-        icon: L.divIcon({ className: '', html: '<div class="rq-user-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+        icon: L.divIcon({ className: '', html: '<div class="rq-user-wrap"><div class="rq-user-pulse"></div><div class="rq-user-dot"></div></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
         zIndexOffset: 1000
       }).addTo(map);
     } else {
@@ -194,7 +213,7 @@ function buildHtml(options: {
     }
     if (loc.accuracy) {
       if (!userAccuracyCircle) {
-        userAccuracyCircle = L.circle(latlng, { radius: loc.accuracy, color: '#2563eb', weight: 1, fillOpacity: 0.08 }).addTo(map);
+        userAccuracyCircle = L.circle(latlng, { radius: loc.accuracy, color: '${userDotColor}', weight: 1, fillOpacity: 0.08 }).addTo(map);
       } else {
         userAccuracyCircle.setLatLng(latlng);
         userAccuracyCircle.setRadius(loc.accuracy);
@@ -276,6 +295,7 @@ const LeafletMap = forwardRef<MapHandle, MapEngineProps>(function LeafletMap(
         showLayerSwitcher,
         showCordovaBoundary,
         boundaryColor: COLORS.tide,
+        userDotColor: USER_LOCATION_BLUE,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],

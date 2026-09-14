@@ -2,7 +2,6 @@
 // Floating toggle for pin-drop mode on the map screen. Forwards its ref
 // so MapFirstTimeGuide can measure it as a tour target.
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
@@ -28,17 +27,17 @@ export default React.forwardRef<View, {
       accessibilityLabel={active ? "Cancel pinning emergency location" : "Pin emergency location"}
     >
       {loading ? (
-        <BlurView intensity={60} tint={COLORS.glassTint} style={styles.pinButton}>
+        <View style={styles.pinButton}>
           <ActivityIndicator size="small" color={COLORS.primary} />
-        </BlurView>
+        </View>
       ) : active ? (
         <View style={styles.pinButtonActive}>
           <Ionicons name="location" size={22} color={COLORS.white} />
         </View>
       ) : (
-        <BlurView intensity={60} tint={COLORS.glassTint} style={styles.pinButton}>
+        <View style={styles.pinButton}>
           <Ionicons name="location-outline" size={22} color={COLORS.primary} />
-        </BlurView>
+        </View>
       )}
     </Pressable>
   );
@@ -62,9 +61,9 @@ function createStyles(COLORS: ColorPalette) {
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: COLORS.glassOverlay,
+      backgroundColor: COLORS.surface,
       borderWidth: 1,
-      borderColor: COLORS.glassBorder,
+      borderColor: COLORS.borderMuted,
     },
     pinButtonActive: {
       flex: 1,

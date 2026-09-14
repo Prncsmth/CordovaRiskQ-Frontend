@@ -19,15 +19,6 @@ import type { AppNotification, NotificationType } from "@/services/notification.
 import { FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 import { formatRelativeTime } from "@/utils/formatter";
 
-const ICON_BY_TYPE: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
-  announcement: "megaphone-outline",
-  incident_status: "document-text-outline",
-  tide_risk: "water-outline",
-  new_incident: "alert-circle-outline",
-  roster_update: "people-outline",
-  team_ring: "alarm-outline",
-};
-
 const FALLBACK_ROUTE_BY_TYPE: Record<
   NotificationType,
   "/(tabs)/report-history" | "/(tabs)/home" | "/responder"
@@ -64,7 +55,7 @@ export default function NotificationRow({ item }: { item: AppNotification }) {
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
-  const { color, bg, border } = getNotificationReadDisplay(item.read, COLORS);
+  const { icon, color, bg, border } = getNotificationReadDisplay(item, COLORS);
 
   return (
     <Animated.View style={animatedStyle}>
@@ -90,11 +81,7 @@ export default function NotificationRow({ item }: { item: AppNotification }) {
             { backgroundColor: bg, borderColor: border, borderWidth: item.read ? 0 : 1.5 },
           ]}
         >
-          <Ionicons
-            name={ICON_BY_TYPE[item.type] ?? "notifications-outline"}
-            size={18}
-            color={color}
-          />
+          <Ionicons name={icon} size={18} color={color} />
         </View>
 
         <View style={styles.textCol}>
@@ -108,8 +95,8 @@ export default function NotificationRow({ item }: { item: AppNotification }) {
         </View>
 
         {!item.read && (
-          <View style={[styles.pill, { backgroundColor: COLORS.primaryTint }]}>
-            <Text style={[styles.pillText, { color: COLORS.primary }]}>New</Text>
+          <View style={[styles.pill, { backgroundColor: bg }]}>
+            <Text style={[styles.pillText, { color }]}>New</Text>
           </View>
         )}
       </Pressable>

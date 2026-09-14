@@ -60,7 +60,7 @@ function CategoryCard({
           styles.card,
           { borderLeftColor: category.color },
           isSelected && {
-            backgroundColor: `${category.color}14`,
+            backgroundColor: category.color,
             borderColor: category.color,
             borderLeftColor: category.color,
           },
@@ -78,10 +78,15 @@ function CategoryCard({
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        <View style={[styles.iconCircle, { backgroundColor: `${category.color}1A` }]}>
-          <Ionicons name={category.icon} size={18} color={category.color} />
+        <View
+          style={[
+            styles.iconCircle,
+            { backgroundColor: isSelected ? "rgba(255, 255, 255, 0.25)" : `${category.color}1A` },
+          ]}
+        >
+          <Ionicons name={category.icon} size={18} color={isSelected ? "#FFFFFF" : category.color} />
         </View>
-        <Text style={[styles.label, { color: category.color }]}>
+        <Text style={[styles.label, { color: isSelected ? "#FFFFFF" : category.color }]}>
           {category.label}
         </Text>
 

@@ -165,7 +165,11 @@ export default function ContactSupportScreen() {
           <Text style={styles.characterCount}>{message.length}/600</Text>
         </View>
 
-        <PrimaryButton title="SEND TO SUPPORT" onPress={sendEmail} />
+        <PrimaryButton
+          title="SEND TO SUPPORT"
+          onPress={sendEmail}
+          colors={[COLORS.tide, COLORS.tide]}
+        />
         <Text style={styles.disclaimer}>
           For immediate danger, use SOS or call a local emergency hotline.
         </Text>
@@ -306,7 +310,7 @@ function createStyles(COLORS: ColorPalette) {
     marginBottom: SPACING.md,
     backgroundColor: COLORS.inputBg,
   },
-  inputFocused: { borderColor: COLORS.primary },
+  inputFocused: { borderColor: COLORS.tide },
   messageInput: { minHeight: 128, paddingTop: SPACING.md },
   characterCount: {
     color: COLORS.textTertiary,

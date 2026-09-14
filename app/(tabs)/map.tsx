@@ -13,6 +13,7 @@ import AppMap, {
     type MapUserLocation,
 } from "@/components/map/AppMap";
 import LocateButton from "@/components/map/LocateButton";
+import MapLegend from "@/components/map/MapLegend";
 import PinButton from "@/components/map/PinButton";
 import SearchBar from "@/components/map/SearchBar";
 import ZoomControls from "@/components/map/ZoomControls";
@@ -35,7 +36,6 @@ import {
 import { reverseGeocode } from "@/services/geocoding.service";
 import { getVerifiedLocation } from "@/services/location.service";
 import {
-    FONT_FAMILY,
     RADIUS,
     SHADOW_LG,
     SPACING,
@@ -338,20 +338,6 @@ export default function MapScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm }]}>
-        <View style={styles.headerIcon}>
-          <Ionicons name="map" size={16} color={COLORS.primary} />
-        </View>
-        <View style={styles.headerTextCol}>
-          <Text style={styles.title}>Evacuation Map</Text>
-          <Text style={styles.subtitle}>
-            {locationDenied
-              ? "Nearby evacuation centers"
-              : "Nearby evacuation centers · live location"}
-          </Text>
-        </View>
-      </View>
-
       <View style={styles.mapContainer}>
         <AppMap
           ref={mapRef}
@@ -364,6 +350,7 @@ export default function MapScreen() {
           userLocation={locationDenied ? null : userLocation}
           showLayerSwitcher
           showCordovaBoundary
+          topInset={insets.top}
           onMarkerPress={(id) => {
             if (id === "picked-report-location") return;
             router.push(`/evacuation-detail/${id}`);
@@ -404,6 +391,7 @@ export default function MapScreen() {
           onClear={() => setSearchQuery("")}
           results={barangayResults}
           onSelectResult={handleSelectBarangay}
+          style={{ top: insets.top + SPACING.sm }}
         />
 
         <PinButton
@@ -433,6 +421,8 @@ export default function MapScreen() {
           onPress={handleLocateMe}
           style={{ bottom: insets.bottom + SPACING.lg }}
         />
+
+        <MapLegend style={{ left: SPACING.md, bottom: insets.bottom + SPACING.lg }} />
       </View>
 
       {showMapGuide ? (
@@ -466,34 +456,6 @@ function createStyles(COLORS: ColorPalette) {
     screen: {
       flex: 1,
       backgroundColor: COLORS.background,
-    },
-    header: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-      paddingHorizontal: SPACING.md,
-      paddingBottom: SPACING.sm,
-    },
-    headerIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primaryTint,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    headerTextCol: {
-      flex: 1,
-    },
-    title: {
-      fontFamily: FONT_FAMILY.display,
-      fontSize: TYPOGRAPHY.heading,
-      color: COLORS.text,
-    },
-    subtitle: {
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
-      marginTop: 2,
     },
     mapContainer: {
       flex: 1,

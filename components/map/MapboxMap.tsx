@@ -21,6 +21,10 @@ import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 import type { MapEngineProps, MapHandle, MapLatLng } from "./types";
 
+// The classic "you are here" blue -- distinct from any theme accent since
+// it needs to read as GPS/location, not a brand color.
+const USER_LOCATION_BLUE = "#2563EB";
+
 const STYLE_URLS = {
   streets: "mapbox://styles/mapbox/streets-v11",
   satellite: "mapbox://styles/mapbox/satellite-streets-v11",
@@ -38,6 +42,7 @@ type MapboxModule = {
   ShapeSource: React.ComponentType<any>;
   LineLayer: React.ComponentType<any>;
   FillLayer: React.ComponentType<any>;
+  CircleLayer: React.ComponentType<any>;
 };
 
 const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
@@ -51,6 +56,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
     interactive = true,
     showLayerSwitcher = false,
     showCordovaBoundary = false,
+    topInset = 0,
     onMarkerPress,
     onMapPress,
     onRegionChange,
@@ -65,6 +71,21 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   const [mapError, setMapError] = useState<string | null>(null);
   const [styleKey, setStyleKey] = useState<StyleKey>("streets");
   const [layerMenuOpen, setLayerMenuOpen] = useState(false);
+  // Drives the "you are here" pulse ring: a plain circle just sits there and
+  // is easy to miss, so this animates it expanding + fading out on a loop
+  // (classic radar-ping look) rather than only resizing it.
+  const [pulseProgress, setPulseProgress] = useState(0);
+
+  useEffect(() => {
+    if (!interactive) return;
+    const durationMs = 1600;
+    const start = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = (Date.now() - start) % durationMs;
+      setPulseProgress(elapsed / durationMs);
+    }, 50);
+    return () => clearInterval(timer);
+  }, [interactive]);
   const cameraRef = useRef<any>(null);
   const currentZoomRef = useRef(zoom);
 
@@ -158,7 +179,8 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
     );
   }
 
-  const { MapView, Camera, MarkerView, UserLocation, ShapeSource, LineLayer, FillLayer } = mapbox;
+  const { MapView, Camera, MarkerView, UserLocation, ShapeSource, LineLayer, FillLayer, CircleLayer } =
+    mapbox;
 
   return (
     <View style={[styles.fill, style]}>
@@ -217,7 +239,38 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           </ShapeSource>
         )}
 
-        {interactive && <UserLocation visible showsUserHeadingIndicator />}
+        {interactive && (
+          <UserLocation visible>
+            {/* Expanding, fading ring driven by pulseProgress -- a real
+                "radar ping" loop instead of a static translucent circle. */}
+            <CircleLayer
+              id="rqUserLocationPulse"
+              style={{
+                circleRadius: 15 + 12 * pulseProgress,
+                circleColor: USER_LOCATION_BLUE,
+                circleOpacity: 0.35 * (1 - pulseProgress),
+                circlePitchAlignment: "map",
+              }}
+            />
+            <CircleLayer
+              id="rqUserLocationRing"
+              style={{
+                circleRadius: 9,
+                circleColor: COLORS.white,
+                circlePitchAlignment: "map",
+              }}
+            />
+            <CircleLayer
+              id="rqUserLocationDot"
+              aboveLayerID="rqUserLocationRing"
+              style={{
+                circleRadius: 6,
+                circleColor: USER_LOCATION_BLUE,
+                circlePitchAlignment: "map",
+              }}
+            />
+          </UserLocation>
+        )}
 
         {polylines.map((line, index) => (
           <ShapeSource
@@ -270,13 +323,13 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
       </MapView>
 
       {showLayerSwitcher && (
-        <View style={styles.layerSwitcher}>
+        <View style={[styles.layerSwitcher, { top: SPACING.md + topInset }]}>
           <Pressable
             onPress={() => setLayerMenuOpen((open) => !open)}
             style={styles.layerButton}
             accessibilityLabel="Change map layer"
           >
-            <Ionicons name="layers-outline" size={20} color={COLORS.primary} />
+            <Ionicons name="layers-outline" size={20} color={COLORS.gray} />
           </Pressable>
 
           {layerMenuOpen && (
@@ -333,8 +386,7 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: RADIUS.full,
       alignItems: "center",
       justifyContent: "center",
-      borderWidth: 2,
-      borderColor: COLORS.white,
+      ...SHADOW,
     },
     logoPin: {
       width: 36,
