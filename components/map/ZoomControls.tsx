@@ -1,7 +1,6 @@
 // components/map/ZoomControls.tsx
 // Floating zoom in/out control stack on the map screen.
 import { Ionicons } from "@expo/vector-icons";
-import { BlurView } from "expo-blur";
 import React, { useMemo } from "react";
 import { Pressable, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
@@ -27,7 +26,7 @@ export default function ZoomControls({
 
   return (
     <View style={[styles.zoomControls, style]}>
-      <BlurView intensity={60} tint={COLORS.glassTint} style={styles.zoomBlur}>
+      <View style={styles.zoomBlur}>
         <Pressable
           onPress={onZoomIn}
           disabled={zoomLevel >= maxZoom}
@@ -53,7 +52,7 @@ export default function ZoomControls({
             color={zoomLevel <= minZoom ? COLORS.textTertiary : COLORS.text}
           />
         </Pressable>
-      </BlurView>
+      </View>
     </View>
   );
 }
@@ -69,9 +68,9 @@ function createStyles(COLORS: ColorPalette) {
       ...SHADOW_LG,
     },
     zoomBlur: {
-      backgroundColor: COLORS.glassOverlay,
+      backgroundColor: COLORS.surface,
       borderWidth: 1,
-      borderColor: COLORS.glassBorder,
+      borderColor: COLORS.borderMuted,
     },
     zoomButton: {
       height: 44,

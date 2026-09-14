@@ -311,7 +311,7 @@ export default function FaqsScreen() {
             <Ionicons
               name={isFaqListExpanded ? "chevron-up" : "chevron-down"}
               size={18}
-              color={COLORS.primary}
+              color={COLORS.gray}
             />
           </Pressable>
         ) : null}
@@ -489,7 +489,7 @@ function createStyles(COLORS: ColorPalette) {
       gap: SPACING.xs,
     },
     expandButtonText: {
-      color: COLORS.primary,
+      color: COLORS.gray,
       fontSize: TYPOGRAPHY.small,
       fontWeight: "800",
     },

@@ -34,7 +34,7 @@ export default function ProfileHeader({ name, onLogout }: ProfileHeaderProps) {
         accessibilityRole="button"
         accessibilityLabel="Log out"
       >
-        <Ionicons name="log-out-outline" size={19} color={COLORS.primary} />
+        <Ionicons name="log-out-outline" size={19} color={COLORS.gray} />
       </TouchableOpacity>
     </View>
   );
@@ -73,16 +73,12 @@ function createStyles(COLORS: ColorPalette) {
     width: 40,
     height: 40,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primaryTint,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.primaryLight,
+    borderColor: COLORS.borderMuted,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: COLORS.primary,
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    ...SHADOW,
   },
   });
 }

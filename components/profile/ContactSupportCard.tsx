@@ -23,13 +23,14 @@ export default function ContactSupportCard() {
   return (
     <View style={styles.card}>
       <View style={styles.iconCircle}>
-        <Ionicons name="help-buoy-outline" size={20} color={COLORS.tide} />
+        <Ionicons name="chatbubbles-outline" size={20} color={COLORS.gray} />
       </View>
       <Text style={styles.message}>
         If you have any other query you can reach out to us.
       </Text>
       <Animated.View style={animatedStyle}>
         <Pressable
+          style={styles.ctaButton}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             router.push("/contact-support");
@@ -42,7 +43,8 @@ export default function ContactSupportCard() {
           }}
           hitSlop={8}
         >
-          <Text style={styles.link}>Contact Support</Text>
+          <Text style={styles.ctaText}>Contact Support</Text>
+          <Ionicons name="chevron-forward" size={14} color={COLORS.white} />
         </Pressable>
       </Animated.View>
     </View>
@@ -52,8 +54,10 @@ export default function ContactSupportCard() {
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
   card: {
-    backgroundColor: COLORS.tideTint,
+    backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
     padding: SPACING.md,
     alignItems: "center",
     gap: SPACING.xs,
@@ -63,7 +67,7 @@ function createStyles(COLORS: ColorPalette) {
     width: 40,
     height: 40,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 2,
@@ -73,11 +77,20 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.textSecondary,
     textAlign: "center",
   },
-  link: {
-    fontSize: TYPOGRAPHY.caption,
+  ctaButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: COLORS.tide,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs + 2,
+    marginTop: 2,
+  },
+  ctaText: {
+    fontSize: TYPOGRAPHY.small,
     fontWeight: "800",
-    color: COLORS.tide,
-    textDecorationLine: "underline",
+    color: COLORS.white,
   },
   });
 }

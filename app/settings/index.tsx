@@ -212,12 +212,12 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <LinearGradient
-              colors={COLORS.iconTileGradient}
+              colors={[COLORS.surface, COLORS.surface]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.iconCircle}
             >
-              <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
+              <Ionicons name="information-circle-outline" size={18} color={COLORS.gray} />
             </LinearGradient>
             <Text style={styles.label}>App Version</Text>
             <Text style={styles.versionText}>{APP_VERSION}</Text>

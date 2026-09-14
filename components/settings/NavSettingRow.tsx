@@ -49,7 +49,7 @@ export default function NavSettingRow({ row }: { row: NavRow }) {
           colors={
             row.danger
               ? [`${COLORS.danger}1A`, `${COLORS.danger}1A`]
-              : COLORS.iconTileGradient
+              : [COLORS.surface, COLORS.surface]
           }
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -58,7 +58,7 @@ export default function NavSettingRow({ row }: { row: NavRow }) {
           <Ionicons
             name={row.icon}
             size={18}
-            color={row.danger ? COLORS.danger : COLORS.primary}
+            color={row.danger ? COLORS.danger : COLORS.gray}
           />
         </LinearGradient>
         <Text
