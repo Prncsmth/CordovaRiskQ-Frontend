@@ -98,6 +98,7 @@ export type ReportStatus =
 export type ReportHistoryItem = {
   id: string;
   category: string;
+  categoryId: string;
   location: string;
   date: string;
   ref: string;
@@ -125,6 +126,7 @@ function toHistoryItem(row: IncidentApiRow): ReportHistoryItem {
   return {
     id: row.id,
     category: CATEGORY_LABELS[row.category] ?? row.category,
+    categoryId: row.category,
     location: row.locationLabel,
     date: formatDate(row.createdAt),
     ref: row.id.slice(0, 8).toUpperCase(),

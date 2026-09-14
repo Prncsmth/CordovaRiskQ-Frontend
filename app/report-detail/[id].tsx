@@ -1,7 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap from "@/components/map/AppMap";
@@ -33,6 +41,7 @@ export default function ReportDetailScreen() {
   const [report, setReport] = useState<ReportDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadReport = useCallback(() => {
     if (!token || !id) {
@@ -50,6 +59,18 @@ export default function ReportDetailScreen() {
   useEffect(() => {
     loadReport();
   }, [loadReport]);
+
+  // Separate from loadReport/isLoading so a pull-to-refresh updates the
+  // content in place instead of replacing it with the full-screen loading
+  // state above.
+  const handleRefresh = useCallback(() => {
+    if (!token || !id) return;
+    setRefreshing(true);
+    getReportDetailById(token, id)
+      .then((result) => setReport(result ?? null))
+      .catch(() => {})
+      .finally(() => setRefreshing(false));
+  }, [token, id]);
 
   if (isLoading) {
     return (
@@ -95,6 +116,13 @@ export default function ReportDetailScreen() {
       style={styles.flex}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + SPACING.sm }]}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          tintColor={COLORS.primary}
+        />
+      }
     >
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />

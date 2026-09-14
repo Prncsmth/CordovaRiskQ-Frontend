@@ -122,6 +122,20 @@ export async function apiPut<T>(
   return response.json() as Promise<T>;
 }
 
+// DELETE responses commonly have no body (e.g. 204 No Content) -- unlike
+// the other helpers, this doesn't attempt to parse one; callers only need
+// to know the request succeeded (response.ok) or threw.
+export async function apiDelete(path: string, token?: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response, token);
+  }
+}
+
 export async function apiPatch<T>(
   path: string,
   body: Record<string, unknown>,

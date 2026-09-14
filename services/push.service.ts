@@ -1,7 +1,7 @@
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { Alert, Platform } from "react-native";
 
 import { apiPatch } from "./api";
 
@@ -37,6 +37,13 @@ export async function registerForPushNotifications(token: string): Promise<void>
   if (!projectId) return;
 
   const pushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+
+  // TEMPORARY: surfaces the push token on-device so it can be pasted into
+  // https://expo.dev/notifications for a manual test send, to confirm the
+  // client-side receive/display path works independently of the backend
+  // (which doesn't send real pushes yet). Remove once that's verified.
+  console.log("[push] Expo push token:", pushToken);
+  Alert.alert("Push token (debug)", pushToken);
 
   await apiPatch("/api/users/push-token", { token: pushToken }, token);
 }

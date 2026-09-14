@@ -37,6 +37,21 @@ export function getCategory(id: CategoryId): Category {
   return category;
 }
 
+// Icon + color for any stored category id, including "sos" (an SOS-sourced
+// incident, not one of the reportable CATEGORIES above) and anything
+// unrecognized, which falls back to the same look as "other". Used wherever
+// a report/incident needs to show its real category icon (e.g. report
+// history) rather than one generic document icon for every row.
+export function getCategoryVisual(
+  categoryId: string,
+): { icon: Category["icon"]; color: string } {
+  if (categoryId === "sos") {
+    return { icon: "warning", color: "#DC2626" };
+  }
+  const category = CATEGORIES.find((c) => c.id === categoryId);
+  return category ?? { icon: "ellipsis-horizontal-circle", color: "#6B7280" };
+}
+
 // Maps a stored category (a CategoryId, plus "sos" for SOS-sourced
 // incidents) to its display label. Shared by citizen report history and
 // responder incident screens so both read the same category → label mapping.
