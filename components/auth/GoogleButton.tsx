@@ -1,9 +1,4 @@
-import {
-  GoogleSignin,
-  isErrorWithCode,
-  isSuccessResponse,
-  statusCodes,
-} from "@react-native-google-signin/google-signin";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Haptics from "expo-haptics";
 import React from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
@@ -30,7 +25,28 @@ interface GoogleButtonProps {
 }
 
 const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-const isConfigured = Boolean(webClientId);
+const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+
+export const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+// @react-native-google-signin/google-signin calls TurboModuleRegistry at
+// module-load time, which throws immediately in Expo Go (it only ships
+// Expo's own native modules -- see components/map/AppMap.tsx for the same
+// constraint with @rnmapbox/maps). A static top-level import would crash
+// before this file's isExpoGo check could ever run, so the module is only
+// required when we know a native binary that links it is actually running.
+type GoogleSigninModule = typeof import("@react-native-google-signin/google-signin");
+let GoogleSignin: GoogleSigninModule["GoogleSignin"] | undefined;
+let isErrorWithCode: GoogleSigninModule["isErrorWithCode"] | undefined;
+let isSuccessResponse: GoogleSigninModule["isSuccessResponse"] | undefined;
+let statusCodes: GoogleSigninModule["statusCodes"] | undefined;
+
+if (!isExpoGo) {
+  ({ GoogleSignin, isErrorWithCode, isSuccessResponse, statusCodes } =
+    require("@react-native-google-signin/google-signin"));
+}
+
+const isConfigured = Boolean(webClientId) && Boolean(GoogleSignin);
 
 // GoogleSignin.configure() is synchronous and idempotent -- calling it once
 // at module scope (app load) instead of inside the component avoids
@@ -44,7 +60,7 @@ const isConfigured = Boolean(webClientId);
 // client's role is now just app attestation (package name + SHA-1),
 // handled entirely by Google Play Services, not referenced in JS.
 if (isConfigured) {
-  GoogleSignin.configure({ webClientId });
+  GoogleSignin!.configure({ webClientId, iosClientId });
 }
 
 // Google's actual multi-color "G" logomark -- a single-color glyph (the old
@@ -119,7 +135,11 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
 
   const handlePress = async () => {
     if (!isConfigured) {
-      onError?.("Google sign-in isn't configured for this platform yet.");
+      onError?.(
+        isExpoGo
+          ? "Google sign-in requires a development build, not Expo Go."
+          : "Google sign-in isn't configured for this platform yet."
+      );
       return;
     }
 
@@ -131,15 +151,15 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
       // clears that remembered selection so the account chooser always
       // appears, letting the user pick a different Google account each time.
       try {
-        await GoogleSignin.signOut();
+        await GoogleSignin!.signOut();
       } catch {
         // No active session to sign out of -- fine, proceed to sign in.
       }
 
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const response = await GoogleSignin.signIn();
+      await GoogleSignin!.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin!.signIn();
 
-      if (!isSuccessResponse(response)) {
+      if (!isSuccessResponse!(response)) {
         // User backed out of the account picker -- not an error.
         return;
       }
@@ -153,7 +173,7 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
       const result = await googleAuth(idToken);
       await login(result.token, result.user, result.isNewUser);
     } catch (err) {
-      if (isErrorWithCode(err) && err.code === statusCodes.SIGN_IN_CANCELLED) {
+      if (isErrorWithCode!(err) && err.code === statusCodes!.SIGN_IN_CANCELLED) {
         return;
       }
       onError?.("Google sign-in failed. Please try again.");

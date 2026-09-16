@@ -36,7 +36,7 @@
 **Interfaces:**
 - Produces: `prisma.evacuationCenter` Prisma Client model with fields `{ id, name, address, category, facilities, latitude, longitude, status, createdAt, updatedAt }`. Task 2's service layer consumes this.
 
-- [ ] **Step 1: Add the model to `prisma/schema.prisma`**
+- [x] **Step 1: Add the model to `prisma/schema.prisma`**
 
 Append after the `Notification` model (end of file):
 
@@ -55,13 +55,13 @@ model EvacuationCenter {
 }
 ```
 
-- [ ] **Step 2: Run the migration**
+- [x] **Step 2: Run the migration**
 
 Run: `npx prisma migrate dev --name add_evacuation_center`
 
 Expected: succeeds without an interactive prompt (the `--name` flag supplies the name up front), creates a new folder under `prisma/migrations/` (timestamp + `_add_evacuation_center`), and regenerates the Prisma Client (the schema's `generator client` block outputs to `src/generated/prisma`, so this also updates that folder — if the backend dev server is running via `npm run dev`, it will auto-reload; restart it if anything looks stale).
 
-- [ ] **Step 3: Add the seed data to `prisma/seed.ts`**
+- [x] **Step 3: Add the seed data to `prisma/seed.ts`**
 
 Current `prisma/seed.ts`:
 
@@ -180,13 +180,13 @@ main()
   });
 ```
 
-- [ ] **Step 4: Run the seed and verify**
+- [x] **Step 4: Run the seed and verify**
 
 Run: `ADMIN_SEED_PASSWORD=temp-verify-only npm run db:seed`
 
 Expected: prints `Seeded admin: ...` followed by `Seeded 16 evacuation centers`, exits 0. (Safe to run with any password value — the admin upsert's `update: {}` never overwrites an existing admin's real password; this only matters the very first time an admin row is created.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/seed.ts prisma/migrations
@@ -212,7 +212,7 @@ git commit -m "feat: add EvacuationCenter model, seed real Cordova facilities"
 - Consumes: `prisma` from `@/lib/prisma`, `AppError` from `@/utils/AppError`, `asyncHandler` from `@/utils/asyncHandler`, `authenticate`/`AuthenticatedRequest` from `@/middlewares/authenticate.middleware`, `requireAdmin` from `@/middlewares/requireAdmin.middleware`, `validate` from `@/middlewares/validate.middleware`.
 - Produces: `evacuationCenterService.list()`, `evacuationCenterService.update(id, data)`; `router` default-exported from `@/routes/evacuationCenter.routes`, mounted at `/api`. The response shape `{ id, name, address, category, facilities, latitude, longitude, status, createdAt, updatedAt }` is what Task 3's `useEvacuationCenters` hook parses.
 
-- [ ] **Step 1: Create `src/validations/evacuationCenter.validation.ts`**
+- [x] **Step 1: Create `src/validations/evacuationCenter.validation.ts`**
 
 ```ts
 import { z } from "zod";
@@ -225,7 +225,7 @@ export const updateEvacuationCenterSchema = z.object({
 });
 ```
 
-- [ ] **Step 2: Create `src/services/evacuationCenter.service.ts`**
+- [x] **Step 2: Create `src/services/evacuationCenter.service.ts`**
 
 ```ts
 import { prisma } from "@/lib/prisma";
@@ -250,7 +250,7 @@ export const evacuationCenterService = {
 };
 ```
 
-- [ ] **Step 3: Create `src/controllers/evacuationCenter.controller.ts`**
+- [x] **Step 3: Create `src/controllers/evacuationCenter.controller.ts`**
 
 ```ts
 import { Response } from "express";
@@ -271,7 +271,7 @@ export const evacuationCenterController = {
 };
 ```
 
-- [ ] **Step 4: Create `src/routes/evacuationCenter.routes.ts`**
+- [x] **Step 4: Create `src/routes/evacuationCenter.routes.ts`**
 
 ```ts
 import { Router } from "express";
@@ -295,7 +295,7 @@ router.patch(
 export default router;
 ```
 
-- [ ] **Step 5: Mount the new routes in `src/routes/index.ts`**
+- [x] **Step 5: Mount the new routes in `src/routes/index.ts`**
 
 Current:
 
@@ -369,19 +369,19 @@ router.use(evacuationCenterRoutes);
 export default router;
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run: `npx tsc --noEmit`
 Expected: no errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/validations/evacuationCenter.validation.ts src/services/evacuationCenter.service.ts src/controllers/evacuationCenter.controller.ts src/routes/evacuationCenter.routes.ts src/routes/index.ts
 git commit -m "feat: add evacuation center resource (list + admin status/facilities edit)"
 ```
 
-- [ ] **Step 8: Manual verification**
+- [x] **Step 8: Manual verification**
 
 Start the dev server in a separate terminal (from `C:\Users\kianr\CordovaRiskQ-Bacnkend`): `npm run dev`
 
@@ -444,7 +444,7 @@ Expected: first `403` (`"Admin access required"`); second `200` with `"status":"
 - Consumes: `apiFetch` from `@/lib/api`, `useAuth` from `@/hooks/useAuth` (both existing).
 - Produces: `EvacuationCenter`, `EvacuationCenterCategory`, `EvacuationCenterStatus` types and `KNOWN_FACILITIES` from `@/types/evacuation-center`. `useEvacuationCenters()` returns `{ centers: EvacuationCenter[], loading: boolean, error: string | null, actionError: string | null, updateCenter(id: string, data: { status?: EvacuationCenterStatus; facilities?: string[] }): Promise<void> }`. Tasks 4 and 5 both consume these.
 
-- [ ] **Step 1: Replace `src/types/evacuation-center.ts`**
+- [x] **Step 1: Replace `src/types/evacuation-center.ts`**
 
 Current:
 
@@ -480,7 +480,7 @@ export interface EvacuationCenter {
 }
 ```
 
-- [ ] **Step 2: Create `src/hooks/useEvacuationCenters.ts`**
+- [x] **Step 2: Create `src/hooks/useEvacuationCenters.ts`**
 
 ```ts
 "use client";
@@ -553,12 +553,12 @@ export function useEvacuationCenters() {
 }
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `npm run build`
 Expected: build **fails** on `EvacuationCenterList.tsx` and `EvacuationCenterCapacity.tsx` — both still reference the old `occupants`/`capacity`/`locationName` fields that no longer exist on `EvacuationCenter`. This is expected until Tasks 4 and 5; confirm the errors are only in those two files.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/types/evacuation-center.ts src/hooks/useEvacuationCenters.ts
@@ -580,7 +580,7 @@ git commit -m "feat: add real EvacuationCenter type and useEvacuationCenters hoo
 **Interfaces:**
 - Consumes: `useEvacuationCenters` from `@/hooks/useEvacuationCenters`, `EvacuationCenter`/`EvacuationCenterStatus`/`KNOWN_FACILITIES` from `@/types/evacuation-center`, `Badge`/`Button`/`EmptyState` from `@/components/ui/*` (all Task 3 / existing).
 
-- [ ] **Step 1: Replace `src/components/evacuation-centers/EvacuationCenterList.tsx`**
+- [x] **Step 1: Replace `src/components/evacuation-centers/EvacuationCenterList.tsx`**
 
 ```tsx
 "use client";
@@ -844,7 +844,7 @@ export default function EvacuationCenterList({
 }
 ```
 
-- [ ] **Step 2: Replace `src/app/(dashboard)/evacuation-centers/page.tsx`**
+- [x] **Step 2: Replace `src/app/(dashboard)/evacuation-centers/page.tsx`**
 
 Current:
 
@@ -953,12 +953,12 @@ export default function EvacuationCentersPage() {
 }
 ```
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run: `npm run build`
 Expected: build still fails, now only on `EvacuationCenterCapacity.tsx` (Task 5 fixes it).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add "src/components/evacuation-centers/EvacuationCenterList.tsx" "src/app/(dashboard)/evacuation-centers/page.tsx"
@@ -981,7 +981,7 @@ git commit -m "feat: wire Evacuation Centers page to real data with status/facil
 **Interfaces:**
 - Consumes: `useEvacuationCenters` from `@/hooks/useEvacuationCenters` (Task 3).
 
-- [ ] **Step 1: Create `src/components/dashboard/EvacuationCenterStatus.tsx`**
+- [x] **Step 1: Create `src/components/dashboard/EvacuationCenterStatus.tsx`**
 
 ```tsx
 "use client";
@@ -1046,13 +1046,13 @@ export default function EvacuationCenterStatus() {
 }
 ```
 
-- [ ] **Step 2: Delete the old component**
+- [x] **Step 2: Delete the old component**
 
 ```bash
 git rm src/components/dashboard/EvacuationCenterCapacity.tsx
 ```
 
-- [ ] **Step 3: Update the import in `src/app/(dashboard)/dashboard/page.tsx`**
+- [x] **Step 3: Update the import in `src/app/(dashboard)/dashboard/page.tsx`**
 
 Current (relevant lines):
 
@@ -1078,12 +1078,12 @@ and:
         <EvacuationCenterStatus />
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run: `npm run build`
 Expected: build succeeds with no errors anywhere in the repo — this was the last file depending on the old shape.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/dashboard/EvacuationCenterStatus.tsx "src/app/(dashboard)/dashboard/page.tsx"
@@ -1100,7 +1100,7 @@ git commit -m "feat: wire Dashboard evacuation widget to real data"
 
 **Files:** none (verification only).
 
-- [ ] **Step 1: Browser walkthrough**
+- [x] **Step 1: Browser walkthrough**
 
 With both dev servers running (`npm run dev` in the backend on port 8000, `npm run dev` in the admin app on port 3000), log in to the admin app and:
 

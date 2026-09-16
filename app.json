@@ -55,7 +55,12 @@
       "@rnmapbox/maps",
       "expo-font",
       "expo-image",
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.554660920363-fs5jb9tm7umukhc6m4na52j3t9olu635"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
