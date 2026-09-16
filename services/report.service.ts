@@ -1,7 +1,7 @@
 // services/report.service.ts
 import { File } from "expo-file-system";
 
-import { API_BASE_URL, apiGet, apiPost, type ApiError } from "./api";
+import { API_BASE_URL, apiDelete, apiGet, apiPost, type ApiError } from "./api";
 import { CATEGORY_LABELS, type CategoryId } from "@/components/report/categories";
 import { formatDate } from "@/utils/formatter";
 
@@ -140,6 +140,15 @@ export async function getReportHistory(token: string): Promise<ReportHistoryItem
     token,
   );
   return response.incidents.map(toHistoryItem);
+}
+
+// Contract assumed pending backend confirmation, same situation as
+// deleteNotification in notification.service.ts: no DELETE
+// /api/incidents/:id route exists on the backend yet, so calls here will
+// fail (404/network error) until it's added. The UI only removes a report
+// locally once this actually succeeds -- see app/(tabs)/report-history.tsx.
+export async function deleteReport(token: string, id: string): Promise<void> {
+  await apiDelete(`/api/incidents/${id}`, token);
 }
 
 export type ReportDetail = {

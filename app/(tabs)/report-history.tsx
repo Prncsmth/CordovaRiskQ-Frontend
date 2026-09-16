@@ -1,14 +1,26 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import { EmptyState } from "@/components/common/EmptyState";
 import ReportHistoryCard from "@/components/report-history/ReportHistoryCard";
 import { useAuth } from "@/context/AuthContext";
-import { getReportHistory, type ReportHistoryItem } from "@/services/report.service";
+import {
+  deleteReport,
+  getReportHistory,
+  type ReportHistoryItem,
+} from "@/services/report.service";
 import { FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 export default function ReportHistoryScreen() {
@@ -21,6 +33,7 @@ export default function ReportHistoryScreen() {
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const loadReports = useCallback(() => {
     if (!token) return;
@@ -41,6 +54,33 @@ export default function ReportHistoryScreen() {
       .catch(() => setLoadFailed(true))
       .finally(() => setRefreshing(false));
   }, [token]);
+
+  // Only removes the card once the backend confirms the delete -- this
+  // route doesn't exist yet (see deleteReport's comment in
+  // report.service.ts), so every attempt currently fails and the report
+  // correctly stays put rather than silently disappearing and reappearing
+  // on the next refresh.
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (!token) return;
+      setDeletingIds((prev) => new Set(prev).add(id));
+      deleteReport(token, id)
+        .then(() => {
+          setReports((prev) => prev.filter((r) => r.id !== id));
+        })
+        .catch(() => {
+          Alert.alert("Couldn't delete report", "Please try again in a moment.");
+        })
+        .finally(() => {
+          setDeletingIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+        });
+    },
+    [token],
+  );
 
   // The tab stays mounted for the app's lifetime (no unmountOnBlur), so a
   // plain mount-once effect would never pick up a status change made
@@ -100,7 +140,12 @@ export default function ReportHistoryScreen() {
             </Text>
           ) : null}
           {reports.map((item) => (
-            <ReportHistoryCard key={item.id} item={item} />
+            <ReportHistoryCard
+              key={item.id}
+              item={item}
+              onDelete={() => handleDelete(item.id)}
+              deleting={deletingIds.has(item.id)}
+            />
           ))}
         </View>
       )}

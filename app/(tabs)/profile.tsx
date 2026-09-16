@@ -1,9 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { Alert, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Modal, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import {
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTitle,
+} from "@/components/common/Dialog";
 import ContactSupportCard from "@/components/profile/ContactSupportCard";
 import MenuRow from "@/components/profile/MenuRow";
 import ProfileHeader from "@/components/profile/ProfileHeader";
@@ -34,19 +42,12 @@ export default function ProfileScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  function handleLogout() {
-    Alert.alert("Log out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log out",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.replace("/(auth)/login");
-        },
-      },
-    ]);
+  async function confirmLogout() {
+    setShowLogoutConfirm(false);
+    await logout();
+    router.replace("/(auth)/login");
   }
 
   const menuItems: MenuItem[] = [
@@ -105,7 +106,10 @@ export default function ProfileScreen() {
     >
       <Text style={styles.title}>Profile</Text>
 
-      <ProfileHeader name={user?.name ?? "User"} onLogout={handleLogout} />
+      <ProfileHeader
+        name={user?.name ?? "User"}
+        onLogout={() => setShowLogoutConfirm(true)}
+      />
 
       <Text style={styles.sectionHeading}>Settings</Text>
       <View style={styles.menuCard}>
@@ -125,6 +129,27 @@ export default function ProfileScreen() {
       </View>
 
       <ContactSupportCard />
+
+      <Modal
+        transparent
+        visible={showLogoutConfirm}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutConfirm(false)}
+      >
+        <Dialog>
+          <DialogIcon name="log-out-outline" color={COLORS.primary} />
+          <DialogTitle>Log out?</DialogTitle>
+          <DialogMessage>Are you sure you want to log out?</DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="Cancel"
+              variant="secondary"
+              onPress={() => setShowLogoutConfirm(false)}
+            />
+            <DialogButton label="Log out" variant="primary" onPress={confirmLogout} />
+          </DialogActions>
+        </Dialog>
+      </Modal>
     </ScrollView>
   );
 }

@@ -45,41 +45,50 @@ function detectCategoryVisual(text: string): { icon: IconName; color: string } |
   return null;
 }
 
-// The icon reflects the report's category (same source as ReportHistoryCard
-// so the two screens agree); the color reflects the lifecycle status
-// sniffed from the text (see services/report.service.ts's toReportStatus
-// for the actual status vocabulary) -- so "which report" and "what
-// happened to it" are both visible at a glance instead of collapsing into
-// one generic icon.
+// The icon prefers the report's category (same source as ReportHistoryCard
+// so the two screens agree) when the text actually names one (e.g. "Your
+// Flood report..."); a plain status update like "Report resolved" doesn't
+// name a category, so it falls back to an icon for the STATUS itself
+// (checkmark/car/flag/etc.) instead of the generic document icon -- every
+// row should look like what actually happened, never just "notes."
 function getIncidentStatusVisual(item: AppNotification): { icon: IconName; color: string } {
   const text = `${item.title} ${item.body}`.toLowerCase();
   const category = detectCategoryVisual(text);
-  const icon = category?.icon ?? ICON_BY_TYPE.incident_status;
 
-  if (text.includes("resolved")) return { icon, color: GREEN };
-  if (text.includes("cancelled") || text.includes("canceled")) return { icon, color: RED };
-  if (text.includes("arrived")) return { icon, color: GREEN };
-  if (text.includes("on the way") || text.includes("on_the_way") || text.includes("en route")) {
-    return { icon, color: GRAY };
+  if (text.includes("resolved")) {
+    return { icon: category?.icon ?? "checkmark-done-outline", color: GREEN };
   }
-  if (text.includes("assigned")) return { icon, color: GRAY };
-  return { icon, color: category?.color ?? GRAY };
+  if (text.includes("cancelled") || text.includes("canceled")) {
+    return { icon: category?.icon ?? "close-circle-outline", color: RED };
+  }
+  if (text.includes("arrived")) {
+    return { icon: category?.icon ?? "flag-outline", color: GREEN };
+  }
+  if (text.includes("on the way") || text.includes("on_the_way") || text.includes("en route")) {
+    // Matches the app's own responder-orange used on the Track Responder
+    // screen (marker/route/icon all COLORS.secondary) -- en route is worth
+    // a glance, not a "nothing to act on yet" gray.
+    return { icon: category?.icon ?? "car-outline", color: ORANGE };
+  }
+  if (text.includes("assigned")) {
+    // A responder accepting the report is good news -- the report is
+    // getting a response, same "this is working" tier as resolved/arrived.
+    return { icon: category?.icon ?? "person-add-outline", color: GREEN };
+  }
+  return { icon: category?.icon ?? ICON_BY_TYPE.incident_status, color: category?.color ?? GRAY };
 }
 
-// A normal announcement still gets orange (worth a glance), a genuinely
-// urgent one (typhoon/evacuate-type language) gets red -- same binary as
-// SOS/incident alerts below, not a three-way split.
+// Every announcement is red regardless of urgency -- it's a broadcast from
+// authorities, always worth a look, not just the ones that happen to use
+// urgent-sounding wording. The icon still tells urgent apart from routine.
 function getAnnouncementVisual(item: AppNotification): { icon: IconName; color: string } {
   const text = `${item.title} ${item.body}`.toLowerCase();
-  if (
+  const isUrgent =
     text.includes("urgent") ||
     text.includes("emergency") ||
     text.includes("immediate") ||
-    text.includes("evacuate")
-  ) {
-    return { icon: "warning-outline", color: RED };
-  }
-  return { icon: ICON_BY_TYPE.announcement, color: ORANGE };
+    text.includes("evacuate");
+  return { icon: isUrgent ? "warning-outline" : ICON_BY_TYPE.announcement, color: RED };
 }
 
 function getNotificationVisual(item: AppNotification): { icon: IconName; color: string } {

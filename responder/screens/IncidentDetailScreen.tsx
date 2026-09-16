@@ -8,10 +8,19 @@
 // it.
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import {
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTitle,
+} from "@/components/common/Dialog";
+import QueuedAlertBadge from "@/components/responder/QueuedAlertBadge";
 import ArrivedView from "@/responder/components/incident-detail/ArrivedView";
 import LobbyView, { type LobbyTab } from "@/responder/components/incident-detail/LobbyView";
 import OnTheWayView from "@/responder/components/incident-detail/OnTheWayView";
@@ -29,6 +38,7 @@ import {
 } from "@/responder/services/incident.service";
 import { connectToIncidentSocket } from "@/responder/services/incidentSocket.service";
 import { mergeIncidentUpdate } from "@/responder/components/incident-detail/mergeIncidentUpdate";
+import { useLiveLocationUpload } from "@/hooks/useLiveLocationUpload";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import {
   FONT_FAMILY,
@@ -54,6 +64,8 @@ export default function IncidentDetailScreen() {
   const [tab, setTab] = useState<LobbyTab>("lobby");
   const isClosingRef = useRef(false);
   const hasFocusedOnceRef = useRef(false);
+  const [showResolveConfirm, setShowResolveConfirm] = useState(false);
+  const [closedNotice, setClosedNotice] = useState<"completed" | "cancelled" | null>(null);
   // Fetched once and reused for the rest of this screen's lifetime, matching
   // the merge logic below that already carries distanceKm forward unchanged
   // across refreshes -- null means "not yet attempted", undefined means
@@ -135,6 +147,14 @@ export default function IncidentDetailScreen() {
   const myPhase = incident ? phaseForMyStatus(incident.myStatus) : undefined;
   const isRejoin = incident?.myStatus === "left";
 
+  // Live GPS upload for the citizen's Track Responder screen -- only while
+  // actually en route on a still-open incident. incident.status is kept
+  // live by the socket effect above, so this reacts immediately once the
+  // incident resolves/cancels, without its own polling.
+  const isSendingLiveLocation =
+    myPhase === "on_the_way" && incident?.status !== "completed" && incident?.status !== "cancelled";
+  useLiveLocationUpload(token, isSendingLiveLocation);
+
   // Only reachable via a stale link -- declined incidents are already
   // filtered out of the dashboard list, so a responder can't tap into one
   // from there. "left" incidents stay in the list and route back into the
@@ -162,15 +182,14 @@ export default function IncidentDetailScreen() {
       (incident.status === "completed" || incident.status === "cancelled")
     ) {
       isClosingRef.current = true;
-      Alert.alert(
-        incident.status === "completed" ? "Incident resolved" : "Incident cancelled",
-        incident.status === "completed"
-          ? "This incident has been marked resolved."
-          : "This incident was cancelled.",
-        [{ text: "OK", onPress: () => router.back() }],
-      );
+      setClosedNotice(incident.status);
     }
   }, [incident, router]);
+
+  function dismissClosedNotice() {
+    setClosedNotice(null);
+    router.back();
+  }
 
   if (isLoading) {
     return (
@@ -317,23 +336,16 @@ export default function IncidentDetailScreen() {
   };
 
   const handleCompleteIncident = () => {
-    Alert.alert(
-      "Mark incident resolved?",
-      "This confirms the incident has been handled and closes it for everyone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Mark Resolved",
-          onPress: async () => {
-            if (token) {
-              await updateIncidentStatus(token, incident.id, "completed").catch(() => {});
-            }
-            isClosingRef.current = true;
-            router.back();
-          },
-        },
-      ],
-    );
+    setShowResolveConfirm(true);
+  };
+
+  const confirmCompleteIncident = async () => {
+    setShowResolveConfirm(false);
+    if (token) {
+      await updateIncidentStatus(token, incident.id, "completed").catch(() => {});
+    }
+    isClosingRef.current = true;
+    router.back();
   };
 
   return (
@@ -353,6 +365,13 @@ export default function IncidentDetailScreen() {
           <View style={{ width: 36 }} />
         </View>
       )}
+
+      <QueuedAlertBadge
+        style={{
+          alignSelf: "center",
+          marginBottom: SPACING.md,
+        }}
+      />
 
       {phase === "pending" && (
         <PendingView
@@ -388,6 +407,65 @@ export default function IncidentDetailScreen() {
           onCompleteIncident={handleCompleteIncident}
         />
       )}
+
+      <Modal
+        transparent
+        visible={showResolveConfirm}
+        animationType="fade"
+        onRequestClose={() => setShowResolveConfirm(false)}
+      >
+        <Dialog>
+          <DialogIcon name="checkmark-done-outline" color={COLORS.success} />
+          <DialogTitle>Mark incident resolved?</DialogTitle>
+          <DialogMessage>
+            This confirms the incident has been handled and closes it for
+            everyone.
+          </DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="Cancel"
+              variant="secondary"
+              onPress={() => setShowResolveConfirm(false)}
+            />
+            <DialogButton
+              label="Mark Resolved"
+              variant="primary"
+              color={COLORS.success}
+              onPress={confirmCompleteIncident}
+            />
+          </DialogActions>
+        </Dialog>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={closedNotice !== null}
+        animationType="fade"
+        onRequestClose={dismissClosedNotice}
+      >
+        <Dialog>
+          <DialogIcon
+            name={closedNotice === "completed" ? "checkmark-done-outline" : "close-circle-outline"}
+            color={closedNotice === "completed" ? COLORS.success : COLORS.danger}
+          />
+          <DialogTitle>
+            {closedNotice === "completed" ? "Incident resolved" : "Incident cancelled"}
+          </DialogTitle>
+          <DialogMessage>
+            {closedNotice === "completed"
+              ? "This incident has been marked resolved."
+              : "This incident was cancelled."}
+          </DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="OK"
+              variant="primary"
+              color={closedNotice === "completed" ? COLORS.success : undefined}
+              onPress={dismissClosedNotice}
+            />
+          </DialogActions>
+        </Dialog>
+      </Modal>
     </View>
   );
 }

@@ -146,3 +146,14 @@ export async function updateIncidentStatus(
   );
   return toIncident(response.incident);
 }
+
+// Backing PATCH /api/responders/location, consumed live by the citizen's
+// Track Responder screen (services/tracking.service.ts) via
+// GET /api/incidents/:id/tracking. Only succeeds while this responder is
+// currently "on_the_way" on an active incident -- see
+// trackingService.updateResponderLocation on the backend -- so a call made
+// outside that window fails with 403, which useLiveLocationUpload treats
+// like any other transient failure (retry next tick).
+export async function updateResponderLocation(token: string, coords: Coordinates): Promise<void> {
+  await apiPatch<{ success: true }>("/api/responders/location", coords, token);
+}

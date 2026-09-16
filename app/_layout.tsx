@@ -1,9 +1,11 @@
+import RingOverlay from "@/components/responder/RingOverlay";
 import SosOverlay from "@/components/sos/SosOverlay";
 import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { PreferencesProvider, usePreferences } from "@/context/PreferencesContext";
 import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
 import { ReportLocationProvider } from "@/context/ReportLocationContext";
+import { ResponderAlertProvider } from "@/context/ResponderAlertContext";
 import { SosProvider } from "@/context/SosContext";
 import {
     ThemeProvider as AppThemeProvider,
@@ -230,10 +232,13 @@ function ThemedApp() {
     >
       <TourProvider>
         <SosProvider>
-          <RootLayoutNav />
-          <SosOverlay />
-          <FirstTimeGuideOverlay />
-          <StatusBar style={theme === "dark" ? "light" : "dark"} />
+          <ResponderAlertProvider>
+            <RootLayoutNav />
+            <SosOverlay />
+            <RingOverlay />
+            <FirstTimeGuideOverlay />
+            <StatusBar style={theme === "dark" ? "light" : "dark"} />
+          </ResponderAlertProvider>
         </SosProvider>
       </TourProvider>
     </NavigationThemeProvider>

@@ -3,10 +3,18 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import {
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTitle,
+} from "@/components/common/Dialog";
 import NavSettingRow, { type NavRow } from "@/components/settings/NavSettingRow";
 import ToggleSettingRow, { type ToggleRow } from "@/components/settings/ToggleSettingRow";
 import { useAuth } from "@/context/AuthContext";
@@ -37,21 +45,18 @@ export default function SettingsScreen() {
 
   const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
   const [locationAccess, setLocationAccess] = useState(true);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("Log out?", "You'll need to sign in again to continue.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Log Out",
-        style: "destructive",
-        onPress: async () => {
-          await logout();
-          router.replace("/(auth)/login");
-        },
-      },
-    ]);
+    setShowLogoutConfirm(true);
   };
+
+  async function confirmLogout() {
+    setShowLogoutConfirm(false);
+    await logout();
+    router.replace("/(auth)/login");
+  }
 
   // Settings is the only account entry point responders have (they have no
   // Profile tab the way citizens do), so it needs to carry the account
@@ -224,6 +229,27 @@ export default function SettingsScreen() {
           </View>
         </View>
       </View>
+
+      <Modal
+        transparent
+        visible={showLogoutConfirm}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutConfirm(false)}
+      >
+        <Dialog>
+          <DialogIcon name="log-out-outline" color={COLORS.primary} />
+          <DialogTitle>Log out?</DialogTitle>
+          <DialogMessage>You&apos;ll need to sign in again to continue.</DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="Cancel"
+              variant="secondary"
+              onPress={() => setShowLogoutConfirm(false)}
+            />
+            <DialogButton label="Log Out" variant="primary" onPress={confirmLogout} />
+          </DialogActions>
+        </Dialog>
+      </Modal>
     </ScrollView>
   );
 }

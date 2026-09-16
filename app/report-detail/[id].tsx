@@ -13,11 +13,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap from "@/components/map/AppMap";
+import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import { getReportStatusDisplay } from "@/components/report/reportStatusDisplay";
 import InfoRow from "@/components/report-detail/InfoRow";
 import { useAuth } from "@/context/AuthContext";
-import { getReportDetailById, type ReportDetail } from "@/services/report.service";
+import { getReportDetailById, type ReportDetail, type ReportStatus } from "@/services/report.service";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -29,6 +30,11 @@ import {
 } from "@/theme";
 
 const MAP_HEIGHT = 170;
+
+// Statuses where a responder is actively assigned and en route/on scene --
+// the only window where GET /api/incidents/:id/tracking has anything to
+// return (see trackingService.getForIncident on the backend).
+const TRACKABLE_STATUSES = new Set<ReportStatus>(["assigned", "on_the_way", "arrived"]);
 
 export default function ReportDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -162,6 +168,14 @@ export default function ReportDetailScreen() {
         </View>
       ) : null}
 
+      {TRACKABLE_STATUSES.has(report.status) && (
+        <PrimaryButton
+          title="Track Responder"
+          onPress={() => router.push({ pathname: "/track-responder/[id]", params: { id: report.id } })}
+          style={styles.trackButton}
+        />
+      )}
+
       {report.details ? (
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Details</Text>
@@ -278,6 +292,10 @@ function createStyles(COLORS: ColorPalette) {
       backgroundColor: COLORS.surface,
       marginBottom: SPACING.md,
       ...SHADOW,
+    },
+    trackButton: {
+      marginTop: 0,
+      marginBottom: SPACING.md,
     },
     map: {
       ...StyleSheet.absoluteFill,

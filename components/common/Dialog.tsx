@@ -78,10 +78,16 @@ export function DialogButton({
   label,
   onPress,
   variant = "primary",
+  color,
 }: {
   label: string;
   onPress?: () => void;
   variant?: "primary" | "secondary";
+  // Overrides the primary variant's default red brand color -- for
+  // confirmations that aren't a danger/brand action (e.g. a green "Mark
+  // Resolved" success confirm), so the button doesn't misleadingly read as
+  // a destructive/alert action.
+  color?: string;
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -90,7 +96,9 @@ export function DialogButton({
     <Pressable
       style={[
         styles.dialogButton,
-        isPrimary ? styles.dialogButtonPrimary : styles.dialogButtonSecondary,
+        isPrimary
+          ? [styles.dialogButtonPrimary, color ? { backgroundColor: color } : null]
+          : styles.dialogButtonSecondary,
       ]}
       onPress={onPress}
     >

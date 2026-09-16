@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "cordovariskq",
     "userInterfaceStyle": "automatic",
-    "edgeToEdgeEnabled": true,
     "ios": {
       "bundleIdentifier": "com.cordovariskq.app"
     },
@@ -56,7 +55,7 @@
       "@rnmapbox/maps",
       "expo-font",
       "expo-image",
-      "expo-web-browser"
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true,
