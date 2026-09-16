@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/common/Avatar";
 import RippleRings from "@/components/common/RippleRings";
+import QueuedAlertBadge from "@/components/responder/QueuedAlertBadge";
 import BarangaySectionHeader from "@/responder/components/dashboard/BarangaySectionHeader";
 import {
   incidentBarangay,
@@ -312,6 +313,10 @@ export default function ResponderIncidentsScreen() {
               </Pressable>
             </View>
           </View>
+
+          <QueuedAlertBadge
+            style={{ marginHorizontal: SPACING.md, marginBottom: SPACING.sm }}
+          />
 
           <View style={styles.statusRow}>
             <Pressable

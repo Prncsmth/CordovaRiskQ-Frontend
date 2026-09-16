@@ -10,7 +10,10 @@ export function getReportStatusDisplay(status: ReportStatus, COLORS: ColorPalett
     case "assigned":
       return { label: "Responder Assigned", color: COLORS.tide, bg: COLORS.tideTint };
     case "on_the_way":
-      return { label: "Responder On The Way", color: COLORS.tide, bg: COLORS.tideTint };
+      // Matches the responder-orange used on the Track Responder screen and
+      // the "Responder en route" notification icon (COLORS.secondary), not
+      // the tide teal used for the other assigned/arrived states.
+      return { label: "Responder On The Way", color: COLORS.secondary, bg: `${COLORS.secondary}1A` };
     case "arrived":
       return { label: "Responder Arrived", color: COLORS.tide, bg: COLORS.tideTint };
     case "pending":
