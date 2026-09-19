@@ -4,6 +4,7 @@ import type { Incident } from "@/responder/types/responder";
 function makeIncident(overrides: Partial<Incident> & { id: string }): Incident {
   return {
     type: "Fire",
+    categoryId: "fire",
     location: "Test Location",
     urgency: "low",
     status: "pending",

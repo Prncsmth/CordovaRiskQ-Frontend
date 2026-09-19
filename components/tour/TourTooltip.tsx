@@ -6,7 +6,6 @@
 // The tooltip card for the first-time guide: title, body copy, and
 // Skip/Back/Next/Finish. Positions itself above or below the current target
 // (or roughly centered when there's no target, i.e. step 0).
-import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo } from "react";
@@ -112,13 +111,6 @@ export default function TourTooltip({
           ),
         }
     : { top: "40%" as const };
-  const targetIsBelowTooltip = Boolean(
-    targetRect && targetRect.y > screenHeight / 2,
-  );
-  const arrowLeft = targetRect
-    ? targetRect.x + targetRect.width / 2 - SPACING.lg - 14
-    : undefined;
-
   function handlePress(action: () => void) {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     action();
@@ -126,18 +118,6 @@ export default function TourTooltip({
 
   return (
     <Animated.View style={[styles.wrap, positionStyle, animatedStyle]}>
-      {targetRect ? (
-        <Ionicons
-          name={targetIsBelowTooltip ? "arrow-down" : "arrow-up"}
-          size={28}
-          color={COLORS.background}
-          style={[
-            styles.targetArrow,
-            targetIsBelowTooltip ? styles.arrowBelow : styles.arrowAbove,
-            { left: arrowLeft },
-          ]}
-        />
-      ) : null}
       <View style={styles.headerRow}>
         <Pressable onPress={() => handlePress(onSkip)} hitSlop={8}>
           <Text style={styles.skipText}>Skip</Text>
@@ -199,16 +179,6 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.textSecondary,
-    },
-    targetArrow: {
-      position: "absolute",
-      zIndex: 2,
-    },
-    arrowBelow: {
-      top: "100%",
-    },
-    arrowAbove: {
-      top: -24,
     },
     title: {
       fontFamily: FONT_FAMILY.display,

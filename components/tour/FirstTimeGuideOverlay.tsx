@@ -14,6 +14,7 @@ import {
 
 import { useTour } from "@/context/TourContext";
 import TourSpotlight from "./TourSpotlight";
+import TourTapHint from "./TourTapHint";
 import TourTooltip from "./TourTooltip";
 import type { Rect } from "./types";
 
@@ -54,17 +55,25 @@ export default function FirstTimeGuideOverlay() {
   const overlayRef = useRef<View>(null);
   const segments = useSegments();
   // The tour's anchors (SOS button, Advisory banner, Evacuation card,
-  // Profile tab) only exist while the citizen tabs are showing. This is a
-  // safety net, not the primary guard: it stops the overlay from ever
-  // visually rendering over another screen (e.g. phone-number.tsx) even if
-  // isVisible is ever armed while navigation is mid-redirect -- see the
-  // comment on home.tsx's notifyHomeReady() effect for how that can happen.
-  const isOnHomeTabs = segments[0] === "(tabs)";
+  // Profile tab -- or, for a responder, the 4 ResponderTabBar tabs) only
+  // exist while that account's own tab group is showing. This is a safety
+  // net, not the primary guard: it stops the overlay from ever visually
+  // rendering over another screen (e.g. phone-number.tsx, or a responder's
+  // pushed incident detail/navigate screen) even if isVisible is ever
+  // armed while navigation is mid-redirect -- see the comment on home.tsx's
+  // notifyHomeReady() effect for how that can happen.
+  const isOnHomeTabs =
+    segments[0] === "(tabs)" ||
+    (segments[0] === "responder" && segments[1] === "(tabs)");
 
   const step = steps[currentStep];
 
   useEffect(() => {
     if (!isVisible || !step.targetId) {
+      // Resetting internal state when the step/visibility (external props
+      // this effect exists to react to) changes to "no target" -- same
+      // pattern/justification as ResponderAlertContext's reset-on-logout.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTargetRect(null);
       return;
     }
@@ -204,6 +213,7 @@ export default function FirstTimeGuideOverlay() {
         screenWidth={screenWidth}
         screenHeight={screenHeight}
       />
+      <TourTapHint targetRect={targetRect} />
       <TourTooltip
         step={step}
         stepIndex={currentStep}

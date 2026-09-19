@@ -36,9 +36,10 @@ const LiveIncidentMap = forwardRef<
       center={midpoint}
       zoom={14}
       showLayerSwitcher
+      showUserLocationDot={false}
       markers={[
         { id: "responder", ...responderCoords, color: COLORS.secondary, icon: "logo" },
-        { id: "incident", ...incidentCoords, color },
+        { id: "incident", ...incidentCoords, color, pulse: true },
       ]}
       polylines={[
         {

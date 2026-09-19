@@ -150,11 +150,9 @@ export default function PhotoPicker({ photo, onSelect, onRemove }: PhotoPickerPr
         style={styles.emptyBox}
         onPress={openPickerSheet}
         onPressIn={() => {
-          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(0.98, { duration: 100 });
         }}
         onPressOut={() => {
-          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(1, { duration: 100 });
         }}
       >

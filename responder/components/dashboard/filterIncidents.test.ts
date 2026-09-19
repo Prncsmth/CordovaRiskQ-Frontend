@@ -10,6 +10,7 @@ const GABI_COORDS = { latitude: 10.2626, longitude: 123.9606 };
 function makeIncident(overrides: Partial<Incident> & { id: string }): Incident {
   return {
     type: "Fire",
+    categoryId: "fire",
     location: "Test Location",
     urgency: "low",
     status: "pending",
