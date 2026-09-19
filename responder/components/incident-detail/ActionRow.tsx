@@ -49,9 +49,11 @@ export default function ActionRow({
           onPress();
         }}
         onPressIn={() => {
+          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value; mutating `.value` is the intended API, not a hook-return mutation
           scale.value = withTiming(0.98, { duration: 100 });
         }}
         onPressOut={() => {
+          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value; mutating `.value` is the intended API, not a hook-return mutation
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
