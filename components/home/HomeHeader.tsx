@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import { useTour } from "@/context/TourContext";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -20,6 +21,13 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
+  const bellRef = useRef<View>(null);
+
+  useEffect(() => {
+    registerTarget("notifications", bellRef);
+    return () => unregisterTarget("notifications", bellRef);
+  }, [registerTarget, unregisterTarget]);
 
   return (
     <View style={styles.row}>
@@ -47,6 +55,8 @@ export default function HomeHeader({ hasUnread }: HomeHeaderProps) {
       </View>
 
       <TouchableOpacity
+        ref={bellRef}
+        onLayout={() => notifyTargetLayout()}
         style={styles.bell}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

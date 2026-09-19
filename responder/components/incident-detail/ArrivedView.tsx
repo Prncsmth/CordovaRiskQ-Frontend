@@ -60,9 +60,9 @@ export default function ArrivedView({
               COLORS={COLORS}
             />
           </View>
-          <Text style={styles.arrivedText}>You've Arrived</Text>
+          <Text style={styles.arrivedText}>You&apos;ve Arrived</Text>
           <Text style={styles.arrivedSubtext}>
-            You're on scene and assisting.
+            You&apos;re on scene and assisting.
           </Text>
         </View>
 

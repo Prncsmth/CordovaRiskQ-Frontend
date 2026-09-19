@@ -7,7 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,6 +35,7 @@ import RButton from "@/responder/components/shared/RButton";
 import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
+import { useTour } from "@/context/TourContext";
 import { getIncidents } from "@/responder/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
@@ -67,6 +68,26 @@ export default function ResponderIncidentsScreen() {
   const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
   const { photoUri } = useProfilePhoto();
+  const {
+    notifyHomeReady,
+    isCompletedMapLoaded,
+    registerTarget,
+    unregisterTarget,
+    notifyTargetLayout,
+  } = useTour();
+  const notificationsBellRef = useRef<View>(null);
+
+  // Registered here (not in ResponderTabBar) because this bell -- not the
+  // tab bar's own Notifications icon -- is what the responder tour points
+  // its "Notifications" step at, matching how the citizen tour also
+  // targets HomeHeader's bell rather than a tab icon. Only one component
+  // may register "responder-notifications" at a time (they're both
+  // mounted together, inside the same tab), so ResponderTabBar
+  // deliberately does not register its own Notifications tab under this id.
+  useEffect(() => {
+    registerTarget("responder-notifications", notificationsBellRef);
+    return () => unregisterTarget("responder-notifications", notificationsBellRef);
+  }, [registerTarget, unregisterTarget]);
   const [duty, setDuty] = useState<DutyStatus>(() =>
     user?.isOnDuty === false ? "offline" : "online",
   );
@@ -93,6 +114,24 @@ export default function ResponderIncidentsScreen() {
   const tideIconGradient: [string, string] = isDark
     ? [COLORS.tideTint, "#1F5C58"]
     : [COLORS.tideTint, "#CFEDEB"];
+
+  // Shows the responder First-Time Guide exactly once per account, the
+  // first time it ever reaches this Dashboard. Unlike home.tsx's citizen
+  // equivalent, this can't fire at mount unconditionally -- a responder
+  // account has no "freshly registered" signal to lean on (see
+  // notifyHomeReady's role branch in TourContext), so a RETURNING
+  // responder who already completed the guide in an earlier session needs
+  // the real persisted completedMap value, not the empty map it starts as
+  // before that finishes loading. Waiting on isCompletedMapLoaded avoids
+  // incorrectly re-showing it on every login.
+  useEffect(() => {
+    if (!isCompletedMapLoaded) return;
+    notifyHomeReady();
+    // Fires once per isCompletedMapLoaded false->true transition (i.e. once
+    // per account session), not on every notifyHomeReady identity change --
+    // same mid-tour-reset concern home.tsx's own citizen effect avoids.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCompletedMapLoaded]);
 
   // Real first-observed timestamp per incident id -- always set to the
   // actual time this device first saw the incident. Used for the "time
@@ -284,32 +323,21 @@ export default function ResponderIncidentsScreen() {
 
             <View style={styles.headerActions}>
               <Pressable
+                ref={notificationsBellRef}
+                onLayout={() => notifyTargetLayout()}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   router.push("/notifications");
                 }}
                 hitSlop={12}
-                style={styles.logoutButton}
+                style={styles.bellButton}
                 accessibilityRole="button"
                 accessibilityLabel={
                   hasUnread ? "Notifications, unread" : "Notifications"
                 }
               >
-                <Ionicons name="notifications-outline" size={18} color={COLORS.text} />
+                <Ionicons name="notifications-outline" size={26} color={COLORS.primary} />
                 {hasUnread ? <View style={styles.unreadDot} /> : null}
-              </Pressable>
-
-              <Pressable
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  router.push("/settings");
-                }}
-                hitSlop={12}
-                style={styles.logoutButton}
-                accessibilityRole="button"
-                accessibilityLabel="Settings"
-              >
-                <Ionicons name="settings-outline" size={18} color={COLORS.text} />
               </Pressable>
             </View>
           </View>
@@ -568,16 +596,13 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
   },
-  logoutButton: {
+  // Plain icon, no circular background/border -- just a big enough tap
+  // target (44x44, Apple/Android's own minimum) centered around it.
+  bellButton: {
     width: 44,
     height: 44,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
-    ...SHADOW_LG,
-    borderWidth: 1.5,
-    borderColor: COLORS.primaryTint,
   },
   unreadDot: {
     position: "absolute",
@@ -707,10 +732,9 @@ function createStyles(COLORS: ColorPalette) {
   },
   nearestLabel: {
     fontSize: TYPOGRAPHY.body,
-    fontWeight: "800",
-    color: COLORS.text,
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
+    fontWeight: "700",
+    color: COLORS.textSecondary,
+    letterSpacing: 0.2,
   },
   });
 }

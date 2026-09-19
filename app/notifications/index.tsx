@@ -42,7 +42,17 @@ function isToday(dateString: string): boolean {
   );
 }
 
-export default function NotificationsScreen() {
+type NotificationsScreenProps = {
+  // Set by the responder tab wrapper (app/responder/(tabs)/notifications.tsx)
+  // -- this screen is the root of a persistent tab there, so router.back()
+  // wouldn't have anywhere sensible to go. The citizen route (a screen
+  // pushed from the bell icon) keeps the default, unchanged behavior.
+  hideBackButton?: boolean;
+};
+
+export default function NotificationsScreen({
+  hideBackButton = false,
+}: NotificationsScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const COLORS = useThemeColors();
@@ -138,7 +148,11 @@ export default function NotificationsScreen() {
       }
     >
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} />
+        {hideBackButton ? (
+          <View style={{ width: 36 }} />
+        ) : (
+          <BackButton onPress={() => router.back()} />
+        )}
         <Text style={styles.headerTitle}>Notifications</Text>
         <View style={{ width: 36 }} />
       </View>

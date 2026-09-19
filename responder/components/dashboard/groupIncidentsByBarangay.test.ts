@@ -16,6 +16,7 @@ const POBLACION_COORDS = { latitude: 10.2525, longitude: 123.9502 };
 function makeIncident(overrides: Partial<Incident> & { id: string }): Incident {
   return {
     type: "Test Incident",
+    categoryId: "other",
     location: "Test Location",
     urgency: "low",
     status: "pending",

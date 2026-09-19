@@ -60,10 +60,9 @@ function createStyles(COLORS: ColorPalette) {
     },
     name: {
       fontSize: TYPOGRAPHY.body,
-      fontWeight: "800",
-      color: COLORS.text,
-      letterSpacing: 0.3,
-      textTransform: "uppercase",
+      fontWeight: "700",
+      color: COLORS.textSecondary,
+      letterSpacing: 0.2,
     },
     count: {
       marginLeft: "auto",

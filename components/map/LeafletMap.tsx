@@ -150,23 +150,42 @@ function buildHtml(options: {
     }
   }
 
-  function pinIcon(color) {
+  function pinIcon(color, pulse) {
+    // Same rq-pulse keyframe as the logo/user-location markers -- a live
+    // incident (SOS or citizen report) gets a glow ring in its own color
+    // so it draws the eye instead of sitting as a static pin.
+    var glow = pulse
+      ? '<div style="position:absolute;top:0;left:0;width:36px;height:36px;margin:-4px 0 0 -4px;border-radius:50%;background:' + color + ';opacity:0.4;animation:rq-pulse 1.6s ease-out infinite;"></div>'
+      : '';
     return L.divIcon({
       className: '',
-      html: '<div style="width:28px;height:28px;border-radius:50% 50% 50% 0;background:' + color + ';transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.35);"></div>',
+      html: '<div style="position:relative;width:28px;height:28px;">' + glow +
+        '<div style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50% 50% 50% 0;background:' + color + ';transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.35);"></div>' +
+        '</div>',
       iconSize: [28, 28],
       iconAnchor: [14, 28],
       popupAnchor: [0, -28]
     });
   }
 
-  function logoIcon() {
-    return L.icon({
-      iconUrl: RISKQ_LOGO,
-      iconSize: [36, 36],
-      iconAnchor: [18, 18],
-      popupAnchor: [0, -18],
-      className: 'rq-logo-marker'
+  function logoIcon(color) {
+    // Same rq-pulse keyframe the blue "you are here" dot uses (that
+    // animation itself doesn't bake in a color, each element sets its own
+    // background) -- kept as the RiskQ icon, never reverted to a plain
+    // colored dot, with a pulse ring in the marker's own color instead.
+    // Falls back to the app's own responder-orange (COLORS.secondary),
+    // never USER_LOCATION_BLUE -- every real caller already passes its own
+    // color, so this only matters as a defensive default.
+    var ringColor = color || '#FF6B35';
+    return L.divIcon({
+      className: '',
+      html: '<div style="width:52px;height:52px;position:relative;">' +
+        '<div style="position:absolute;top:50%;left:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:' + ringColor + ';opacity:0.35;animation:rq-pulse 1.6s ease-out infinite;"></div>' +
+        '<img src="' + RISKQ_LOGO + '" class="rq-logo-marker" style="position:absolute;top:50%;left:50%;width:36px;height:36px;margin:-18px 0 0 -18px;" />' +
+        '</div>',
+      iconSize: [52, 52],
+      iconAnchor: [26, 26],
+      popupAnchor: [0, -26]
     });
   }
 
@@ -175,7 +194,7 @@ function buildHtml(options: {
     markersLayer.clearLayers();
     markers.forEach(function (m) {
       var marker = L.marker([m.latitude, m.longitude], {
-        icon: m.icon === 'logo' ? logoIcon() : pinIcon(m.color || '#2563eb')
+        icon: m.icon === 'logo' ? logoIcon(m.color) : pinIcon(m.color || '#2563eb', m.pulse)
       });
       if (m.label) marker.bindPopup(m.label);
       marker.on('click', function (e) {

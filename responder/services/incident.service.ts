@@ -28,6 +28,7 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
   return {
     id: row.id,
     type: CATEGORY_LABELS[row.category] ?? row.category,
+    categoryId: row.category,
     location: row.locationLabel,
     urgency: row.urgency,
     distanceKm:

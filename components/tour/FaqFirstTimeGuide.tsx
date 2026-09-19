@@ -4,6 +4,7 @@ import { StyleSheet, useWindowDimensions, View } from "react-native";
 import type { Measurable, TourStepConfig } from "@/context/TourContext";
 import { useThemeColors } from "@/theme";
 import TourSpotlight from "./TourSpotlight";
+import TourTapHint from "./TourTapHint";
 import TourTooltip from "./TourTooltip";
 import type { Rect } from "./types";
 
@@ -87,6 +88,7 @@ export default function FaqFirstTimeGuide({
         screenWidth={width}
         screenHeight={height}
       />
+      <TourTapHint targetRect={targetRect} />
       <TourTooltip
         step={step}
         stepIndex={stepIndex}

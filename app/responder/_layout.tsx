@@ -11,7 +11,7 @@ export default function ResponderLayout() {
         contentStyle: { backgroundColor: COLORS.background },
       }}
     >
-      <Stack.Screen name="index" />
+      <Stack.Screen name="(tabs)" />
       <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
       <Stack.Screen name="[id]" />
       <Stack.Screen

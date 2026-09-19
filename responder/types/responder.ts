@@ -41,6 +41,11 @@ export interface TeamMember {
 export interface Incident {
   id: string;
   type: string;
+  // Raw category code (e.g. "flood", "sos") -- `type` above is already the
+  // display LABEL (CATEGORY_LABELS[row.category]), which isn't reversible
+  // back to an id for getCategoryVisual() lookups (icon/color by category,
+  // used by the responder Live Map's incident markers).
+  categoryId: string;
   location: string;
   urgency: Urgency;
   distanceKm?: number;

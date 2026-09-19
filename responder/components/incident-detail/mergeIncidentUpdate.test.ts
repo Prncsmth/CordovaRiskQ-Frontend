@@ -4,6 +4,7 @@ import type { Incident } from "@/responder/types/responder";
 const baseIncident: Incident = {
   id: "inc-1",
   type: "Fire",
+  categoryId: "fire",
   location: "Near the market",
   urgency: "high",
   status: "lobby",

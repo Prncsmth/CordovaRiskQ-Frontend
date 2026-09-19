@@ -33,7 +33,18 @@ import {
 
 const APP_VERSION = "1.0.0";
 
-export default function SettingsScreen() {
+type SettingsScreenProps = {
+  // Set by the responder tab wrapper (app/responder/(tabs)/settings.tsx) --
+  // this screen is the root of a persistent tab there, so router.back()
+  // wouldn't have anywhere sensible to go. The pushed route (reached from
+  // Dashboard's gear icon, or the citizen profile screen) keeps the
+  // default, unchanged behavior.
+  hideBackButton?: boolean;
+};
+
+export default function SettingsScreen({
+  hideBackButton = false,
+}: SettingsScreenProps = {}) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const COLORS = useThemeColors();
@@ -122,38 +133,45 @@ export default function SettingsScreen() {
     },
   ];
 
+  // FAQs and Emergency Hotlines are citizen-facing content (how to report,
+  // who to call in an emergency) -- responders ARE the emergency response,
+  // so neither applies to them. Contact Support stays for both.
   const supportRows: NavRow[] = [
-    {
-      key: "faqs",
-      icon: "help-circle-outline",
-      label: "FAQs",
-      onPress: () => router.push("/faqs"),
-    },
+    ...(isResponder
+      ? []
+      : [
+          {
+            key: "faqs",
+            icon: "help-circle-outline",
+            label: "FAQs",
+            onPress: () => router.push("/faqs"),
+          } satisfies NavRow,
+        ]),
     {
       key: "contact-support",
       icon: "chatbubbles-outline",
       label: "Contact Support",
       onPress: () => router.push("/contact-support"),
     },
-    {
-      key: "emergency-contacts",
-      icon: "call-outline",
-      label: "Emergency Hotlines",
-      onPress: () => router.push("/contacts"),
-    },
     ...(isResponder
       ? []
       : [
           {
-            key: "view-tutorial",
-            icon: "play-circle-outline",
-            label: "View App Tutorial",
-            onPress: () => {
-              tour.startManualTour();
-              router.push("/(tabs)/home");
-            },
+            key: "emergency-contacts",
+            icon: "call-outline",
+            label: "Emergency Hotlines",
+            onPress: () => router.push("/contacts"),
           } satisfies NavRow,
         ]),
+    {
+      key: "view-tutorial",
+      icon: "play-circle-outline",
+      label: "View App Tutorial",
+      onPress: () => {
+        tour.startManualTour();
+        router.push(isResponder ? "/responder" : "/(tabs)/home");
+      },
+    },
   ];
 
   return (
@@ -166,7 +184,9 @@ export default function SettingsScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.header}>
-        <BackButton onPress={() => router.back()} style={styles.backButton} />
+        {hideBackButton ? null : (
+          <BackButton onPress={() => router.back()} style={styles.backButton} />
+        )}
         <Text style={styles.headerTitle}>Settings</Text>
       </View>
 

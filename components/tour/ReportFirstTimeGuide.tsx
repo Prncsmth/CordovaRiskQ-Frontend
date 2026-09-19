@@ -13,6 +13,7 @@ import type {
 } from "@/context/TourContext";
 import { useThemeColors } from "@/theme";
 import TourSpotlight from "./TourSpotlight";
+import TourTapHint from "./TourTapHint";
 import TourTooltip from "./TourTooltip";
 import type { Rect } from "./types";
 
@@ -124,6 +125,7 @@ export default function ReportFirstTimeGuide({
         screenWidth={width}
         screenHeight={height}
       />
+      <TourTapHint targetRect={targetRect} />
       <TourTooltip
         step={step}
         stepIndex={stepIndex}

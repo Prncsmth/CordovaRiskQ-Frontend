@@ -54,6 +54,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
     markers = [],
     polylines = [],
     interactive = true,
+    showUserLocationDot = true,
     showLayerSwitcher = false,
     showCordovaBoundary = false,
     topInset = 0,
@@ -71,13 +72,20 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   const [mapError, setMapError] = useState<string | null>(null);
   const [styleKey, setStyleKey] = useState<StyleKey>("streets");
   const [layerMenuOpen, setLayerMenuOpen] = useState(false);
-  // Drives the "you are here" pulse ring: a plain circle just sits there and
-  // is easy to miss, so this animates it expanding + fading out on a loop
-  // (classic radar-ping look) rather than only resizing it.
+  // Drives the "you are here" pulse ring, a "logo" marker's matching ring,
+  // and any marker.pulse === true glow (a live incident on a responder's
+  // map): a plain circle/marker just sitting there is easy to miss, so
+  // this animates it expanding + fading out on a loop (classic radar-ping
+  // look) rather than only resizing it. One shared loop drives all three,
+  // rather than a separate timer per marker.
   const [pulseProgress, setPulseProgress] = useState(0);
+  const hasLogoMarker = markers.some((marker) => marker.icon === "logo");
+  const hasPulsingMarker = markers.some((marker) => marker.pulse);
 
   useEffect(() => {
-    if (!interactive) return;
+    if (!interactive || (!showUserLocationDot && !hasLogoMarker && !hasPulsingMarker)) {
+      return;
+    }
     const durationMs = 1600;
     const start = Date.now();
     const timer = setInterval(() => {
@@ -85,7 +93,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
       setPulseProgress(elapsed / durationMs);
     }, 50);
     return () => clearInterval(timer);
-  }, [interactive]);
+  }, [interactive, showUserLocationDot, hasLogoMarker, hasPulsingMarker]);
   const cameraRef = useRef<any>(null);
   const currentZoomRef = useRef(zoom);
 
@@ -239,7 +247,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           </ShapeSource>
         )}
 
-        {interactive && (
+        {interactive && showUserLocationDot && (
           <UserLocation visible>
             {/* Expanding, fading ring driven by pulseProgress -- a real
                 "radar ping" loop instead of a static translucent circle. */}
@@ -300,13 +308,59 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
         {markers.map((marker) =>
           marker.icon === "logo" ? (
             <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
-              <Pressable hitSlop={8} onPress={() => onMarkerPress?.(marker.id)}>
-                <Image
-                  source={require("@/assets/images/riskq.png")}
-                  style={styles.logoPin}
-                  resizeMode="contain"
+              <View style={styles.logoMarkerWrap}>
+                {/* Same radar-ping technique as the blue "you are here" dot
+                    (rqUserLocationPulse) -- expanding, fading ring driven by
+                    the same pulseProgress loop -- just kept as the RiskQ
+                    icon instead of reverting to a plain colored dot. */}
+                <View
+                  style={[
+                    styles.logoPulseRing,
+                    {
+                      // Never the "you are here" blue -- this marker's whole
+                      // point is to read as the RiskQ icon, not a
+                      // repainted blue dot. Falls back to the app's own
+                      // responder-orange, not USER_LOCATION_BLUE.
+                      backgroundColor: marker.color ?? COLORS.secondary,
+                      opacity: 0.35 * (1 - pulseProgress),
+                      transform: [{ scale: 0.6 + pulseProgress * 0.9 }],
+                    },
+                  ]}
                 />
-              </Pressable>
+                <Pressable hitSlop={8} onPress={() => onMarkerPress?.(marker.id)}>
+                  <Image
+                    source={require("@/assets/images/riskq.png")}
+                    style={styles.logoPin}
+                    resizeMode="contain"
+                  />
+                </Pressable>
+              </View>
+            </MarkerView>
+          ) : marker.pulse ? (
+            <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
+              <View style={styles.pinMarkerWrap}>
+                {/* Same radar-ping pulse as the logo/user-location markers
+                    above, in the marker's own color -- a live incident
+                    (SOS or citizen report) should draw the eye, not just
+                    sit there as a static pin. */}
+                <View
+                  style={[
+                    styles.pinPulseRing,
+                    {
+                      backgroundColor: marker.color ?? COLORS.primary,
+                      opacity: 0.4 * (1 - pulseProgress),
+                      transform: [{ scale: 0.6 + pulseProgress * 0.9 }],
+                    },
+                  ]}
+                />
+                <Pressable
+                  hitSlop={8}
+                  onPress={() => onMarkerPress?.(marker.id)}
+                  style={[styles.pin, { backgroundColor: marker.color ?? COLORS.primary }]}
+                >
+                  <Ionicons name="location" size={18} color={COLORS.white} />
+                </Pressable>
+              </View>
             </MarkerView>
           ) : (
             <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
@@ -387,6 +441,30 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "center",
       ...SHADOW,
+    },
+    pinMarkerWrap: {
+      width: 46,
+      height: 46,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    pinPulseRing: {
+      position: "absolute",
+      width: 36,
+      height: 36,
+      borderRadius: RADIUS.full,
+    },
+    logoMarkerWrap: {
+      width: 52,
+      height: 52,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    logoPulseRing: {
+      position: "absolute",
+      width: 40,
+      height: 40,
+      borderRadius: RADIUS.full,
     },
     logoPin: {
       width: 36,

@@ -64,7 +64,6 @@ export default function ReportHistoryCard({
   // swiped-away card back into place.
   useEffect(() => {
     if (!deleting) {
-      // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
       translateX.value = withSpring(0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,13 +74,11 @@ export default function ReportHistoryCard({
   // without a deliberate second confirmation.
   function handleCancelDelete() {
     setShowConfirm(false);
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
     translateX.value = withSpring(0);
   }
 
   function handleConfirmDelete() {
     setShowConfirm(false);
-    // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
     translateX.value = withTiming(-500, { duration: 200 }, (finished) => {
       if (finished && onDelete) runOnJS(onDelete)();
     });
@@ -92,12 +89,10 @@ export default function ReportHistoryCard({
     .activeOffsetX([-10, 10])
     .failOffsetY([-10, 10])
     .onUpdate((event) => {
-      // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
       translateX.value = Math.max(-SWIPE_MAX, Math.min(0, event.translationX));
     })
     .onEnd(() => {
       if (translateX.value < -DELETE_THRESHOLD && onDelete) {
-        // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
         translateX.value = withTiming(-SWIPE_MAX, { duration: 150 }, (finished) => {
           if (finished) runOnJS(setShowConfirm)(true);
         });

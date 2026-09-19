@@ -51,11 +51,9 @@ export default function PinnedLocationCard({
           router.push({ pathname: "/(tabs)/map", params: { intent: "change-location" } });
         }}
         onPressIn={() => {
-          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(0.98, { duration: 100 });
         }}
         onPressOut={() => {
-          // eslint-disable-next-line react-hooks/immutability -- Reanimated shared value, mutable by design
           scale.value = withTiming(1, { duration: 100 });
         }}
         style={styles.wrap}
