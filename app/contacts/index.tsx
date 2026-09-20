@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BackButton from "@/components/common/BackButton";
 import ContactRow from "@/components/contacts/ContactRow";
 import { getHotlines, type Hotline } from "@/services/contacts.service";
+import { useAuth } from "@/context/AuthContext";
 import {
   useThemeColors,
   FONT_FAMILY,
@@ -58,6 +59,51 @@ const HOTLINE_IMAGES: Record<string, ImageSourcePropType> = {
   "red-cross": require("@/assets/images/red-cross.png"),
 };
 
+// Last-resort fallback, used ONLY when the live GET /api/hotlines call
+// fails (e.g. offline/backend down). These are the same six hotlines that
+// used to be hardcoded in services/contacts.service.ts before it was wired
+// to the real backend -- kept verbatim so this disaster-response screen
+// never renders empty just because the network is down. The backend is
+// still the source of truth whenever it's reachable.
+const FALLBACK_HOTLINES: Hotline[] = [
+  {
+    id: "mdrrmo",
+    name: "Cordova MDRRMO (Ambulance / Rescue)",
+    number: "0917-116-9819 / 0917-149-8457",
+    category: "medical",
+  },
+  {
+    id: "police",
+    name: "Cordova Police Station",
+    number: "0998-598-6392",
+    category: "police",
+  },
+  {
+    id: "bfp",
+    name: "Bureau of Fire Protection (BFP) - Cordova",
+    number: "(032) 436-4245 / 0933-394-9073",
+    category: "fire",
+  },
+  {
+    id: "coast-guard",
+    name: "Philippine Coast Guard (PCG) - Cordova",
+    number: "0927-941-2486",
+    category: "maritime",
+  },
+  {
+    id: "health-center",
+    name: "Cordova Primary Health Care Facility",
+    number: "0967-491-5579",
+    category: "medical",
+  },
+  {
+    id: "red-cross",
+    name: "Philippine Red Cross (Lapu-Lapu/Cordova Chapter)",
+    number: "0969-450-8482",
+    category: "medical",
+  },
+];
+
 // Groups hotlines by the kind of emergency they respond to, so the list
 // reads as scannable sections instead of one flat stack. Order here is the
 // display order.
@@ -70,38 +116,47 @@ const CATEGORIES: { key: CategoryKey; label: string }[] = [
   { key: "maritime", label: "Maritime" },
 ];
 
-const HOTLINE_CATEGORY: Record<string, CategoryKey> = {
-  police: "police",
-  bfp: "fire",
-  mdrrmo: "medical",
-  "health-center": "medical",
-  "red-cross": "medical",
-  "coast-guard": "maritime",
-};
+// Trailing catch-all so a hotline whose category doesn't match one of the
+// 4 known keys above (e.g. a typo'd value -- Hotline.category is an
+// unvalidated string server-side) still renders instead of silently
+// vanishing from the screen.
+const OTHER_CATEGORY = { key: "other" as const, label: "Other" };
 
 export default function ContactsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { token } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [hotlines, setHotlines] = useState<Hotline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getHotlines().then((loadedHotlines) => {
-      setHotlines(loadedHotlines);
+    if (!token) {
       setIsLoading(false);
-    });
-  }, []);
+      return;
+    }
+    getHotlines(token)
+      .then(setHotlines)
+      // Backend unreachable -- fall back to the last-known-good hotline
+      // list rather than leaving the screen empty (see FALLBACK_HOTLINES).
+      .catch(() => setHotlines(FALLBACK_HOTLINES))
+      .finally(() => setIsLoading(false));
+  }, [token]);
 
-  const groupedHotlines = useMemo(
-    () =>
-      CATEGORIES.map((category) => ({
+  const groupedHotlines = useMemo(() => {
+    const knownKeys = new Set<string>(CATEGORIES.map((c) => c.key));
+    return [
+      ...CATEGORIES.map((category) => ({
         ...category,
-        hotlines: hotlines.filter((h) => HOTLINE_CATEGORY[h.id] === category.key),
-      })).filter((group) => group.hotlines.length > 0),
-    [hotlines],
-  );
+        hotlines: hotlines.filter((h) => h.category === category.key),
+      })),
+      {
+        ...OTHER_CATEGORY,
+        hotlines: hotlines.filter((h) => !knownKeys.has(h.category)),
+      },
+    ].filter((group) => group.hotlines.length > 0);
+  }, [hotlines]);
 
   const callNumber = (number: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
