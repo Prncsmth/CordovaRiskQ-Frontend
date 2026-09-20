@@ -69,7 +69,7 @@ const FALLBACK_HOTLINES: Hotline[] = [
   {
     id: "mdrrmo",
     name: "Cordova MDRRMO (Ambulance / Rescue)",
-    number: "0917-116-9819 / 0917-149-8457",
+    number: "0917-149-8457",
     category: "medical",
   },
   {
@@ -81,7 +81,7 @@ const FALLBACK_HOTLINES: Hotline[] = [
   {
     id: "bfp",
     name: "Bureau of Fire Protection (BFP) - Cordova",
-    number: "(032) 436-4245 / 0933-394-9073",
+    number: "0933-394-9073",
     category: "fire",
   },
   {
