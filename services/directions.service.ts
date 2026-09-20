@@ -29,7 +29,10 @@ type DirectionsResponse = {
 // back to a straight-line route rather than showing an error state.
 // alternatives=true is always requested -- Mapbox still returns the same
 // primary route first either way (routes[0] is unaffected), it just may
-// also include up to 2 additional route objects after it.
+// also include up to 2 additional route objects after it. Walking rarely
+// has more than one (confirmed empirically -- the same pair that returns 2
+// driving routes returns only 1 walking route); getRoutes() below doesn't
+// try to force a second one, it just returns whatever Mapbox itself found.
 async function fetchDirections(
   origin: Coordinates,
   destination: Coordinates,

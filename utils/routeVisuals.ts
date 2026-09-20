@@ -10,9 +10,27 @@
 import type { MapMarker, MapPolyline } from "@/components/map/AppMap";
 import type { Route } from "@/services/directions.service";
 import type { Coordinates } from "@/services/location.service";
-import { midpointAlongPath } from "@/utils/distance";
+import { farthestPointFrom, midpointAlongPath } from "@/utils/distance";
 
-const DIMMED_ROUTE_COLOR = "#94A3B8";
+// Confirmed via an on-device diagnostic test (a deliberately garish magenta,
+// weight-8 render) that the polyline mechanism itself was always fine --
+// prior production colors tried: #94A3B8 (too light/low-contrast),
+// #475569 and #1E293B (too dark), #7C3AED violet (didn't look right). A
+// lighter mid-gray, still noticeably darker than the original #94A3B8, as
+// the current balance between contrast and not looking too heavy. Doesn't
+// collide with any other color already meaningful on this map (orange =
+// selected route, red = incident, green = arrive/success, blue = water);
+// dashing adds distinction on top of that.
+const DIMMED_ROUTE_COLOR = "#64748B";
+// Weight 8 was the diagnostic value proven visible against a walking
+// detour that overlapped the primary route for most of its length (since
+// removed -- directions.service.ts no longer synthesizes a second walking
+// route). Driving's alternates come straight from Mapbox and diverge onto
+// genuinely different streets much earlier, so they don't need to fight
+// that same near-total overlap; kept slightly above the original default
+// (3) rather than all the way back down, as a safety margin against the
+// same low-contrast problem recurring.
+const ALTERNATE_ROUTE_WEIGHT = 6;
 const ROUTE_MARKER_ID_PREFIX = "route-";
 
 export function buildRouteVisuals(
@@ -28,15 +46,30 @@ export function buildRouteVisuals(
     };
   }
 
+  // selectedRouteIndex can transiently point past the end of a freshly
+  // fetched, shorter route list -- the hooks that own this state reset it
+  // back to 0 in an effect once a new route set lands, but that reset runs
+  // one render *after* the route list itself already updated (e.g.
+  // switching from driving, with 2 routes, to walking, with only 1, while
+  // route 1 was selected). Clamp here so this render never indexes past
+  // the end in that gap, instead of crashing on routes[selectedRouteIndex].
+  const safeIndex = selectedRouteIndex >= 0 && selectedRouteIndex < routes.length ? selectedRouteIndex : 0;
+
   const hasAlternatives = routes.length > 1;
   const polylines: MapPolyline[] = [];
   const labelMarkers: MapMarker[] = [];
+  const selectedForLabels = routes[safeIndex];
 
   routes.forEach((route, index) => {
-    if (index === selectedRouteIndex) return;
-    polylines.push({ points: route.coordinates, color: DIMMED_ROUTE_COLOR, dashed: false, weight: 3 });
+    if (index === safeIndex) return;
+    polylines.push({ points: route.coordinates, color: DIMMED_ROUTE_COLOR, dashed: true, weight: ALTERNATE_ROUTE_WEIGHT });
     if (hasAlternatives) {
-      const point = midpointAlongPath(route.coordinates);
+      // Placed where this route is farthest from the selected one, not at
+      // its own midpoint-by-distance -- a detour that splits off late and
+      // rejoins early otherwise gets its label stuck in the long stretch
+      // both routes share, right on top of (or indistinguishable from) the
+      // selected route's own label/line.
+      const point = farthestPointFrom(route.coordinates, selectedForLabels.coordinates);
       labelMarkers.push({
         id: `${ROUTE_MARKER_ID_PREFIX}${index}`,
         latitude: point.latitude,
@@ -48,12 +81,12 @@ export function buildRouteVisuals(
     }
   });
 
-  const selected = routes[selectedRouteIndex];
+  const selected = routes[safeIndex];
   polylines.push({ points: selected.coordinates, color: activeColor, dashed: false, weight: 4 });
   if (hasAlternatives) {
     const point = midpointAlongPath(selected.coordinates);
     labelMarkers.push({
-      id: `${ROUTE_MARKER_ID_PREFIX}${selectedRouteIndex}`,
+      id: `${ROUTE_MARKER_ID_PREFIX}${safeIndex}`,
       latitude: point.latitude,
       longitude: point.longitude,
       icon: "label",

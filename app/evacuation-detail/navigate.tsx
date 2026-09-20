@@ -43,6 +43,7 @@ export default function EvacuationNavigateScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
+  const [mapReady, setMapReady] = useState(false);
   const [mode, setMode] = useState<TravelProfile>("walking");
   const centerCoords = center ? { latitude: center.latitude, longitude: center.longitude } : undefined;
   const routes = useRoutes(citizenCoords, centerCoords, mode);
@@ -71,6 +72,21 @@ export default function EvacuationNavigateScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Fits both endpoints AND every currently-loaded route's full geometry,
+  // not just the two endpoints -- otherwise a route that bulges away from
+  // the direct line (e.g. the synthesized walking-detour alternative in
+  // directions.service.ts) can extend past the viewport and get visibly
+  // clipped, even though its duration pill still renders. Re-runs once
+  // `routes` finishes loading, not just once on the map's initial ready
+  // event -- routes starts empty (the fetch happens after the map itself
+  // is already "ready"), so the very first fit only has the two endpoints
+  // to work with; this effect re-fits once real route geometry lands.
+  useEffect(() => {
+    if (!mapReady || !citizenCoords || !centerCoords) return;
+    const allPoints = [citizenCoords, centerCoords, ...routes.flatMap((route) => route.coordinates)];
+    mapRef.current?.fitToPoints(allPoints, insets.top + 140);
+  }, [mapReady, citizenCoords, centerCoords, routes, insets.top]);
 
   if (isLoading) {
     return (
@@ -136,12 +152,7 @@ export default function EvacuationNavigateScreen() {
           const index = routeIndexFromMarkerId(id);
           if (index !== null) setSelectedRouteIndex(index);
         }}
-        onReady={() =>
-          mapRef.current?.fitToPoints(
-            [citizenCoords, { latitude: center.latitude, longitude: center.longitude }],
-            insets.top + 140,
-          )
-        }
+        onReady={() => setMapReady(true)}
       />
 
       <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>

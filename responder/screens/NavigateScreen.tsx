@@ -68,6 +68,7 @@ export default function NavigateScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
+  const [mapReady, setMapReady] = useState(false);
   const [mode, setMode] = useState<TravelProfile>("driving");
   const { routes, selectedRouteIndex, selectRoute, midpoint, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
@@ -96,6 +97,45 @@ export default function NavigateScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Layout the floating stack top-to-bottom below the safe area: incident
+  // card (header row + the travel-mode toggle row), then the trip stats
+  // bar, then the locate button beside it. Computed here (before the early
+  // returns below, alongside every other hook) so the fit-to-bounds effect
+  // right after it can use the same padding value regardless of loading
+  // state -- hooks can't be called conditionally.
+  const infoCardTop = insets.top + SPACING.sm;
+  const statsBarTop = infoCardTop + 74 + 40 + SPACING.sm;
+  const locateButtonTop = statsBarTop + 58;
+  const mapFitPadding = useMemo(
+    () => ({
+      top: statsBarTop + 70 + SPACING.sm,
+      bottom: insets.bottom + 190,
+      left: SPACING.lg,
+      right: SPACING.lg,
+    }),
+    [statsBarTop, insets.bottom],
+  );
+
+  // Fits both the responder/incident endpoints AND every currently-loaded
+  // route's full geometry, not just the two endpoints -- otherwise a route
+  // that bulges away from the direct line (e.g. the synthesized
+  // walking-detour alternative in directions.service.ts) can extend past
+  // the viewport and get visibly clipped, even though its duration pill
+  // still renders. Re-runs once `routes` finishes loading, not just once
+  // on the map's initial ready event -- routes starts empty (the fetch
+  // happens after the map itself is already "ready"), so the very first
+  // fit only has the two endpoints to work with; this effect re-fits once
+  // real route geometry is available.
+  useEffect(() => {
+    if (!mapReady || !responderCoords || !incident?.incidentCoords) return;
+    const allPoints = [
+      responderCoords,
+      incident.incidentCoords,
+      ...routes.flatMap((route) => route.coordinates),
+    ];
+    mapRef.current?.fitToPoints(allPoints, mapFitPadding);
+  }, [mapReady, responderCoords, incident?.incidentCoords, routes, mapFitPadding]);
 
   if (isLoading) {
     return (
@@ -148,28 +188,6 @@ export default function NavigateScreen() {
   const visual = getIncidentVisual(incident.type);
   const { incidentCoords } = incident;
 
-  // Layout the floating stack top-to-bottom below the safe area: incident
-  // card (header row + the travel-mode toggle row), then the trip stats
-  // bar, then the locate button beside it.
-  const infoCardTop = insets.top + SPACING.sm;
-  const statsBarTop = infoCardTop + 74 + 40 + SPACING.sm;
-  const locateButtonTop = statsBarTop + 58;
-
-  // Real (approximate) clearance the floating chrome needs on each side --
-  // used to fit both points into the space actually left visible between
-  // them, not the whole map viewport. Previously this fit used one large
-  // top-sized value applied to all four sides, which forced the view more
-  // zoomed-out than the route actually needed. Top: stats bar's own bottom
-  // edge, not just the info card above it. Bottom: the bottom sheet's
-  // rough height (handle + trip-info row + action buttons + its own
-  // padding). Left/right: no floating chrome there, just breathing room.
-  const mapFitPadding = {
-    top: statsBarTop + 70 + SPACING.sm,
-    bottom: insets.bottom + 190,
-    left: SPACING.lg,
-    right: SPACING.lg,
-  };
-
   const handleLocate = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 16);
@@ -212,12 +230,7 @@ export default function NavigateScreen() {
         routes={routes}
         selectedRouteIndex={selectedRouteIndex}
         onSelectRoute={selectRoute}
-        onReady={() =>
-          mapRef.current?.fitToPoints(
-            [responderCoords, incidentCoords],
-            mapFitPadding,
-          )
-        }
+        onReady={() => setMapReady(true)}
       />
 
       <View

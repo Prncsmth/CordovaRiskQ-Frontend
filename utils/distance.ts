@@ -64,3 +64,38 @@ export function midpointAlongPath<T extends { latitude: number; longitude: numbe
 
   return points[points.length - 1];
 }
+
+// The point on `path` that sits farthest from `otherPath` -- used to place
+// a route-alternative's label where it's actually visually distinguishable
+// from the route it's being compared against, rather than at path's own
+// midpoint-by-distance, which can land squarely in a long stretch the two
+// routes share (a detour that splits off late and rejoins early still gets
+// a useless, overlapping label if placed by its own midpoint alone).
+export function farthestPointFrom<T extends { latitude: number; longitude: number }>(
+  path: T[],
+  otherPath: { latitude: number; longitude: number }[],
+): { latitude: number; longitude: number } {
+  if (path.length === 0) {
+    return { latitude: 0, longitude: 0 };
+  }
+  if (otherPath.length === 0) {
+    return midpointAlongPath(path);
+  }
+
+  let best = path[Math.floor(path.length / 2)];
+  let bestDistanceKm = -1;
+
+  for (const point of path) {
+    let nearestOnOtherKm = Infinity;
+    for (const otherPoint of otherPath) {
+      const distanceKm = haversineDistanceKm(point, otherPoint);
+      if (distanceKm < nearestOnOtherKm) nearestOnOtherKm = distanceKm;
+    }
+    if (nearestOnOtherKm > bestDistanceKm) {
+      bestDistanceKm = nearestOnOtherKm;
+      best = point;
+    }
+  }
+
+  return best;
+}
