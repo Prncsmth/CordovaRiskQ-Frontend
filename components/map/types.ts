@@ -9,10 +9,16 @@ export type MapMarker = {
   latitude: number;
   longitude: number;
   color?: string;
+  // For a "label" marker, the always-visible pill text (e.g. "3 min") --
+  // unrelated to Leaflet's tap-to-reveal popup text some other markers may
+  // use `label` for.
   label?: string;
-  // When set to "logo", the marker renders the riskq app logo instead of a
-  // colored pin -- used for a responder's own position on the nav map.
-  icon?: "logo";
+  // "logo" renders the riskq app logo instead of a colored pin -- used for
+  // a responder's own position on the nav map. "label" renders an
+  // always-visible text pill instead of a pin at all -- used for a route
+  // alternative's duration, tappable via onMarkerPress like any other
+  // marker to make that route the active one.
+  icon?: "logo" | "label";
   // Adds a looping glow/pulse ring in the marker's own color -- for a live
   // incident (SOS or a citizen report) on a responder's map, so it reads as
   // "active right now" and draws the eye, the same radar-ping language

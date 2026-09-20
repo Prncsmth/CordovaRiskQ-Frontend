@@ -93,7 +93,11 @@ export default function OnTheWayView({
         incidentCoords={incidentCoords}
         midpoint={midpoint}
         color={visual.color}
-        route={route}
+        // Deliberately not showing route alternatives here -- this is the
+        // compact embedded preview map; picking a route is offered on the
+        // full-screen Navigate screen instead.
+        routes={route ? [route] : []}
+        selectedRouteIndex={0}
         onReady={() =>
           mapRef.current?.fitToPoints(
             [responderCoords, incidentCoords],

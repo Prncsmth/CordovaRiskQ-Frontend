@@ -14,29 +14,34 @@ export type Route = {
   durationMin: number;
 };
 
-type DirectionsResponse = {
-  routes?: {
-    geometry?: { coordinates?: [number, number][] };
-    distance?: number;
-    duration?: number;
-  }[];
+type RawRoute = {
+  geometry?: { coordinates?: [number, number][] };
+  distance?: number;
+  duration?: number;
 };
 
-// Never throws -- any failure (network, timeout, malformed/empty response)
-// resolves to null so callers can fall back to a straight-line route rather
-// than showing an error state.
-export async function getRoute(
+type DirectionsResponse = {
+  routes?: RawRoute[];
+};
+
+// Shared by getRoute/getRoutes below. Never throws -- any failure (network,
+// timeout, malformed/empty response) resolves to null so callers can fall
+// back to a straight-line route rather than showing an error state.
+// alternatives=true is always requested -- Mapbox still returns the same
+// primary route first either way (routes[0] is unaffected), it just may
+// also include up to 2 additional route objects after it.
+async function fetchDirections(
   origin: Coordinates,
   destination: Coordinates,
   profile: TravelProfile,
-): Promise<Route | null> {
+): Promise<DirectionsResponse | null> {
   const accessToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
   if (!accessToken) return null;
 
   const url =
     `${DIRECTIONS_BASE_URL}/${profile}/` +
     `${origin.longitude},${origin.latitude};${destination.longitude},${destination.latitude}` +
-    `?geometries=geojson&access_token=${accessToken}`;
+    `?geometries=geojson&alternatives=true&access_token=${accessToken}`;
 
   // AbortSignal.timeout() isn't implemented in this RN/Hermes runtime
   // (unlike the backend's Node.js runtime, which supports it directly) --
@@ -44,32 +49,55 @@ export async function getRoute(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
-  let body: DirectionsResponse;
   try {
     const res = await fetch(url, { signal: controller.signal });
     if (!res.ok) return null;
-    body = (await res.json()) as DirectionsResponse;
+    return (await res.json()) as DirectionsResponse;
   } catch {
     return null;
   } finally {
     clearTimeout(timeoutId);
   }
+}
 
-  const route = body.routes?.[0];
-  const coords = route?.geometry?.coordinates;
+function toRoute(raw: RawRoute | undefined): Route | null {
+  const coords = raw?.geometry?.coordinates;
   if (
-    !route ||
+    !raw ||
     !Array.isArray(coords) ||
     coords.length === 0 ||
-    typeof route.distance !== "number" ||
-    typeof route.duration !== "number"
+    typeof raw.distance !== "number" ||
+    typeof raw.duration !== "number"
   ) {
     return null;
   }
 
   return {
     coordinates: coords.map(([longitude, latitude]) => ({ latitude, longitude })),
-    distanceKm: route.distance / 1000,
-    durationMin: Math.round(route.duration / 60),
+    distanceKm: raw.distance / 1000,
+    durationMin: Math.round(raw.duration / 60),
   };
+}
+
+export async function getRoute(
+  origin: Coordinates,
+  destination: Coordinates,
+  profile: TravelProfile,
+): Promise<Route | null> {
+  const body = await fetchDirections(origin, destination, profile);
+  return toRoute(body?.routes?.[0]);
+}
+
+// All valid route alternatives Mapbox returned, primary route first (same
+// order Mapbox itself returns -- routes[0] is always the recommended one).
+// Empty array on any failure, same "caller falls back to a straight line"
+// contract as getRoute.
+export async function getRoutes(
+  origin: Coordinates,
+  destination: Coordinates,
+  profile: TravelProfile,
+): Promise<Route[]> {
+  const body = await fetchDirections(origin, destination, profile);
+  if (!body?.routes) return [];
+  return body.routes.map(toRoute).filter((route): route is Route => route !== null);
 }

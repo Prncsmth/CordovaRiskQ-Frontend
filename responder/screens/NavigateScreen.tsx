@@ -1,8 +1,9 @@
 // app/responder/navigate.tsx
 // Full-screen turn-by-turn-style map, opened from the "Navigate" button on
 // the On the Way phase. Shows the real driving route from the responder to
-// the citizen's shared incident location (via useRoute()/directions.service.ts,
-// falling back to a straight line while loading or on failure).
+// the citizen's shared incident location (via useIncidentRoute()/directions.service.ts,
+// falling back to a straight line while loading or on failure). Offers
+// route alternatives when Mapbox returns more than one.
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -68,7 +69,7 @@ export default function NavigateScreen() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
   const [mode, setMode] = useState<TravelProfile>("driving");
-  const { route, midpoint, durationMin, distanceKm } = useIncidentRoute(
+  const { routes, selectedRouteIndex, selectRoute, midpoint, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
     incident?.incidentCoords,
     incident?.etaMinutes,
@@ -208,7 +209,9 @@ export default function NavigateScreen() {
         incidentCoords={incidentCoords}
         midpoint={midpoint}
         color={visual.color}
-        route={route}
+        routes={routes}
+        selectedRouteIndex={selectedRouteIndex}
+        onSelectRoute={selectRoute}
         onReady={() =>
           mapRef.current?.fitToPoints(
             [responderCoords, incidentCoords],

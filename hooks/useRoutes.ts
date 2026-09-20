@@ -1,24 +1,23 @@
-// hooks/useRoute.ts
-// Fetches a real route between two points via directions.service.ts, with
-// exactly one request per distinct (origin, destination, profile) triple --
-// guards against re-renders or effect re-runs re-firing the same request.
-// Returns null until a route resolves, or if the fetch never succeeds
-// (callers should fall back to a straight line in that case).
+// hooks/useRoutes.ts
+// Same fetch-once-per-distinct-key idiom as useRoute.ts, but exposes every
+// route alternative Mapbox returned (primary first) instead of collapsing
+// to just one -- lets a caller offer route choices, e.g. tapping a
+// duration pill on an alternate route to make it the active one.
 import { useEffect, useRef, useState } from "react";
 
-import { getRoute, type Route, type TravelProfile } from "@/services/directions.service";
+import { getRoutes, type Route, type TravelProfile } from "@/services/directions.service";
 import type { Coordinates } from "@/services/location.service";
 
 function keyOf(a: Coordinates, b: Coordinates, profile: TravelProfile): string {
   return `${a.latitude},${a.longitude}|${b.latitude},${b.longitude}|${profile}`;
 }
 
-export function useRoute(
+export function useRoutes(
   origin: Coordinates | undefined,
   destination: Coordinates | undefined,
   profile: TravelProfile,
-): Route | null {
-  const [route, setRoute] = useState<Route | null>(null);
+): Route[] {
+  const [routes, setRoutes] = useState<Route[]>([]);
   const lastKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -29,8 +28,8 @@ export function useRoute(
     lastKeyRef.current = key;
 
     let cancelled = false;
-    getRoute(origin, destination, profile).then((result) => {
-      if (!cancelled) setRoute(result);
+    getRoutes(origin, destination, profile).then((result) => {
+      if (!cancelled) setRoutes(result);
     });
 
     return () => {
@@ -38,5 +37,5 @@ export function useRoute(
     };
   }, [origin, destination, profile]);
 
-  return route;
+  return routes;
 }

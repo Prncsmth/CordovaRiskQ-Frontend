@@ -201,14 +201,33 @@ function buildHtml(options: {
     });
   }
 
+  function labelIcon(text, color) {
+    // Auto-sized (iconSize null) rather than a fixed box, since a duration
+    // pill's text length varies ("2 min" vs "12 min") -- self-centers via
+    // the -50%/-50% offset instead of a guessed fixed anchor.
+    var bg = color || '#64748b';
+    return L.divIcon({
+      className: '',
+      html: '<div style="position:relative;left:-50%;top:-50%;background:' + bg +
+        ';color:#fff;font-weight:700;font-size:11px;padding:4px 10px;border-radius:999px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);">' +
+        text + '</div>',
+      iconSize: null,
+      iconAnchor: [0, 0]
+    });
+  }
+
   window.rqSetMarkers = function (json) {
     var markers = JSON.parse(json);
     markersLayer.clearLayers();
     markers.forEach(function (m) {
-      var marker = L.marker([m.latitude, m.longitude], {
-        icon: m.icon === 'logo' ? logoIcon(m.color) : pinIcon(m.color || '#2563eb', m.pulse)
-      });
-      if (m.label) marker.bindPopup(m.label);
+      var icon = m.icon === 'logo' ? logoIcon(m.color)
+        : m.icon === 'label' ? labelIcon(m.label || '', m.color)
+        : pinIcon(m.color || '#2563eb', m.pulse);
+      var marker = L.marker([m.latitude, m.longitude], { icon: icon });
+      // "label" markers' text is already always-visible in the pill itself
+      // -- a tap-to-reveal popup would be redundant (and would eat the tap
+      // that's supposed to select the route instead).
+      if (m.label && m.icon !== 'label') marker.bindPopup(m.label);
       marker.on('click', function (e) {
         L.DomEvent.stopPropagation(e);
         post({ type: 'markerPress', id: m.id });

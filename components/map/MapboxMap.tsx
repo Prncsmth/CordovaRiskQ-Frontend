@@ -349,6 +349,16 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
                 </Pressable>
               </View>
             </MarkerView>
+          ) : marker.icon === "label" ? (
+            <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
+              <Pressable
+                hitSlop={8}
+                onPress={() => onMarkerPress?.(marker.id)}
+                style={[styles.labelPill, { backgroundColor: marker.color ?? COLORS.secondary }]}
+              >
+                <Text style={styles.labelPillText}>{marker.label ?? ""}</Text>
+              </Pressable>
+            </MarkerView>
           ) : marker.pulse ? (
             <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
               <View style={styles.pinMarkerWrap}>
@@ -454,6 +464,17 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "center",
       ...SHADOW,
+    },
+    labelPill: {
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 4,
+      borderRadius: RADIUS.full,
+      ...SHADOW,
+    },
+    labelPillText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: "#fff",
     },
     pinMarkerWrap: {
       width: 46,

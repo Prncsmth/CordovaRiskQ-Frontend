@@ -1,9 +1,10 @@
 // app/evacuation-detail/navigate.tsx
 // Full-screen route preview, opened from the "View Route" button on an
-// evacuation center's detail screen. Shows the real walking route from the
-// citizen's current location to the center (via useRoute()/directions.service.ts,
-// falling back to a straight line while loading or on failure). This is a
-// quick in-app glance, not turn-by-turn navigation.
+// evacuation center's detail screen. Shows the real route from the
+// citizen's current location to the center (via useRoutes()/directions.service.ts,
+// falling back to a straight line while loading or on failure), with a
+// walking/driving toggle and route alternatives when Mapbox returns more
+// than one. This is a quick in-app glance, not turn-by-turn navigation.
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -18,7 +19,8 @@ import { useAuth } from "@/context/AuthContext";
 import { getEvacuationCenterById, type EvacuationCenter } from "@/services/evacuation.service";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import type { TravelProfile } from "@/services/directions.service";
-import { useRoute } from "@/hooks/useRoute";
+import { useRoutes } from "@/hooks/useRoutes";
+import { buildRouteVisuals, routeIndexFromMarkerId } from "@/utils/routeVisuals";
 import {
     FONT_FAMILY,
     RADIUS,
@@ -43,7 +45,17 @@ export default function EvacuationNavigateScreen() {
   const mapRef = useRef<MapHandle>(null);
   const [mode, setMode] = useState<TravelProfile>("walking");
   const centerCoords = center ? { latitude: center.latitude, longitude: center.longitude } : undefined;
-  const route = useRoute(citizenCoords, centerCoords, mode);
+  const routes = useRoutes(citizenCoords, centerCoords, mode);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+
+  // A fresh route set (mode switched, or a new fetch resolved) makes
+  // whatever was selected in the old set meaningless -- land back on the
+  // fastest route rather than an index that might not exist in the new one.
+  useEffect(() => {
+    setSelectedRouteIndex(0);
+  }, [routes]);
+
+  const route = routes[selectedRouteIndex] ?? null;
 
   const loadData = useCallback(() => {
     if (!id || !token) return;
@@ -96,6 +108,11 @@ export default function EvacuationNavigateScreen() {
   };
   const isOpen = center.status === "open";
   const statusColor = isOpen ? COLORS.success : COLORS.danger;
+  const centerLatLng = { latitude: center.latitude, longitude: center.longitude };
+  const { polylines, labelMarkers } = buildRouteVisuals(routes, selectedRouteIndex, COLORS.secondary, [
+    citizenCoords,
+    centerLatLng,
+  ]);
 
   return (
     <View style={styles.screen}>
@@ -111,16 +128,14 @@ export default function EvacuationNavigateScreen() {
         showLayerSwitcher
         markers={[
           { id: "center", latitude: center.latitude, longitude: center.longitude, color: statusColor },
+          ...labelMarkers,
         ]}
         userLocation={citizenCoords}
-        polylines={[
-          {
-            points: route ? route.coordinates : [citizenCoords, { latitude: center.latitude, longitude: center.longitude }],
-            color: COLORS.secondary,
-            dashed: false,
-            weight: 4,
-          },
-        ]}
+        polylines={polylines}
+        onMarkerPress={(id) => {
+          const index = routeIndexFromMarkerId(id);
+          if (index !== null) setSelectedRouteIndex(index);
+        }}
         onReady={() =>
           mapRef.current?.fitToPoints(
             [citizenCoords, { latitude: center.latitude, longitude: center.longitude }],
