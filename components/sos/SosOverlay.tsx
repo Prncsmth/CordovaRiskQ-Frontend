@@ -4,6 +4,7 @@
 // screen the user is on, matching the tab bar's own `stage !== "idle"`
 // hide behavior in components/tabs/TabBar.tsx.
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,6 +29,7 @@ export default function SosOverlay() {
     stage,
     blockedReason,
     isMinimized,
+    incidentId,
     confirmSOS,
     cancelSOS,
     expandSOS,
@@ -35,6 +37,7 @@ export default function SosOverlay() {
     dismissBlocked,
     retryConfirm,
   } = useSos();
+  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
 
@@ -65,7 +68,16 @@ export default function SosOverlay() {
           ) : stage === "sending" ? (
             <LoadingView COLORS={COLORS} message="Sending your SOS alert..." />
           ) : (
-            <ActiveView onCancel={cancelSOS} onMinimize={minimizeSOS} COLORS={COLORS} styles={styles} />
+            <ActiveView
+              incidentId={incidentId}
+              onTrack={(id) =>
+                router.push({ pathname: "/track-responder/[id]", params: { id } })
+              }
+              onCancel={cancelSOS}
+              onMinimize={minimizeSOS}
+              COLORS={COLORS}
+              styles={styles}
+            />
           )}
         </View>
       )}
@@ -144,11 +156,15 @@ function ConfirmView({
 }
 
 function ActiveView({
+  incidentId,
+  onTrack,
   onCancel,
   onMinimize,
   COLORS,
   styles,
 }: {
+  incidentId: string | null;
+  onTrack: (incidentId: string) => void;
   onCancel: () => void;
   onMinimize: () => void;
   COLORS: ColorPalette;
@@ -180,6 +196,13 @@ function ActiveView({
           Your location has been shared with emergency responders.
         </Text>
       </View>
+
+      {incidentId && (
+        <Pressable style={styles.trackButton} onPress={() => onTrack(incidentId)}>
+          <Ionicons name="navigate" size={18} color={COLORS.primary} />
+          <Text style={styles.trackButtonText}>Track Responder</Text>
+        </Pressable>
+      )}
 
       <Pressable style={styles.cancelButton} onPress={onCancel}>
         <Text style={styles.cancelButtonText}>Cancel SOS</Text>
@@ -317,6 +340,22 @@ function createStyles(COLORS: ColorPalette) {
       opacity: 0.9,
       textAlign: "center",
       paddingHorizontal: SPACING.md,
+    },
+    trackButton: {
+      width: "100%",
+      height: 52,
+      borderRadius: RADIUS.md,
+      backgroundColor: COLORS.white,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: SPACING.xs,
+      marginBottom: SPACING.sm,
+    },
+    trackButtonText: {
+      color: COLORS.primary,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.body,
     },
     cancelButton: {
       width: "100%",

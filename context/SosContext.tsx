@@ -16,6 +16,7 @@ type SosContextValue = {
   stage: SosStage;
   blockedReason: SosBlockedReason;
   isMinimized: boolean;
+  incidentId: string | null;
   openConfirm: () => void;
   confirmSOS: () => void;
   cancelSOS: () => void;
@@ -167,6 +168,7 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
       stage,
       blockedReason,
       isMinimized,
+      incidentId,
       openConfirm: () => setStage("confirm"),
       confirmSOS: () => {
         void runConfirm();
