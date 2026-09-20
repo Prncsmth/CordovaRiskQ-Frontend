@@ -13,6 +13,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
+import { useAuth } from "@/context/AuthContext";
 import { getEvacuationCenterById, type EvacuationCenter } from "@/services/evacuation.service";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import { useRoute } from "@/hooks/useRoute";
@@ -29,6 +30,7 @@ import {
 
 export default function EvacuationNavigateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { token } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [center, setCenter] = useState<EvacuationCenter | undefined>(undefined);
@@ -41,15 +43,15 @@ export default function EvacuationNavigateScreen() {
   const route = useRoute(citizenCoords, centerCoords, "walking");
 
   const loadData = useCallback(() => {
-    if (!id) return;
+    if (!id || !token) return;
     setIsLoading(true);
-    Promise.all([getEvacuationCenterById(id), getCurrentLocation()])
+    Promise.all([getEvacuationCenterById(token, id), getCurrentLocation()])
       .then(([centerData, coords]) => {
         setCenter(centerData);
         setCitizenCoords(coords);
       })
       .finally(() => setIsLoading(false));
-  }, [id]);
+  }, [id, token]);
 
   useEffect(() => {
     loadData();

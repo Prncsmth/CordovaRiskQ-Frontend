@@ -2,7 +2,7 @@
 
 > Living document. Update this after every feature lands (new plan/spec pair merged, or a task list in `docs/superpowers/plans/*` finished). Don't duplicate detail that already lives in `docs/superpowers/plans/*` or `specs/*` — link to it instead.
 
-Last updated: 2026-09-21 (SOS active screen links to Track Responder; corrected two stale gap entries — see below)
+Last updated: 2026-09-21 (evacuation centers wired to the real backend; SOS active screen links to Track Responder; corrected two stale gap entries — see below)
 
 ## How this project builds features
 
@@ -17,7 +17,7 @@ There is also a third sibling repo, `CordovaRiskQ- Admin` (Next.js ops dashboard
 | Feature | Plan/Spec | Backend-wired? |
 |---|---|---|
 | Design system import (theme, colors, base UI kit) | `2026-07-25-cordova-riskq-design-import` | n/a |
-| Home screen | `2026-07-28-home-screen` | Mock centers (`services/evacuation.service.ts`, hardcoded), "nearest center" ranked by real device distance (`utils/distance.ts`) |
+| Home screen | `2026-07-28-home-screen` | **Real** — nearest-center card now calls `GET /api/evacuation-centers` via `services/evacuation.service.ts`, ranked by real device distance (`utils/distance.ts`) |
 | Report incident flow | `2026-07-29-report-incident`, `2026-08-19-responder-incident-pipeline` | **Real** — `services/report.service.ts`'s `createReport()` calls `POST /api/incidents`; pinned location is real device GPS + nearest-barangay label |
 | Change Password (bottom sheet) | `2026-07-31-change-password`, `2026-08-03-user-profile-backend` | **Real** (`PUT` via `user.service.ts`) |
 | Profile screen (menu) | `2026-07-31-profile-screen` | n/a (navigation only) |
@@ -27,7 +27,8 @@ There is also a third sibling repo, `CordovaRiskQ- Admin` (Next.js ops dashboard
 | Device geolocation (`services/location.service.ts`) | no plan/spec (bounded fix) | n/a — real `expo-location` permission + fix, consolidated out of `SosContext.tsx`/`(tabs)/map.tsx` |
 | SOS trigger + cancel | no plan/spec (bounded fix) | **Real**. `POST /api/sos` (authenticated), `SosAlert` Prisma model. Also dual-writes a linked `Incident` row so it's visible to responders (see below). `cancelSOS` in `SosContext.tsx` calls a real `PATCH /api/incidents/:id/cancel`, which 409s (surfaced as an alert) once a responder has already joined. The active SOS screen also links straight into `/track-responder/[id]` (no plan/spec, bounded) once an incident ID exists |
 | Citizen notification inbox (bell + `/notifications`) | `2026-09-05-citizen-notifications` | **Real** — real `Notification` Prisma model, `GET /api/notifications`, real Expo push via `services/push.service.ts`. Covers announcement publish, incident status changes, tide/weather risk escalation |
-| Map (`(tabs)/map.tsx`) | no dedicated plan/spec | **Real** — dual-engine map (`components/map/AppMap.tsx` picks Leaflet-in-WebView inside Expo Go, Mapbox everywhere else, same `MapEngineProps`/`MapHandle` contract either way), real evacuation-center data, real GPS pin-drop |
+| Map (`(tabs)/map.tsx`) | no dedicated plan/spec | **Real** — dual-engine map (`components/map/AppMap.tsx` picks Leaflet-in-WebView inside Expo Go, Mapbox everywhere else, same `MapEngineProps`/`MapHandle` contract either way), real backend-wired evacuation-center data, real GPS pin-drop |
+| Evacuation center detail + route preview (`evacuation-detail/[id]`, `evacuation-detail/navigate`) | no plan/spec (bounded fix) | **Real** — `GET /api/evacuation-centers` (`evacuationCenterService.list` on the backend; seeded from the same Cordova, Cebu facility data this file used to hardcode, same ids). Backend has no per-id route or photo/distance fields, so `getEvacuationCenterById` fetches the list and finds by id, photos stay a client-side lookup by id, and distance is recomputed from live device location on both screens |
 | Advisory banner / tide & weather risk | `2026-09-04-advisory-banner`, `2026-08-27-tide-level-backend`, `2026-08-29-tide-weather-backend` | **Real** |
 | First-time user guide / onboarding tour | `2026-09-04-first-time-user-guide` | n/a (client-side tour) |
 
@@ -35,8 +36,7 @@ Auth (login/register/forgot-password/Google sign-in) predates the plans/specs co
 
 ## Built but still mock-data-only (no plan/spec yet, no backend)
 
-- `app/contacts` — `services/contacts.service.ts` (hotlines + personal contacts, hardcoded)
-- `app/evacuation-detail/[id]` — `services/evacuation.service.ts` (hardcoded centers; real, researched addresses/coords, but no backend or live capacity)
+- `app/contacts` — `services/contacts.service.ts` (hotlines + personal contacts, hardcoded; no backend resource exists yet — would need a new Prisma model + migration, not just a frontend swap)
 - `app/faqs`, `app/settings`, `app/contact-support` — static content, nothing to wire
 - Google Sign-In client IDs in `.env` — unverified as of this update (`.env` isn't committed/readable from a checkout); treat as unconfirmed rather than assuming either way
 
@@ -66,12 +66,13 @@ What was a 100%-mock prototype (see git history before ~2026-08-19) is now a ful
 
 Pick one path — they're independent:
 
-1. **Finish backend-wiring the remaining civilian mock screens**: contacts/hotlines and evacuation centers (including live capacity) — each would follow the same plan/spec pattern as User Profile / citizen notifications did.
+1. **Backend-wire contacts/hotlines**: no backend resource exists yet (unlike evacuation centers, now real) — needs a new Prisma model + migration on the shared DB, then routes, before any frontend change.
 2. **Verify/fill Google OAuth client IDs** in `.env` — status unconfirmed from a fresh checkout (see above).
 
 ## Definition of "frontend complete"
 
-- [ ] Every screen's service backed by a real API call, not a hardcoded array (contacts, evacuation centers remain — see mock-data list above)
+- [ ] Every screen's service backed by a real API call, not a hardcoded array (contacts remain — see mock-data list above)
+- [x] Evacuation centers backed by a real API call
 - [x] SOS button actually triggers something real + real device location
 - [x] SOS cancel is a real backend action
 - [x] Responder flow formalized and real (roster, notifications, duty status, live updates)

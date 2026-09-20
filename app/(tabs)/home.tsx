@@ -168,7 +168,10 @@ export default function HomeScreen() {
       .then(setTideStatus)
       .catch(() => {});
 
-    const restPromise = Promise.all([getEvacuationCenters(), getCurrentLocation()])
+    const restPromise = Promise.all([
+      token ? getEvacuationCenters(token) : Promise.resolve([]),
+      getCurrentLocation(),
+    ])
       .then(([centers, fix]) => {
         let barangayName: string | undefined;
         if (fix) {
@@ -198,7 +201,7 @@ export default function HomeScreen() {
       .catch(() => {});
 
     return Promise.all([tidePromise, restPromise]);
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     loadHomeData();

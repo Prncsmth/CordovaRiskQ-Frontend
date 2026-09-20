@@ -57,7 +57,7 @@ export default function MapScreen() {
   const isChangingLocation = intent === "change-location";
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const mapRef = useRef<MapHandle>(null);
   const searchTargetRef = useRef<View>(null);
   const pinTargetRef = useRef<View>(null);
@@ -131,10 +131,11 @@ export default function MapScreen() {
   }, [searchQuery]);
 
   useEffect(() => {
-    getEvacuationCenters()
+    if (!token) return;
+    getEvacuationCenters(token)
       .then(setCenters)
       .catch(() => {});
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     let mounted = true;

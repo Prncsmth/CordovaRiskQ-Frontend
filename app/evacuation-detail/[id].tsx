@@ -17,10 +17,13 @@ import * as Haptics from "expo-haptics";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
+import { useAuth } from "@/context/AuthContext";
 import {
   getEvacuationCenterById,
   type EvacuationCenter,
 } from "@/services/evacuation.service";
+import { getCurrentLocation } from "@/services/location.service";
+import { haversineDistanceKm } from "@/utils/distance";
 import {
   useThemeColors,
   FONT_FAMILY,
@@ -58,19 +61,25 @@ export default function EvacuationDetailScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { token } = useAuth();
 
   const [center, setCenter] = useState<EvacuationCenter | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) {
+    if (!id || !token) {
       setIsLoading(false);
       return;
     }
-    getEvacuationCenterById(id)
-      .then((result) => setCenter(result ?? null))
+    Promise.all([getEvacuationCenterById(token, id), getCurrentLocation()])
+      .then(([result, fix]) => {
+        setCenter(
+          result && fix ? { ...result, distanceKm: haversineDistanceKm(fix, result) } : result ?? null,
+        );
+      })
+      .catch(() => setCenter(null))
       .finally(() => setIsLoading(false));
-  }, [id]);
+  }, [id, token]);
 
   if (isLoading) {
     return (
