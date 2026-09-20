@@ -5,7 +5,7 @@
 // responderCoords themselves (their loading/retry needs differ), this hook
 // only covers the derived-data logic that's identical either way.
 import { useRoute } from "@/hooks/useRoute";
-import type { Route } from "@/services/directions.service";
+import type { Route, TravelProfile } from "@/services/directions.service";
 import type { Coordinates } from "@/services/location.service";
 
 export function useIncidentRoute(
@@ -13,13 +13,16 @@ export function useIncidentRoute(
   incidentCoords: Coordinates | undefined,
   fallbackEtaMinutes: number | undefined,
   fallbackDistanceKm: number | undefined,
+  // Defaults to "driving" -- track-responder/[id].tsx doesn't pass this and
+  // keeps its existing driving-only behavior.
+  profile: TravelProfile = "driving",
 ): {
   route: Route | null;
   midpoint: Coordinates | undefined;
   durationMin: number;
   distanceKm: number | undefined;
 } {
-  const route = useRoute(responderCoords, incidentCoords, "driving");
+  const route = useRoute(responderCoords, incidentCoords, profile);
 
   const midpoint =
     responderCoords && incidentCoords

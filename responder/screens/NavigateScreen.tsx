@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MapHandle } from "@/components/map/AppMap";
+import TravelModeToggle from "@/components/common/TravelModeToggle";
 import { darken } from "@/responder/components/shared/colorUtils";
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
 import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
@@ -27,6 +28,7 @@ import RButton from "@/responder/components/shared/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import { getIncidentById, updateMyResponderStatus } from "@/responder/services/incident.service";
+import type { TravelProfile } from "@/services/directions.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import type { Incident } from "@/responder/types/responder";
@@ -65,11 +67,13 @@ export default function NavigateScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
+  const [mode, setMode] = useState<TravelProfile>("driving");
   const { route, midpoint, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
     incident?.incidentCoords,
     incident?.etaMinutes,
     incident?.distanceKm,
+    mode,
   );
 
   const loadData = useCallback(() => {
@@ -144,9 +148,10 @@ export default function NavigateScreen() {
   const { incidentCoords } = incident;
 
   // Layout the floating stack top-to-bottom below the safe area: incident
-  // card, then the trip stats bar, then the locate button beside it.
+  // card (header row + the travel-mode toggle row), then the trip stats
+  // bar, then the locate button beside it.
   const infoCardTop = insets.top + SPACING.sm;
-  const statsBarTop = infoCardTop + 74 + SPACING.sm;
+  const statsBarTop = infoCardTop + 74 + 40 + SPACING.sm;
   const locateButtonTop = statsBarTop + 58;
 
   const handleLocate = () => {
@@ -229,6 +234,10 @@ export default function NavigateScreen() {
           >
             <Ionicons name="close" size={20} color={COLORS.textSecondary} />
           </Pressable>
+        </View>
+
+        <View style={styles.modeRow}>
+          <TravelModeToggle value={mode} onChange={setMode} />
         </View>
       </View>
 
@@ -330,6 +339,9 @@ function createStyles(COLORS: ColorPalette) {
     flexDirection: "row",
     alignItems: "center",
     gap: SPACING.sm,
+  },
+  modeRow: {
+    marginTop: SPACING.sm,
   },
   infoIcon: {
     width: 40,

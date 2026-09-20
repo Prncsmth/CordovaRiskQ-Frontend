@@ -13,9 +13,11 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
+import TravelModeToggle from "@/components/common/TravelModeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { getEvacuationCenterById, type EvacuationCenter } from "@/services/evacuation.service";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
+import type { TravelProfile } from "@/services/directions.service";
 import { useRoute } from "@/hooks/useRoute";
 import {
     FONT_FAMILY,
@@ -39,8 +41,9 @@ export default function EvacuationNavigateScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
+  const [mode, setMode] = useState<TravelProfile>("walking");
   const centerCoords = center ? { latitude: center.latitude, longitude: center.longitude } : undefined;
-  const route = useRoute(citizenCoords, centerCoords, "walking");
+  const route = useRoute(citizenCoords, centerCoords, mode);
 
   const loadData = useCallback(() => {
     if (!id || !token) return;
@@ -157,10 +160,11 @@ export default function EvacuationNavigateScreen() {
         </View>
 
         <View style={styles.statRow}>
+          <TravelModeToggle value={mode} onChange={setMode} />
           <View style={styles.statChip}>
             <Ionicons name="time-outline" size={14} color={COLORS.secondary} />
             <Text style={styles.statChipText}>
-              {route ? `${route.durationMin} min walk` : "—"}
+              {route ? `${route.durationMin} min ${mode === "walking" ? "walk" : "drive"}` : "—"}
             </Text>
           </View>
           <View style={styles.statChip}>
@@ -237,6 +241,8 @@ function createStyles(COLORS: ColorPalette) {
   },
   statRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
     gap: SPACING.sm,
     marginTop: SPACING.sm,
   },
