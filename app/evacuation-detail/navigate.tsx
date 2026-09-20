@@ -32,6 +32,18 @@ import {
     type ColorPalette,
 } from "@/theme";
 
+// "Arriving" time-of-day shown in the trip stats bar -- now + the route's
+// remaining time, formatted the way a dashboard clock would show it. Same
+// treatment as responder/screens/NavigateScreen.tsx's stats bar.
+function formatArrivalTime(minutesFromNow: number): string {
+  const arrival = new Date(Date.now() + minutesFromNow * 60_000);
+  let hours = arrival.getHours();
+  const minutes = arrival.getMinutes();
+  const period = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes.toString().padStart(2, "0")} ${period}`;
+}
+
 export default function EvacuationNavigateScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
@@ -73,20 +85,42 @@ export default function EvacuationNavigateScreen() {
     loadData();
   }, [loadData]);
 
+  // Layout the floating stack top-to-bottom below the safe area: info card
+  // (header row + the travel-mode toggle row), then the trip stats bar --
+  // same two-bar design as responder/screens/NavigateScreen.tsx.
+  const infoCardTop = insets.top + SPACING.sm;
+  const statsBarTop = infoCardTop + 74 + 40 + SPACING.sm;
+
+  // Real (approximate) clearance the two bars need -- this screen has no
+  // bottom sheet or side chrome, so bottom/left/right only need small
+  // breathing room. Previously this used one top-sized value applied to
+  // all four sides, which forced the view more zoomed-out than the route
+  // actually needed (the same bug already fixed on the responder Navigate
+  // screen).
+  const mapFitPadding = useMemo(
+    () => ({
+      top: statsBarTop + 70 + SPACING.sm,
+      bottom: insets.bottom + 40,
+      left: SPACING.lg,
+      right: SPACING.lg,
+    }),
+    [statsBarTop, insets.bottom],
+  );
+
   // Fits both endpoints AND every currently-loaded route's full geometry,
-  // not just the two endpoints -- otherwise a route that bulges away from
-  // the direct line (e.g. the synthesized walking-detour alternative in
-  // directions.service.ts) can extend past the viewport and get visibly
-  // clipped, even though its duration pill still renders. Re-runs once
-  // `routes` finishes loading, not just once on the map's initial ready
-  // event -- routes starts empty (the fetch happens after the map itself
-  // is already "ready"), so the very first fit only has the two endpoints
-  // to work with; this effect re-fits once real route geometry lands.
+  // not just the two endpoints -- otherwise a driving alternative that
+  // takes a genuinely different street could extend past the viewport and
+  // get visibly clipped, even though its duration pill still renders.
+  // Re-runs once `routes` finishes loading, not just once on the map's
+  // initial ready event -- routes starts empty (the fetch happens after
+  // the map itself is already "ready"), so the very first fit only has the
+  // two endpoints to work with; this effect re-fits once real route
+  // geometry lands.
   useEffect(() => {
     if (!mapReady || !citizenCoords || !centerCoords) return;
     const allPoints = [citizenCoords, centerCoords, ...routes.flatMap((route) => route.coordinates)];
-    mapRef.current?.fitToPoints(allPoints, insets.top + 140);
-  }, [mapReady, citizenCoords, centerCoords, routes, insets.top]);
+    mapRef.current?.fitToPoints(allPoints, mapFitPadding);
+  }, [mapReady, citizenCoords, centerCoords, routes, mapFitPadding]);
 
   if (isLoading) {
     return (
@@ -155,7 +189,7 @@ export default function EvacuationNavigateScreen() {
         onReady={() => setMapReady(true)}
       />
 
-      <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>
+      <View style={[styles.topCard, { top: infoCardTop }]}>
         <View style={styles.topCardHeader}>
           <LinearGradient
             colors={[statusColor, statusColor]}
@@ -188,20 +222,28 @@ export default function EvacuationNavigateScreen() {
         <View style={styles.modeRow}>
           <TravelModeToggle value={mode} onChange={setMode} />
         </View>
+      </View>
 
-        <View style={styles.statRow}>
-          <View style={styles.statChip}>
-            <Ionicons name="time-outline" size={14} color={COLORS.secondary} />
-            <Text style={styles.statChipText} numberOfLines={1}>
-              {route ? `${route.durationMin} min ${mode === "walking" ? "walk" : "drive"}` : "—"}
-            </Text>
-          </View>
-          <View style={styles.statChip}>
-            <Ionicons name="navigate-outline" size={14} color={COLORS.secondary} />
-            <Text style={styles.statChipText} numberOfLines={1}>
-              {route ? `${route.distanceKm.toFixed(1)} km` : `${center.distanceKm.toFixed(1)} km`}
-            </Text>
-          </View>
+      <View style={[styles.statsBar, { top: statsBarTop }]}>
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>Trip Time</Text>
+          <Text style={styles.statsValue}>
+            {route ? `${route.durationMin} min` : "—"}
+          </Text>
+        </View>
+        <View style={styles.statsDivider} />
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>Distance</Text>
+          <Text style={styles.statsValue}>
+            {route ? `${route.distanceKm.toFixed(1)} km` : `${center.distanceKm.toFixed(1)} km`}
+          </Text>
+        </View>
+        <View style={styles.statsDivider} />
+        <View style={styles.statsCol}>
+          <Text style={styles.statsLabel}>Arriving</Text>
+          <Text style={styles.statsValue}>
+            {route ? formatArrivalTime(route.durationMin) : "—"}
+          </Text>
         </View>
       </View>
     </View>
@@ -271,27 +313,40 @@ function createStyles(COLORS: ColorPalette) {
   modeRow: {
     marginTop: SPACING.sm,
   },
-  statRow: {
+  statsBar: {
+    position: "absolute",
+    left: SPACING.md,
+    right: SPACING.md,
+    top: 0,
     flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: SPACING.sm,
-    marginTop: SPACING.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    ...SHADOW,
   },
-  statChip: {
-    flexDirection: "row",
+  statsCol: {
+    flex: 1,
     alignItems: "center",
-    flexShrink: 1,
-    gap: 4,
-    backgroundColor: COLORS.tideTint,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: 5,
+    paddingVertical: SPACING.sm,
   },
-  statChipText: {
-    fontSize: TYPOGRAPHY.small,
+  statsDivider: {
+    width: 1,
+    backgroundColor: COLORS.borderMuted,
+    marginVertical: SPACING.xs,
+  },
+  statsLabel: {
+    fontSize: 10,
     fontWeight: "700",
+    letterSpacing: 0.4,
+    color: COLORS.textTertiary,
+    textTransform: "uppercase",
+  },
+  statsValue: {
+    fontFamily: FONT_FAMILY.displaySemibold,
+    fontSize: TYPOGRAPHY.caption,
     color: COLORS.tide,
+    marginTop: 3,
   },
   fallbackScreen: {
     flex: 1,

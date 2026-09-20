@@ -118,15 +118,14 @@ export default function NavigateScreen() {
   );
 
   // Fits both the responder/incident endpoints AND every currently-loaded
-  // route's full geometry, not just the two endpoints -- otherwise a route
-  // that bulges away from the direct line (e.g. the synthesized
-  // walking-detour alternative in directions.service.ts) can extend past
-  // the viewport and get visibly clipped, even though its duration pill
-  // still renders. Re-runs once `routes` finishes loading, not just once
-  // on the map's initial ready event -- routes starts empty (the fetch
-  // happens after the map itself is already "ready"), so the very first
-  // fit only has the two endpoints to work with; this effect re-fits once
-  // real route geometry is available.
+  // route's full geometry, not just the two endpoints -- otherwise a
+  // driving alternative that takes a genuinely different street could
+  // extend past the viewport and get visibly clipped, even though its
+  // duration pill still renders. Re-runs once `routes` finishes loading,
+  // not just once on the map's initial ready event -- routes starts empty
+  // (the fetch happens after the map itself is already "ready"), so the
+  // very first fit only has the two endpoints to work with; this effect
+  // re-fits once real route geometry is available.
   useEffect(() => {
     if (!mapReady || !responderCoords || !incident?.incidentCoords) return;
     const allPoints = [

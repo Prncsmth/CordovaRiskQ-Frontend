@@ -10,6 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import AppMap from "@/components/map/AppMap";
+import { useReportLocation } from "@/context/ReportLocationContext";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -35,6 +36,7 @@ export default function PinnedLocationCard({
   longitude,
 }: PinnedLocationCardProps) {
   const router = useRouter();
+  const { requestLocationChange } = useReportLocation();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const withinCordova = isInsideCordova(latitude, longitude);
@@ -48,6 +50,12 @@ export default function PinnedLocationCard({
       <Pressable
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          // Bumps a shared counter the Map tab watches (see
+          // ReportLocationContext) so it can tell "the user just tapped
+          // Change again" apart from "this tab merely regained focus" and
+          // reset its pin-drop state fresh each time -- route params alone
+          // aren't reliably re-delivered to an already-mounted tab screen.
+          requestLocationChange();
           router.push({ pathname: "/(tabs)/map", params: { intent: "change-location" } });
         }}
         onPressIn={() => {

@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import * as Location from "expo-location";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -64,7 +64,7 @@ export default function MapScreen() {
   const locateTargetRef = useRef<View>(null);
   const hasCenteredOnUser = useRef(false);
   const pinRequestIdRef = useRef(0);
-  const { setLocation: setReportLocation } = useReportLocation();
+  const { setLocation: setReportLocation, changeRequestId } = useReportLocation();
   const [centers, setCenters] = useState<EvacuationCenter[]>([]);
   const [locationDenied, setLocationDenied] = useState(false);
   const [userLocation, setUserLocation] = useState<MapUserLocation | null>(
@@ -92,7 +92,7 @@ export default function MapScreen() {
   const outsideStreakRef = useRef(0);
   const wasOutsideRef = useRef(false);
   const pinModeInFlightRef = useRef(false);
-  const autoStartHandledRef = useRef(false);
+  const lastHandledRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -293,12 +293,31 @@ export default function MapScreen() {
   // the Pinned Location card's "Change" button) skips the extra tap on the
   // pin button -- there's nothing left to explain beyond "tap the map",
   // which the hint banner below already covers.
-  useEffect(() => {
-    if (!isChangingLocation || autoStartHandledRef.current) return;
-    autoStartHandledRef.current = true;
-    handleTogglePinMode();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isChangingLocation]);
+  //
+  // useFocusEffect (not a plain useEffect on the route params) because this
+  // screen is a persistent tab, never remounted between visits -- and a
+  // first attempt keyed on a route param that changed per tap turned out
+  // unreliable, since expo-router doesn't reliably re-deliver fresh params
+  // to an already-mounted tab screen the way a stack push would.
+  // changeRequestId (bumped via ReportLocationContext each time "Change" is
+  // tapped, the same cross-tab-context mechanism this file already uses for
+  // the location value itself) is what actually distinguishes "the user
+  // just tapped Change again" from "this tab merely regained focus" --
+  // resetting only on the former means a second (or later) "Change" tap
+  // correctly clears stale state from the previous round
+  // (pickedPoint/pendingPoint, which handleConfirmLocation only ever clears
+  // the latter of) and re-enters pin-drop mode, while simply switching away
+  // mid-pick and back leaves an in-progress selection alone.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isChangingLocation || lastHandledRequestIdRef.current === changeRequestId) return;
+      lastHandledRequestIdRef.current = changeRequestId;
+      setPickedPoint(null);
+      setPendingPoint(null);
+      handleTogglePinMode();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isChangingLocation, changeRequestId]),
+  );
 
   const handleMapPress = (coords: { latitude: number; longitude: number }) => {
     if (!pinMode) return;
@@ -361,7 +380,12 @@ export default function MapScreen() {
       latitude: center.latitude,
       longitude: center.longitude,
       color: center.status === "open" ? COLORS.success : COLORS.danger,
-      label: center.name,
+      // Spells out the status in the tap-popup text, not just the marker's
+      // color -- color alone (the only other status signal) requires
+      // opening the collapsed-by-default MapLegend to even know what red
+      // means, and doesn't help at all for someone who can't distinguish
+      // red from green.
+      label: `${center.name} • ${center.status === "open" ? "Open" : "Full"}`,
     })),
     ...(pickedPoint
       ? [
