@@ -19,7 +19,19 @@ import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
 import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { useThemeColors } from "@/theme";
-import type { MapEngineProps, MapHandle, MapLatLng } from "./types";
+import type { MapEngineProps, MapFitPadding, MapHandle, MapLatLng } from "./types";
+
+function normalizePadding(padding: MapFitPadding | undefined, fallback: number) {
+  if (typeof padding === "number") {
+    return { top: padding, bottom: padding, left: padding, right: padding };
+  }
+  return {
+    top: padding?.top ?? fallback,
+    bottom: padding?.bottom ?? fallback,
+    left: padding?.left ?? fallback,
+    right: padding?.right ?? fallback,
+  };
+}
 
 const DEFAULT_MIN_ZOOM = 12;
 const DEFAULT_MAX_ZOOM = 18;
@@ -252,11 +264,15 @@ function buildHtml(options: {
   window.rqZoomIn = function () { map.zoomIn(); };
   window.rqZoomOut = function () { map.zoomOut(); };
 
-  window.rqFitToPoints = function (json, padding) {
+  window.rqFitToPoints = function (json, paddingJson) {
     var points = JSON.parse(json);
     if (!points.length) return;
     var latlngs = points.map(function (p) { return [p.latitude, p.longitude]; });
-    map.fitBounds(L.latLngBounds(latlngs), { padding: [padding || 60, padding || 60] });
+    var p = JSON.parse(paddingJson);
+    map.fitBounds(L.latLngBounds(latlngs), {
+      paddingTopLeft: [p.left, p.top],
+      paddingBottomRight: [p.right, p.bottom]
+    });
   };
 
   map.on('moveend', function () {
@@ -357,9 +373,10 @@ const LeafletMap = forwardRef<MapHandle, MapEngineProps>(function LeafletMap(
     zoomOut: () => {
       webViewRef.current?.injectJavaScript(`window.rqZoomOut(); true;`);
     },
-    fitToPoints: (points: MapLatLng[], padding?: number) => {
+    fitToPoints: (points: MapLatLng[], padding?: MapFitPadding) => {
+      const sides = normalizePadding(padding, 60);
       webViewRef.current?.injectJavaScript(
-        `window.rqFitToPoints(${JSON.stringify(JSON.stringify(points))}, ${padding ?? 60}); true;`,
+        `window.rqFitToPoints(${JSON.stringify(JSON.stringify(points))}, ${JSON.stringify(JSON.stringify(sides))}); true;`,
       );
     },
   }));

@@ -154,6 +154,21 @@ export default function NavigateScreen() {
   const statsBarTop = infoCardTop + 74 + 40 + SPACING.sm;
   const locateButtonTop = statsBarTop + 58;
 
+  // Real (approximate) clearance the floating chrome needs on each side --
+  // used to fit both points into the space actually left visible between
+  // them, not the whole map viewport. Previously this fit used one large
+  // top-sized value applied to all four sides, which forced the view more
+  // zoomed-out than the route actually needed. Top: stats bar's own bottom
+  // edge, not just the info card above it. Bottom: the bottom sheet's
+  // rough height (handle + trip-info row + action buttons + its own
+  // padding). Left/right: no floating chrome there, just breathing room.
+  const mapFitPadding = {
+    top: statsBarTop + 70 + SPACING.sm,
+    bottom: insets.bottom + 190,
+    left: SPACING.lg,
+    right: SPACING.lg,
+  };
+
   const handleLocate = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 16);
@@ -197,7 +212,7 @@ export default function NavigateScreen() {
         onReady={() =>
           mapRef.current?.fitToPoints(
             [responderCoords, incidentCoords],
-            insets.top + 140,
+            mapFitPadding,
           )
         }
       />

@@ -20,6 +20,14 @@ export type MapMarker = {
   pulse?: boolean;
 };
 
+// A plain number applies the same padding to all four sides (existing
+// behavior, still the common case). An object lets a caller with
+// asymmetric screen chrome -- e.g. a floating top card plus a bottom
+// sheet of a different height -- fit both points into the space actually
+// left visible between them, rather than treating one side's clearance
+// as if it applied everywhere.
+export type MapFitPadding = number | { top?: number; bottom?: number; left?: number; right?: number };
+
 export type MapPolyline = {
   points: MapLatLng[];
   color?: string;
@@ -33,7 +41,7 @@ export type MapHandle = {
   flyTo: (latitude: number, longitude: number, zoom?: number) => void;
   zoomIn: () => void;
   zoomOut: () => void;
-  fitToPoints: (points: MapLatLng[], padding?: number) => void;
+  fitToPoints: (points: MapLatLng[], padding?: MapFitPadding) => void;
 };
 
 export type MapEngineProps = {

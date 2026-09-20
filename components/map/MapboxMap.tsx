@@ -19,7 +19,19 @@ import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
 import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
-import type { MapEngineProps, MapHandle, MapLatLng } from "./types";
+import type { MapEngineProps, MapFitPadding, MapHandle, MapLatLng } from "./types";
+
+function normalizePadding(padding: MapFitPadding | undefined, fallback: number) {
+  if (typeof padding === "number") {
+    return { top: padding, bottom: padding, left: padding, right: padding };
+  }
+  return {
+    top: padding?.top ?? fallback,
+    bottom: padding?.bottom ?? fallback,
+    left: padding?.left ?? fallback,
+    right: padding?.right ?? fallback,
+  };
+}
 
 // The classic "you are here" blue -- distinct from any theme accent since
 // it needs to read as GPS/location, not a brand color.
@@ -149,18 +161,19 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
         currentZoomRef.current = next;
         cameraRef.current?.zoomTo(next, 300);
       },
-      fitToPoints: (points: MapLatLng[], padding = 60) => {
+      fitToPoints: (points: MapLatLng[], padding?: MapFitPadding) => {
         if (!points.length) return;
+        const sides = normalizePadding(padding, 60);
         const lats = points.map((p) => p.latitude);
         const lons = points.map((p) => p.longitude);
         cameraRef.current?.setCamera({
           bounds: {
             ne: [Math.max(...lons), Math.max(...lats)],
             sw: [Math.min(...lons), Math.min(...lats)],
-            paddingLeft: padding,
-            paddingRight: padding,
-            paddingTop: padding,
-            paddingBottom: padding,
+            paddingLeft: sides.left,
+            paddingRight: sides.right,
+            paddingTop: sides.top,
+            paddingBottom: sides.bottom,
           },
           animationDuration: 500,
         });

@@ -159,17 +159,20 @@ export default function EvacuationNavigateScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.statRow}>
+        <View style={styles.modeRow}>
           <TravelModeToggle value={mode} onChange={setMode} />
+        </View>
+
+        <View style={styles.statRow}>
           <View style={styles.statChip}>
             <Ionicons name="time-outline" size={14} color={COLORS.secondary} />
-            <Text style={styles.statChipText}>
+            <Text style={styles.statChipText} numberOfLines={1}>
               {route ? `${route.durationMin} min ${mode === "walking" ? "walk" : "drive"}` : "—"}
             </Text>
           </View>
           <View style={styles.statChip}>
             <Ionicons name="navigate-outline" size={14} color={COLORS.secondary} />
-            <Text style={styles.statChipText}>
+            <Text style={styles.statChipText} numberOfLines={1}>
               {route ? `${route.distanceKm.toFixed(1)} km` : `${center.distanceKm.toFixed(1)} km`}
             </Text>
           </View>
@@ -239,6 +242,9 @@ function createStyles(COLORS: ColorPalette) {
     justifyContent: "center",
     ...SHADOW,
   },
+  modeRow: {
+    marginTop: SPACING.sm,
+  },
   statRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -249,6 +255,7 @@ function createStyles(COLORS: ColorPalette) {
   statChip: {
     flexDirection: "row",
     alignItems: "center",
+    flexShrink: 1,
     gap: 4,
     backgroundColor: COLORS.tideTint,
     borderRadius: RADIUS.full,

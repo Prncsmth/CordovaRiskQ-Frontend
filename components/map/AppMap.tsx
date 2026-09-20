@@ -22,6 +22,7 @@ export default AppMap;
 
 export type {
   MapEngineProps,
+  MapFitPadding,
   MapHandle,
   MapLatLng,
   MapMarker,

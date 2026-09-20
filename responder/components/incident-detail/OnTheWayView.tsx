@@ -67,6 +67,18 @@ export default function OnTheWayView({
 
   const { incidentCoords } = incident;
 
+  // Real (approximate) clearance the floating chrome needs on each side --
+  // fits both points into the space actually left visible between the
+  // locate button up top and the bottom sheet (thumbnail + text + Navigate
+  // + Leave Incident), instead of one top-sized value applied to all four
+  // sides, which forced the view more zoomed-out than the route needed.
+  const mapFitPadding = {
+    top: insets.top + 70,
+    bottom: insets.bottom + 280,
+    left: SPACING.lg,
+    right: SPACING.lg,
+  };
+
   const handleLocate = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 16);
@@ -85,7 +97,7 @@ export default function OnTheWayView({
         onReady={() =>
           mapRef.current?.fitToPoints(
             [responderCoords, incidentCoords],
-            insets.top + 140,
+            mapFitPadding,
           )
         }
       />
