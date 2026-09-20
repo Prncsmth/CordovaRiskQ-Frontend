@@ -2,7 +2,7 @@
 
 > Living document. Update this after every feature lands (new plan/spec pair merged, or a task list in `docs/superpowers/plans/*` finished). Don't duplicate detail that already lives in `docs/superpowers/plans/*` or `specs/*` — link to it instead.
 
-Last updated: 2026-09-12 (responder module reorganization — see below)
+Last updated: 2026-09-21 (SOS active screen links to Track Responder; corrected two stale gap entries — see below)
 
 ## How this project builds features
 
@@ -25,7 +25,7 @@ There is also a third sibling repo, `CordovaRiskQ- Admin` (Next.js ops dashboard
 | User profile (view/edit) | `2026-07-31-user-profile`, `2026-08-03-user-profile-backend` | **Real** (`services/user.service.ts`) |
 | Onboarding (phone number + terms gate) | `2026-08-05-onboarding` | **Real**, persists `mobile` to `PUT /api/users/me`; gated by backend's `isNewUser` flag on Google sign-up |
 | Device geolocation (`services/location.service.ts`) | no plan/spec (bounded fix) | n/a — real `expo-location` permission + fix, consolidated out of `SosContext.tsx`/`(tabs)/map.tsx` |
-| SOS trigger | no plan/spec (bounded fix) | **Real**. `POST /api/sos` (authenticated), `SosAlert` Prisma model. Also dual-writes a linked `Incident` row so it's visible to responders (see below). `cancelSOS` in `SosContext.tsx` is still local-only — no cancel/resolve endpoint exists |
+| SOS trigger + cancel | no plan/spec (bounded fix) | **Real**. `POST /api/sos` (authenticated), `SosAlert` Prisma model. Also dual-writes a linked `Incident` row so it's visible to responders (see below). `cancelSOS` in `SosContext.tsx` calls a real `PATCH /api/incidents/:id/cancel`, which 409s (surfaced as an alert) once a responder has already joined. The active SOS screen also links straight into `/track-responder/[id]` (no plan/spec, bounded) once an incident ID exists |
 | Citizen notification inbox (bell + `/notifications`) | `2026-09-05-citizen-notifications` | **Real** — real `Notification` Prisma model, `GET /api/notifications`, real Expo push via `services/push.service.ts`. Covers announcement publish, incident status changes, tide/weather risk escalation |
 | Map (`(tabs)/map.tsx`) | no dedicated plan/spec | **Real** — dual-engine map (`components/map/AppMap.tsx` picks Leaflet-in-WebView inside Expo Go, Mapbox everywhere else, same `MapEngineProps`/`MapHandle` contract either way), real evacuation-center data, real GPS pin-drop |
 | Advisory banner / tide & weather risk | `2026-09-04-advisory-banner`, `2026-08-27-tide-level-backend`, `2026-08-29-tide-weather-backend` | **Real** |
@@ -38,7 +38,6 @@ Auth (login/register/forgot-password/Google sign-in) predates the plans/specs co
 - `app/contacts` — `services/contacts.service.ts` (hotlines + personal contacts, hardcoded)
 - `app/evacuation-detail/[id]` — `services/evacuation.service.ts` (hardcoded centers; real, researched addresses/coords, but no backend or live capacity)
 - `app/faqs`, `app/settings`, `app/contact-support` — static content, nothing to wire
-- SOS cancel/resolve — `cancelSOS` in `SosContext.tsx` is local-only; no backend endpoint (the trigger side is real, see above)
 - Google Sign-In client IDs in `.env` — unverified as of this update (`.env` isn't committed/readable from a checkout); treat as unconfirmed rather than assuming either way
 
 ## Done — Responder (team) flow
@@ -51,7 +50,7 @@ What was a 100%-mock prototype (see git history before ~2026-08-19) is now a ful
 - **Live updates** (`2026-09-08-active-incident-realtime`): Socket.IO pushes roster/status changes to the open incident-detail screen without polling; receive-only, REST stays the write path.
 - **Responder-side notifications** (no plan/spec, bounded): a bell on the responder dashboard + the shared `/notifications` inbox/push pipeline now also serve responders — `new_incident` (fans out to on-duty responders when a citizen report or SOS creates a new incident), `roster_update` (teammates notified on join/on-the-way/arrived/left/completed/cancelled, never the actor), and `team_ring` (the "Ring Team" button now sends a real ping to the rest of the active roster instead of a no-op local haptic).
 - **Duty status is now real** (no plan/spec, bounded): `User.isOnDuty` persists server-side; going "Offline" actually stops new-incident pages/notifications instead of only hiding the local list. Toggle reverts with an alert on a failed request.
-- **Leave affordance** (no plan/spec, bounded): a responder can now back out of an incident they've joined (`LobbyView`) or are en route to (`OnTheWayView`) via a real "Leave Incident" action — previously modeled on the backend but unreachable from the UI. Deliberately not offered from `ArrivedView` (that phase's exit hatch is "Cancel Incident"). Re-opening an already-left incident to rejoin isn't wired yet (see Next steps).
+- **Leave affordance** (no plan/spec, bounded): a responder can now back out of an incident they've joined (`LobbyView`) or are en route to (`OnTheWayView`) via a real "Leave Incident" action — previously modeled on the backend but unreachable from the UI. Deliberately not offered from `ArrivedView` (that phase's exit hatch is "Cancel Incident"). Re-opening an already-left incident to rejoin is wired: `IncidentDetailScreen.tsx` derives `isRejoin` from `myStatus === "left"` and `PendingView` shows "Rejoin" instead of "Accept"/"Decline" for it.
 - **"Start Assistance" removed** (no plan/spec, bounded): it was a permanent `Alert.alert("Coming soon.")` stub; removed entirely rather than wired up, since Arrived already means "on scene and assisting" — no separate "start" action was needed.
 - **Admin-side role management**: promoting a citizen to responder (or reverting one) is a real action in the `CordovaRiskQ- Admin` app's Users page (`PATCH /admin/users/:id/role`), not a manual SQL update. There is intentionally **no self-registration path** for the responder role — only an admin can change it.
 - **Real map/nav**: `OnTheWayView`/`app/responder/navigate.tsx` use the same real dual-engine map + real turn-by-turn routing (`useRoute` hook) as the rest of the app.
@@ -59,7 +58,6 @@ What was a 100%-mock prototype (see git history before ~2026-08-19) is now a ful
 
 **Known gaps in this flow:**
 - "Chat with Team" was replaced by "Ring Team," which is now real (see above) — there's no separate team chat feature.
-- Rejoining an incident you previously left isn't supported end-to-end: the backend allows it (`joined` is a valid transition from `left`), but `PendingView`'s "Decline" button would still be offered and would 409 (decline is a no-existing-row-only action), and revisiting a `left` incident currently hits the same "Already declined" alert written for the `declined` case.
 - No `docs/superpowers/plans|specs` entry exists for the original responder-flow prototype-to-real transition as one unit — it was built incrementally across the specs listed above instead.
 
 ---
@@ -68,14 +66,14 @@ What was a 100%-mock prototype (see git history before ~2026-08-19) is now a ful
 
 Pick one path — they're independent:
 
-1. **Finish backend-wiring the remaining civilian mock screens**: contacts/hotlines, evacuation centers (including live capacity), and an SOS cancel/resolve endpoint — each would follow the same plan/spec pattern as User Profile / citizen notifications did.
-2. **Rejoin-after-leaving on the responder side**: decide whether `PendingView` should distinguish "never touched this incident" from "previously left it" (e.g. hide Decline, different copy) rather than leaving this edge case unhandled.
-3. **Verify/fill Google OAuth client IDs** in `.env` — status unconfirmed from a fresh checkout (see above).
+1. **Finish backend-wiring the remaining civilian mock screens**: contacts/hotlines and evacuation centers (including live capacity) — each would follow the same plan/spec pattern as User Profile / citizen notifications did.
+2. **Verify/fill Google OAuth client IDs** in `.env` — status unconfirmed from a fresh checkout (see above).
 
 ## Definition of "frontend complete"
 
-- [ ] Every screen's service backed by a real API call, not a hardcoded array (contacts, evacuation centers, SOS cancel remain — see mock-data list above)
+- [ ] Every screen's service backed by a real API call, not a hardcoded array (contacts, evacuation centers remain — see mock-data list above)
 - [x] SOS button actually triggers something real + real device location
+- [x] SOS cancel is a real backend action
 - [x] Responder flow formalized and real (roster, notifications, duty status, live updates)
 - [ ] Google Sign-In client IDs filled in `.env` (unconfirmed, see Next steps)
 - [x] Role-based routing (civilian vs. responder account types), backend-driven
