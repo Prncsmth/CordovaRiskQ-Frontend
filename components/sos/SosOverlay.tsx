@@ -18,9 +18,11 @@ import {
   DialogTitle,
 } from "@/components/common/Dialog";
 import GeofenceBlockedModal, { type GeofenceModalVariant } from "@/components/common/GeofenceBlockedModal";
+import GeofenceToast from "@/components/common/GeofenceToast";
 import RippleRings from "@/components/common/RippleRings";
+import SosBubble from "@/components/sos/SosBubble";
 import { useAuth } from "@/context/AuthContext";
-import { useSos } from "@/context/SosContext";
+import { useSos, type SosTrackingState } from "@/context/SosContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 export default function SosOverlay() {
@@ -30,16 +32,22 @@ export default function SosOverlay() {
     blockedReason,
     isMinimized,
     incidentId,
+    tracking,
+    showAssignedToast,
+    showResolvedToast,
     confirmSOS,
     cancelSOS,
     expandSOS,
     minimizeSOS,
     dismissBlocked,
     retryConfirm,
+    dismissAssignedToast,
+    dismissResolvedToast,
   } = useSos();
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const insets = useSafeAreaInsets();
 
   // Belt-and-suspenders: SosContext already wipes its own state on logout,
   // but this guarantees nothing SOS-related ever renders while logged out,
@@ -70,11 +78,16 @@ export default function SosOverlay() {
           ) : (
             <ActiveView
               incidentId={incidentId}
+              tracking={tracking}
               onTrack={(id) =>
                 router.push({ pathname: "/track-responder/[id]", params: { id } })
               }
               onCancel={cancelSOS}
               onMinimize={minimizeSOS}
+              onBackToHome={() => {
+                minimizeSOS();
+                router.push("/(tabs)/home");
+              }}
               COLORS={COLORS}
               styles={styles}
             />
@@ -82,15 +95,27 @@ export default function SosOverlay() {
         </View>
       )}
 
-      {stage === "active" && isMinimized && (
-        <MinimizedBanner onPress={expandSOS} COLORS={COLORS} styles={styles} />
-      )}
+      {stage === "active" && isMinimized && <SosBubble onPress={expandSOS} />}
 
       <GeofenceBlockedModal
         visible={blockedVariant !== null}
         variant={blockedVariant ?? "sos-unavailable"}
         onDismiss={dismissBlocked}
         onRetry={retryConfirm}
+      />
+
+      <GeofenceToast
+        visible={showAssignedToast}
+        message="Responder Assigned"
+        onDismiss={dismissAssignedToast}
+        style={{ top: insets.top + SPACING.sm }}
+      />
+
+      <GeofenceToast
+        visible={showResolvedToast}
+        message="Incident Resolved"
+        onDismiss={dismissResolvedToast}
+        style={{ top: insets.top + SPACING.sm }}
       />
     </>
   );
@@ -102,33 +127,6 @@ function LoadingView({ COLORS, message }: { COLORS: ColorPalette; message: strin
       <ActivityIndicator size="large" color={COLORS.primary} />
       <DialogTitle style={{ marginTop: SPACING.sm }}>{message}</DialogTitle>
     </Dialog>
-  );
-}
-
-function MinimizedBanner({
-  onPress,
-  COLORS,
-  styles,
-}: {
-  onPress: () => void;
-  COLORS: ColorPalette;
-  styles: ReturnType<typeof createStyles>;
-}) {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <Pressable
-      style={[styles.minimizedBanner, { top: insets.top + SPACING.sm }]}
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel="SOS active, responders notified. Tap to view status."
-    >
-      <Ionicons name="warning" size={16} color={COLORS.white} />
-      <Text style={styles.minimizedBannerText} numberOfLines={1}>
-        SOS Active — Responders Notified
-      </Text>
-      <Ionicons name="chevron-forward" size={16} color={COLORS.white} />
-    </Pressable>
   );
 }
 
@@ -157,20 +155,29 @@ function ConfirmView({
 
 function ActiveView({
   incidentId,
+  tracking,
   onTrack,
   onCancel,
   onMinimize,
+  onBackToHome,
   COLORS,
   styles,
 }: {
   incidentId: string | null;
+  tracking: SosTrackingState;
   onTrack: (incidentId: string) => void;
   onCancel: () => void;
   onMinimize: () => void;
+  onBackToHome: () => void;
   COLORS: ColorPalette;
   styles: ReturnType<typeof createStyles>;
 }) {
   const insets = useSafeAreaInsets();
+  // Treat the brief "idle" frame before the tracking poll's first tick
+  // lands the same as "waiting" -- stage is already "active" by the time
+  // this view renders, so there's always really an incident to wait on.
+  const isAssigned = tracking.kind === "live";
+  const responderName = tracking.kind === "live" ? tracking.snapshot.responderName : null;
 
   return (
     <View style={[styles.activeScreen, { paddingBottom: insets.bottom + SPACING.lg }]}>
@@ -191,22 +198,32 @@ function ActiveView({
           <Text style={styles.sentBadgeText}>SOS sent successfully</Text>
         </View>
         <PulseRings styles={styles} />
-        <Text style={styles.activeTitle}>Help Is On The Way</Text>
+        <Text style={styles.activeTitle}>
+          {isAssigned ? "Responder Assigned" : "Waiting for Responder"}
+        </Text>
         <Text style={styles.activeSubtitle}>
-          Your location has been shared with emergency responders.
+          {isAssigned
+            ? `${responderName ?? "A responder"} has been assigned and is on the way.`
+            : "Your SOS has been sent. Please wait while a responder accepts your request."}
         </Text>
       </View>
 
-      {incidentId && (
+      {incidentId && isAssigned && (
         <Pressable style={styles.trackButton} onPress={() => onTrack(incidentId)}>
           <Ionicons name="navigate" size={18} color={COLORS.primary} />
           <Text style={styles.trackButtonText}>Track Responder</Text>
         </Pressable>
       )}
 
-      <Pressable style={styles.cancelButton} onPress={onCancel}>
-        <Text style={styles.cancelButtonText}>Cancel SOS</Text>
-      </Pressable>
+      {isAssigned ? (
+        <Pressable style={styles.cancelButton} onPress={onBackToHome}>
+          <Text style={styles.cancelButtonText}>Back to Home</Text>
+        </Pressable>
+      ) : (
+        <Pressable style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>Cancel SOS</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -236,30 +253,6 @@ function createStyles(COLORS: ColorPalette) {
       ...StyleSheet.absoluteFill,
       zIndex: 100,
       elevation: 100,
-    },
-    minimizedBanner: {
-      position: "absolute",
-      left: SPACING.md,
-      right: SPACING.md,
-      zIndex: 100,
-      elevation: 100,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.xs,
-      backgroundColor: COLORS.primary,
-      borderRadius: RADIUS.full,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-      shadowColor: "#000",
-      shadowOpacity: 0.2,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 3 },
-    },
-    minimizedBannerText: {
-      flex: 1,
-      color: COLORS.white,
-      fontWeight: "700",
-      fontSize: TYPOGRAPHY.small,
     },
     activeScreen: {
       flex: 1,

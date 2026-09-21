@@ -5,18 +5,32 @@ import { Alert } from "react-native";
 import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
 import type { ApiError } from "@/services/api";
+import { reverseGeocode } from "@/services/geocoding.service";
 import { getVerifiedLocation } from "@/services/location.service";
 import { cancelSosIncident, triggerSOS } from "@/services/sos.service";
+import { getResponderTracking, type TrackingSnapshot } from "@/services/tracking.service";
 import { isInsideCordova } from "@/utils/geofence";
 
 type SosStage = "idle" | "confirm" | "verifying" | "sending" | "active";
 type SosBlockedReason = "permission" | "unavailable" | null;
+
+// Whether a responder has accepted this SOS's linked incident yet --
+// separate from SosStage, which only tracks the citizen's own send/cancel
+// flow. "idle" here means "not currently tracking" (SOS isn't active),
+// distinct from SosStage's "idle".
+export type SosTrackingState =
+  | { kind: "idle" }
+  | { kind: "waiting" }
+  | { kind: "live"; snapshot: TrackingSnapshot };
 
 type SosContextValue = {
   stage: SosStage;
   blockedReason: SosBlockedReason;
   isMinimized: boolean;
   incidentId: string | null;
+  tracking: SosTrackingState;
+  showAssignedToast: boolean;
+  showResolvedToast: boolean;
   openConfirm: () => void;
   confirmSOS: () => void;
   cancelSOS: () => void;
@@ -24,7 +38,15 @@ type SosContextValue = {
   minimizeSOS: () => void;
   dismissBlocked: () => void;
   retryConfirm: () => void;
+  dismissAssignedToast: () => void;
+  dismissResolvedToast: () => void;
 };
+
+// Matches useResponderTracking's own POLL_INTERVAL_MS -- this poll serves
+// the same purpose (has a responder accepted the incident this SOS created)
+// but runs off SosStage instead of screen focus, since the bubble/full-screen
+// SOS UI can be showing over any screen in the app.
+const TRACKING_POLL_INTERVAL_MS = 4000;
 
 const SosContext = createContext<SosContextValue | undefined>(undefined);
 
@@ -41,9 +63,16 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
   const [blockedReason, setBlockedReason] = useState<SosBlockedReason>(null);
   const [incidentId, setIncidentId] = useState<string | null>(null);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [tracking, setTracking] = useState<SosTrackingState>({ kind: "idle" });
+  const [showAssignedToast, setShowAssignedToast] = useState(false);
+  const [showResolvedToast, setShowResolvedToast] = useState(false);
   const { token } = useAuth();
   const inFlightRef = useRef(false);
   const minimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Tracks whether this SOS's incident has already been seen "live" (a
+  // responder accepted) -- so the toast fires exactly once per SOS, not on
+  // every poll tick after the first.
+  const trackingWasLiveRef = useRef(false);
 
   const clearMinimizeTimer = () => {
     if (minimizeTimerRef.current) {
@@ -69,6 +98,7 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
 
     setIncidentId(null);
     setIsMinimized(false);
+    setShowResolvedToast(false);
     clearMinimizeTimer();
     try {
       setStage("verifying");
@@ -94,7 +124,20 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
 
       setStage("sending");
 
-      const locationLabel = `Barangay ${getNearestBarangay(result.coords.latitude, result.coords.longitude).name}, Cordova`;
+      const barangayLabel = `Barangay ${getNearestBarangay(result.coords.latitude, result.coords.longitude).name}, Cordova`;
+      // Best-effort upgrade to a full street-level address, same source
+      // (reverseGeocode) the Report Incident flow already uses -- without
+      // this, every SOS alert only ever carried the coarse barangay
+      // fallback, since nothing here ever called it. Raced against a short
+      // local timeout (separate from reverseGeocode's own internal 15s
+      // one) so a slow/unresponsive geocoder can't meaningfully delay an
+      // emergency send; falls back to the barangay label either way.
+      const geocoded = await Promise.race([
+        reverseGeocode(result.coords),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
+      ]).catch(() => null);
+      if (!isCurrent()) return;
+      const locationLabel = geocoded ?? barangayLabel;
       try {
         const alert = await triggerSOS(token, result.coords, locationLabel);
         if (!isCurrent()) return;
@@ -160,8 +203,82 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
     setBlockedReason(null);
     setIncidentId(null);
     setIsMinimized(false);
+    setShowResolvedToast(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Polls whether a responder has accepted this SOS's incident yet, using
+  // the same real GET /api/incidents/:id/tracking endpoint the Track
+  // Responder screen already trusts. Runs off SosStage rather than
+  // useFocusEffect/screen focus -- unlike that screen, this needs to keep
+  // working while the citizen is anywhere else in the app with the SOS
+  // bubble minimized. Naturally resets to "idle" (and re-arms the
+  // one-shot toast) whenever stage leaves "active", including a brand new
+  // SOS started right after this one.
+  useEffect(() => {
+    if (stage !== "active" || !incidentId || !token) {
+      // Deliberately does NOT touch showResolvedToast: the "ended" branch
+      // below sets that flag true in the same batch as setStage("idle"),
+      // which re-triggers this very effect (stage is a dependency) -- if
+      // this guard also cleared it, the toast would be wiped before it
+      // ever rendered. runConfirm() and the logout effect reset it
+      // instead, at points that can't race a just-set toast.
+      setTracking({ kind: "idle" });
+      setShowAssignedToast(false);
+      trackingWasLiveRef.current = false;
+      return;
+    }
+
+    let stopped = false;
+    const poll = () => {
+      if (stopped) return;
+      getResponderTracking(token, incidentId)
+        .then((result) => {
+          if (stopped) return;
+          if (result.state === "ok") {
+            setTracking({ kind: "live", snapshot: result.snapshot });
+            if (!trackingWasLiveRef.current) {
+              trackingWasLiveRef.current = true;
+              setShowAssignedToast(true);
+              // A responder accepting means the citizen should stay put on
+              // the active SOS view instead of being auto-minimized out
+              // from under them -- cancel runConfirm's still-pending
+              // 20s auto-minimize timer, if it hasn't fired yet.
+              clearMinimizeTimer();
+            }
+          } else if (result.state === "waiting") {
+            setTracking({ kind: "waiting" });
+          } else if (result.state === "ended") {
+            // The incident left its active window -- most commonly a
+            // responder marking it resolved, but also covers a
+            // cancellation from elsewhere. Nothing previously reset the
+            // citizen's own SOS UI for this, so it used to just sit on
+            // "Responder Assigned" forever. Resetting `stage` here is what
+            // actually dismisses the full-screen view/bubble; this
+            // effect's own dependency-change cleanup (stage leaving
+            // "active") stops the poll.
+            setShowAssignedToast(false);
+            setShowResolvedToast(true);
+            setStage("idle");
+            setIncidentId(null);
+            setIsMinimized(false);
+          }
+          // "forbidden" -- shouldn't happen for the SOS's own creator
+          // (the tracking endpoint's reporter-only check), so left as-is
+          // if it somehow does rather than guessing at a response.
+        })
+        // Transient network/server failure -- keep last known state, retry
+        // next tick, same best-effort handling as useResponderTracking.
+        .catch(() => {});
+    };
+
+    poll();
+    const intervalId = setInterval(poll, TRACKING_POLL_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      clearInterval(intervalId);
+    };
+  }, [stage, incidentId, token]);
 
   const value = useMemo(
     () => ({
@@ -169,6 +286,9 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
       blockedReason,
       isMinimized,
       incidentId,
+      tracking,
+      showAssignedToast,
+      showResolvedToast,
       openConfirm: () => setStage("confirm"),
       confirmSOS: () => {
         void runConfirm();
@@ -183,8 +303,19 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
         setBlockedReason(null);
         void runConfirm();
       },
+      dismissAssignedToast: () => setShowAssignedToast(false),
+      dismissResolvedToast: () => setShowResolvedToast(false),
     }),
-    [stage, blockedReason, isMinimized, token, incidentId],
+    [
+      stage,
+      blockedReason,
+      isMinimized,
+      token,
+      incidentId,
+      tracking,
+      showAssignedToast,
+      showResolvedToast,
+    ],
   );
 
   return <SosContext.Provider value={value}>{children}</SosContext.Provider>;
