@@ -84,18 +84,19 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   const [mapError, setMapError] = useState<string | null>(null);
   const [styleKey, setStyleKey] = useState<StyleKey>("streets");
   const [layerMenuOpen, setLayerMenuOpen] = useState(false);
-  // Drives the "you are here" pulse ring, a "logo" marker's matching ring,
-  // and any marker.pulse === true glow (a live incident on a responder's
-  // map): a plain circle/marker just sitting there is easy to miss, so
-  // this animates it expanding + fading out on a loop (classic radar-ping
-  // look) rather than only resizing it. One shared loop drives all three,
-  // rather than a separate timer per marker.
+  // Drives a "logo" marker's pulse ring and any marker.pulse === true glow
+  // (a live incident, or a flat evacuation-center marker) -- NOT the "you
+  // are here" blue dot, which is deliberately static, not animated. A
+  // plain circle/marker just sitting there is easy to miss, so this
+  // animates it expanding + fading out on a loop (classic radar-ping look)
+  // rather than only resizing it. One shared loop drives every pulsing
+  // marker, rather than a separate timer per marker.
   const [pulseProgress, setPulseProgress] = useState(0);
   const hasLogoMarker = markers.some((marker) => marker.icon === "logo");
   const hasPulsingMarker = markers.some((marker) => marker.pulse);
 
   useEffect(() => {
-    if (!interactive || (!showUserLocationDot && !hasLogoMarker && !hasPulsingMarker)) {
+    if (!interactive || (!hasLogoMarker && !hasPulsingMarker)) {
       return;
     }
     const durationMs = 1600;
@@ -105,7 +106,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
       setPulseProgress(elapsed / durationMs);
     }, 50);
     return () => clearInterval(timer);
-  }, [interactive, showUserLocationDot, hasLogoMarker, hasPulsingMarker]);
+  }, [interactive, hasLogoMarker, hasPulsingMarker]);
   const cameraRef = useRef<any>(null);
   const currentZoomRef = useRef(zoom);
 
@@ -262,17 +263,10 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
 
         {interactive && showUserLocationDot && (
           <UserLocation visible>
-            {/* Expanding, fading ring driven by pulseProgress -- a real
-                "radar ping" loop instead of a static translucent circle. */}
-            <CircleLayer
-              id="rqUserLocationPulse"
-              style={{
-                circleRadius: 15 + 12 * pulseProgress,
-                circleColor: USER_LOCATION_BLUE,
-                circleOpacity: 0.35 * (1 - pulseProgress),
-                circlePitchAlignment: "map",
-              }}
-            />
+            {/* Static -- no pulse/radar-ping loop. Left as a plain
+                white-ringed blue dot rather than animated, unlike the
+                pulsing evacuation-center/incident markers elsewhere on the
+                map. */}
             <CircleLayer
               id="rqUserLocationRing"
               style={{
@@ -359,41 +353,47 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
                 <Text style={styles.labelPillText}>{marker.label ?? ""}</Text>
               </Pressable>
             </MarkerView>
-          ) : marker.pulse ? (
-            <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
-              <View style={styles.pinMarkerWrap}>
-                {/* Same radar-ping pulse as the logo/user-location markers
-                    above, in the marker's own color -- a live incident
-                    (SOS or citizen report) should draw the eye, not just
-                    sit there as a static pin. */}
-                <View
-                  style={[
-                    styles.pinPulseRing,
-                    {
-                      backgroundColor: marker.color ?? COLORS.primary,
-                      opacity: 0.4 * (1 - pulseProgress),
-                      transform: [{ scale: 0.6 + pulseProgress * 0.9 }],
-                    },
-                  ]}
-                />
-                <Pressable
-                  hitSlop={8}
-                  onPress={() => onMarkerPress?.(marker.id)}
-                  style={[styles.pin, { backgroundColor: marker.color ?? COLORS.primary }]}
-                >
-                  <Ionicons name="location" size={18} color={COLORS.white} />
-                </Pressable>
-              </View>
-            </MarkerView>
           ) : (
             <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
-              <Pressable
-                hitSlop={8}
-                onPress={() => onMarkerPress?.(marker.id)}
-                style={[styles.pin, { backgroundColor: marker.color ?? COLORS.primary }]}
-              >
-                <Ionicons name="location" size={18} color={COLORS.white} />
-              </Pressable>
+              <View style={marker.flat ? styles.flatPinWrap : styles.pinMarkerWrap}>
+                {/* Same radar-ping pulse as the logo/user-location markers
+                    above, in the marker's own color -- a live incident, or
+                    (with flat) an evacuation center, should draw the eye
+                    and read as "highlighted," not sit there static. */}
+                {marker.pulse && (
+                  <View
+                    style={[
+                      marker.flat ? styles.flatPulseRing : styles.pinPulseRing,
+                      {
+                        backgroundColor: marker.color ?? COLORS.primary,
+                        opacity: 0.4 * (1 - pulseProgress),
+                        transform: [{ scale: 0.6 + pulseProgress * 0.9 }],
+                      },
+                    ]}
+                  />
+                )}
+                {marker.flat ? (
+                  <Pressable
+                    hitSlop={10}
+                    onPress={() => onMarkerPress?.(marker.id)}
+                    style={styles.flatPin}
+                  >
+                    <Ionicons
+                      name="location"
+                      size={26}
+                      color={marker.color ?? COLORS.primary}
+                    />
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    hitSlop={8}
+                    onPress={() => onMarkerPress?.(marker.id)}
+                    style={[styles.pin, { backgroundColor: marker.color ?? COLORS.primary }]}
+                  >
+                    <Ionicons name="location" size={18} color={COLORS.white} />
+                  </Pressable>
+                )}
+              </View>
             </MarkerView>
           ),
         )}
@@ -464,6 +464,24 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "center",
       ...SHADOW,
+    },
+    // No circular background -- just enough padding for a decent hit
+    // target. Brightness/pop comes from the pulse ring (flatPulseRing)
+    // when marker.pulse is set, not a border on the icon itself.
+    flatPin: {
+      padding: 6,
+    },
+    flatPinWrap: {
+      width: 46,
+      height: 46,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    flatPulseRing: {
+      position: "absolute",
+      width: 34,
+      height: 34,
+      borderRadius: RADIUS.full,
     },
     labelPill: {
       paddingHorizontal: SPACING.sm,

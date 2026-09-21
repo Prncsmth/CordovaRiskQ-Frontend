@@ -15,6 +15,7 @@ import AppMap, {
 import ConfirmLocationDialog from "@/components/map/ConfirmLocationDialog";
 import LocateButton from "@/components/map/LocateButton";
 import MapLegend from "@/components/map/MapLegend";
+import NearestCenterButton from "@/components/map/NearestCenterButton";
 import PinButton from "@/components/map/PinButton";
 import SearchBar from "@/components/map/SearchBar";
 import ZoomControls from "@/components/map/ZoomControls";
@@ -45,6 +46,7 @@ import {
     type ColorPalette,
 } from "@/theme";
 import { isInsideCordova } from "@/utils/geofence";
+import { haversineDistanceKm } from "@/utils/distance";
 
 const MIN_ZOOM = 12;
 const MAX_ZOOM = 18;
@@ -61,6 +63,7 @@ export default function MapScreen() {
   const mapRef = useRef<MapHandle>(null);
   const searchTargetRef = useRef<View>(null);
   const pinTargetRef = useRef<View>(null);
+  const nearestTargetRef = useRef<View>(null);
   const locateTargetRef = useRef<View>(null);
   const hasCenteredOnUser = useRef(false);
   const pinRequestIdRef = useRef(0);
@@ -74,6 +77,7 @@ export default function MapScreen() {
   const [isLocating, setIsLocating] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(14);
   const [pinMode, setPinMode] = useState(false);
+  const [showNearestOnly, setShowNearestOnly] = useState(false);
   const [pickedPoint, setPickedPoint] = useState<{
     latitude: number;
     longitude: number;
@@ -242,6 +246,31 @@ export default function MapScreen() {
     }
   };
 
+  // Same pattern as home.tsx's own nearest-center pick: recompute distance
+  // from the citizen's live position rather than trusting each center's own
+  // distanceKm, which isn't guaranteed relative to where they actually are
+  // right now.
+  const nearestCenter = useMemo(() => {
+    if (centers.length === 0 || !userLocation) return null;
+    return centers.reduce((closest, center) =>
+      haversineDistanceKm(userLocation, center) <
+      haversineDistanceKm(userLocation, closest)
+        ? center
+        : closest,
+    );
+  }, [centers, userLocation]);
+
+  const handleToggleNearest = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowNearestOnly((prev) => {
+      const next = !prev;
+      if (next && nearestCenter) {
+        mapRef.current?.flyTo(nearestCenter.latitude, nearestCenter.longitude, 16);
+      }
+      return next;
+    });
+  };
+
   const handleZoomIn = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     mapRef.current?.zoomIn();
@@ -374,12 +403,22 @@ export default function MapScreen() {
     setPinMode(true);
   };
 
+  const visibleCenters =
+    showNearestOnly && nearestCenter ? [nearestCenter] : centers;
+
   const markers: MapMarker[] = [
-    ...centers.map((center) => ({
+    ...visibleCenters.map((center) => ({
       id: center.id,
       latitude: center.latitude,
       longitude: center.longitude,
       color: center.status === "open" ? COLORS.success : COLORS.danger,
+      // Plain colored pin icon, no circular background -- less visual
+      // weight for a screen that can show many of these at once. The pulse
+      // ring (same glow used for a responder's live incidents) is what
+      // keeps it from reading as flat/lifeless instead of a border on the
+      // icon itself.
+      flat: true,
+      pulse: true,
       // Spells out the status in the tap-popup text, not just the marker's
       // color -- color alone (the only other status signal) requires
       // opening the collapsed-by-default MapLegend to even know what red
@@ -446,7 +485,16 @@ export default function MapScreen() {
           onDismiss={() => setShowOutsideCordovaToast(false)}
           style={{
             bottom:
-              insets.bottom + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm + 44 + SPACING.sm,
+              insets.bottom +
+              SPACING.lg +
+              44 +
+              SPACING.sm +
+              88 +
+              SPACING.sm +
+              44 +
+              SPACING.sm +
+              44 +
+              SPACING.sm,
           }}
         />
 
@@ -472,6 +520,24 @@ export default function MapScreen() {
           }}
         />
 
+        <NearestCenterButton
+          ref={nearestTargetRef}
+          active={showNearestOnly}
+          disabled={!nearestCenter}
+          onPress={handleToggleNearest}
+          style={{
+            bottom:
+              insets.bottom +
+              SPACING.lg +
+              44 +
+              SPACING.sm +
+              88 +
+              SPACING.sm +
+              44 +
+              SPACING.sm,
+          }}
+        />
+
         <ZoomControls
           zoomLevel={zoomLevel}
           minZoom={MIN_ZOOM}
@@ -493,7 +559,12 @@ export default function MapScreen() {
 
       {showMapGuide ? (
         <MapFirstTimeGuide
-          targetRefs={[searchTargetRef, pinTargetRef, locateTargetRef]}
+          targetRefs={[
+            searchTargetRef,
+            pinTargetRef,
+            nearestTargetRef,
+            locateTargetRef,
+          ]}
           onFinish={finishMapGuide}
         />
       ) : null}

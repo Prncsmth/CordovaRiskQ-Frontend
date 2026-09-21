@@ -177,7 +177,7 @@ export default function EvacuationNavigateScreen() {
         zoom={14}
         showLayerSwitcher
         markers={[
-          { id: "center", latitude: center.latitude, longitude: center.longitude, color: statusColor },
+          { id: "center", latitude: center.latitude, longitude: center.longitude, color: statusColor, flat: true, pulse: true },
           ...labelMarkers,
         ]}
         userLocation={citizenCoords}

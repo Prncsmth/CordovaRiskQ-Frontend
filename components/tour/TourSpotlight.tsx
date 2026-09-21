@@ -3,11 +3,16 @@
 // cutout ("spotlight") over the current step's target. Renders a plain
 // dimmed View (no cutout) when there is no target -- step 0 ("Welcome")
 // and the fallback for a target that failed to measure.
-import { useThemeColors } from "@/theme";
+//
+// Fixed ~50% black regardless of theme (not COLORS.scrim, which is
+// lighter and theme-adaptive) -- same reasoning as TourTooltip's fixed
+// white card: a short-lived onboarding overlay, consistent every time
+// rather than shifting with dark mode.
 import React, { useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import Animated, {
   useAnimatedProps,
+  useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
@@ -17,6 +22,7 @@ import type { Rect } from "./types";
 const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
 const SPOTLIGHT_PADDING = 6;
 const SPOTLIGHT_RADIUS = 14;
+const SCRIM_COLOR = "rgba(0, 0, 0, 0.5)";
 
 type TourSpotlightProps = {
   targetRect: Rect | null;
@@ -29,7 +35,6 @@ export default function TourSpotlight({
   screenWidth,
   screenHeight,
 }: TourSpotlightProps) {
-  const COLORS = useThemeColors();
   const initialHole = targetRect
     ? {
         x: targetRect.x - SPOTLIGHT_PADDING,
@@ -42,6 +47,19 @@ export default function TourSpotlight({
   const holeY = useSharedValue(initialHole.y);
   const holeW = useSharedValue(initialHole.width);
   const holeH = useSharedValue(initialHole.height);
+
+  // Fades the whole overlay in once, on mount -- FirstTimeGuideOverlay (and
+  // its map/report/faq counterparts) fully unmount this between tour
+  // sessions, so a mount-time animation only ever plays once per session,
+  // not on every step change (the cutout's own move/resize animation below
+  // handles per-step transitions separately).
+  const overlayOpacity = useSharedValue(0);
+  useEffect(() => {
+    overlayOpacity.value = withTiming(1, { duration: 200 });
+  }, [overlayOpacity]);
+  const overlayAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: overlayOpacity.value,
+  }));
 
   useEffect(() => {
     if (!targetRect) return;
@@ -68,53 +86,57 @@ export default function TourSpotlight({
 
   if (!targetRect) {
     return (
-      <View
+      <Animated.View
         pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.scrim }]}
+        style={[
+          StyleSheet.absoluteFill,
+          { backgroundColor: SCRIM_COLOR },
+          overlayAnimatedStyle,
+        ]}
       />
     );
   }
 
   return (
-    <Svg
+    <Animated.View
       pointerEvents="none"
-      style={StyleSheet.absoluteFill}
-      width={screenWidth}
-      height={screenHeight}
+      style={[StyleSheet.absoluteFill, overlayAnimatedStyle]}
     >
-      <Defs>
-        <Mask id="tour-spotlight-mask">
-          <SvgRect
-            x={0}
-            y={0}
-            width={screenWidth}
-            height={screenHeight}
-            fill="white"
-          />
-          <AnimatedRect
-            animatedProps={animatedProps}
-            rx={SPOTLIGHT_RADIUS}
-            ry={SPOTLIGHT_RADIUS}
-            fill="black"
-          />
-        </Mask>
-      </Defs>
-      <SvgRect
-        x={0}
-        y={0}
-        width={screenWidth}
-        height={screenHeight}
-        fill={COLORS.scrim}
-        mask="url(#tour-spotlight-mask)"
-      />
-      <AnimatedRect
-        animatedProps={animatedProps}
-        rx={SPOTLIGHT_RADIUS}
-        ry={SPOTLIGHT_RADIUS}
-        fill="none"
-        stroke={COLORS.white}
-        strokeWidth={2}
-      />
-    </Svg>
+      <Svg width={screenWidth} height={screenHeight}>
+        <Defs>
+          <Mask id="tour-spotlight-mask">
+            <SvgRect
+              x={0}
+              y={0}
+              width={screenWidth}
+              height={screenHeight}
+              fill="white"
+            />
+            <AnimatedRect
+              animatedProps={animatedProps}
+              rx={SPOTLIGHT_RADIUS}
+              ry={SPOTLIGHT_RADIUS}
+              fill="black"
+            />
+          </Mask>
+        </Defs>
+        <SvgRect
+          x={0}
+          y={0}
+          width={screenWidth}
+          height={screenHeight}
+          fill={SCRIM_COLOR}
+          mask="url(#tour-spotlight-mask)"
+        />
+        <AnimatedRect
+          animatedProps={animatedProps}
+          rx={SPOTLIGHT_RADIUS}
+          ry={SPOTLIGHT_RADIUS}
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth={2}
+        />
+      </Svg>
+    </Animated.View>
   );
 }
