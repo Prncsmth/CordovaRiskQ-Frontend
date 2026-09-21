@@ -82,9 +82,7 @@ function buildHtml(options: {
 <style>
   html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; background: #dbe4ea; }
   .leaflet-control-attribution { font-size: 9px; }
-  .rq-user-wrap { position: relative; width: 16px; height: 16px; }
-  .rq-user-dot { position: absolute; inset: 0; width: 16px; height: 16px; border-radius: 50%; background: ${userDotColor}; border: 3px solid #fff; }
-  .rq-user-pulse { position: absolute; top: 50%; left: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: ${userDotColor}; opacity: 0.35; animation: rq-pulse 1.6s ease-out infinite; }
+  .rq-user-dot { width: 16px; height: 16px; border-radius: 50%; background: ${userDotColor}; border: 3px solid #fff; }
   @keyframes rq-pulse { 0% { transform: scale(1); opacity: 0.35; } 100% { transform: scale(2.4); opacity: 0; } }
   .rq-logo-marker { filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35)); }
 </style>
@@ -255,7 +253,7 @@ function buildHtml(options: {
     var latlng = [loc.latitude, loc.longitude];
     if (!userMarker) {
       userMarker = L.marker(latlng, {
-        icon: L.divIcon({ className: '', html: '<div class="rq-user-wrap"><div class="rq-user-pulse"></div><div class="rq-user-dot"></div></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+        icon: L.divIcon({ className: '', html: '<div class="rq-user-dot"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
         zIndexOffset: 1000
       }).addTo(map);
     } else {

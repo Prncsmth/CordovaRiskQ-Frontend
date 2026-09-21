@@ -18,6 +18,7 @@ import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { useAuth } from "@/context/AuthContext";
+import { darken } from "@/responder/components/shared/colorUtils";
 import {
   getEvacuationCenterById,
   type EvacuationCenter,
@@ -220,9 +221,20 @@ export default function EvacuationDetailScreen() {
       </ScrollView>
 
       <View
-        style={[styles.footer, { paddingBottom: insets.bottom + SPACING.sm }]}
+        style={[styles.footer, { paddingBottom: insets.bottom + SPACING.md }]}
       >
-        <PrimaryButton title="View Route" onPress={previewRoute} />
+        <PrimaryButton
+          title="View Route"
+          onPress={previewRoute}
+          // Matches the pin/status pill above -- green when this center is
+          // open, red when it's full, instead of the default brand red
+          // regardless of status.
+          colors={
+            isOpen
+              ? [COLORS.success, darken(COLORS.success, 40)]
+              : [COLORS.primary, COLORS.primaryDark]
+          }
+        />
       </View>
     </View>
   );
@@ -242,7 +254,7 @@ function createStyles(COLORS: ColorPalette) {
     },
     footer: {
       paddingHorizontal: SPACING.md,
-      paddingTop: SPACING.sm,
+      paddingTop: SPACING.md,
       backgroundColor: COLORS.background,
       borderTopWidth: 1,
       borderTopColor: COLORS.borderMuted,

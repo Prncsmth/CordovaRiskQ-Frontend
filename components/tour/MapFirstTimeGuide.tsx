@@ -4,7 +4,6 @@ import { StyleSheet, useWindowDimensions, View } from "react-native";
 import type { Measurable, TourStepConfig } from "@/context/TourContext";
 import { useThemeColors } from "@/theme";
 import TourSpotlight from "./TourSpotlight";
-import TourTapHint from "./TourTapHint";
 import TourTooltip from "./TourTooltip";
 import type { Rect } from "./types";
 
@@ -24,6 +23,12 @@ const MAP_STEPS: TourStepConfig[] = [
     id: "map-pin",
     title: "Pin an Emergency Location",
     body: "Tap this button, then tap anywhere on the map to choose the location you want to report.",
+    targetId: null,
+  },
+  {
+    id: "map-nearest",
+    title: "Find the Nearest Evacuation Center",
+    body: "Tap this button to hide every other center and see only the one closest to you.",
     targetId: null,
   },
   {
@@ -97,7 +102,6 @@ export default function MapFirstTimeGuide({
         screenWidth={width}
         screenHeight={height}
       />
-      <TourTapHint targetRect={targetRect} />
       <TourTooltip
         step={step}
         stepIndex={stepIndex}

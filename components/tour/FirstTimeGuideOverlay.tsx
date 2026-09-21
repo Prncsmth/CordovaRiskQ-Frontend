@@ -14,7 +14,6 @@ import {
 
 import { useTour } from "@/context/TourContext";
 import TourSpotlight from "./TourSpotlight";
-import TourTapHint from "./TourTapHint";
 import TourTooltip from "./TourTooltip";
 import type { Rect } from "./types";
 
@@ -213,7 +212,6 @@ export default function FirstTimeGuideOverlay() {
         screenWidth={screenWidth}
         screenHeight={screenHeight}
       />
-      <TourTapHint targetRect={targetRect} />
       <TourTooltip
         step={step}
         stepIndex={currentStep}

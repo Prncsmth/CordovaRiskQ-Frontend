@@ -24,6 +24,11 @@ export type MapMarker = {
   // "active right now" and draws the eye, the same radar-ping language
   // already used for a live GPS position (the blue dot / logo pin).
   pulse?: boolean;
+  // Renders just the location glyph in the marker's own color, no circular
+  // pin background -- for a citizen-facing marker that should read as
+  // light/uncluttered (evacuation centers) rather than the filled-pin
+  // convention used for a responder's incident markers.
+  flat?: boolean;
 };
 
 // A plain number applies the same padding to all four sides (existing

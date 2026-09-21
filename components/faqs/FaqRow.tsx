@@ -19,6 +19,22 @@ export type Faq = {
   answer: string;
 };
 
+// A category badge (icon + color) instead of Atome's one generic coin icon
+// for every row -- since our FAQs actually span distinct topics (matching
+// the Safety/Reports/Account filter chips above the list), giving each its
+// own glyph tells the user what a question is about at a glance, not just
+// that it's "a question."
+function categoryVisual(category: Faq["category"], COLORS: ColorPalette) {
+  switch (category) {
+    case "Safety":
+      return { icon: "shield-checkmark" as const, color: COLORS.primary };
+    case "Reports":
+      return { icon: "document-text" as const, color: COLORS.tide };
+    case "Account":
+      return { icon: "person" as const, color: COLORS.warning };
+  }
+}
+
 export default function FaqRow({
   faq,
   isOpen,
@@ -30,6 +46,7 @@ export default function FaqRow({
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const visual = categoryVisual(faq.category, COLORS);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -51,12 +68,7 @@ export default function FaqRow({
           }}
           style={styles.questionRow}
         >
-          <View
-            style={[
-              styles.categoryDot,
-              faq.category === "Safety" && styles.safetyDot,
-            ]}
-          />
+          <Ionicons name={visual.icon} size={19} color={visual.color} />
           <Text style={styles.question}>{faq.question}</Text>
           <Ionicons
             name={isOpen ? "remove" : "add"}
@@ -79,13 +91,6 @@ function createStyles(COLORS: ColorPalette) {
       minHeight: 64,
       paddingVertical: SPACING.md + 2,
     },
-    categoryDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      backgroundColor: COLORS.tide,
-    },
-    safetyDot: { backgroundColor: COLORS.primary },
     question: {
       flex: 1,
       color: COLORS.text,

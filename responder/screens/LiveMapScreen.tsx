@@ -127,18 +127,6 @@ export default function LiveMapScreen() {
       pulse: true,
     }));
 
-  // TEMPORARY debug instrumentation -- remove once the missing-flood-marker
-  // report is diagnosed. Prints the exact id/category/color/coords for
-  // every incident marker on each render, so a duplicate id (React would
-  // silently drop the second element sharing a key) or an unexpected
-  // categoryId is visible in the Metro log instead of guessed at.
-  console.log(
-    "[LiveMap debug] incidentMarkers:",
-    incidentMarkers.map((m) => ({ id: m.id, color: m.color, lat: m.latitude, lng: m.longitude })),
-    "raw categoryIds:",
-    incidents.map((i) => ({ id: i.id, categoryId: i.categoryId, type: i.type })),
-  );
-
   // The responder's own position renders as the RiskQ logo pin (same
   // "icon: logo" convention LiveIncidentMap/NavigateScreen already use for
   // a responder), not the blue "you are here" dot -- that dot is the
