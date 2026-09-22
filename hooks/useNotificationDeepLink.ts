@@ -12,6 +12,7 @@
 // was launched BY the tap (getLastNotificationResponseAsync).
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
+import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 
 type IncidentPushData = { type?: string; referenceId?: string };
@@ -31,6 +32,10 @@ export function useNotificationDeepLink(enabled: boolean): void {
 
   useEffect(() => {
     if (!enabled) return;
+    // getLastNotificationResponseAsync/addNotificationResponseReceivedListener
+    // aren't implemented on web (expo-notifications throws) -- deep-linking
+    // from a push tap only makes sense on a native build anyway.
+    if (Platform.OS === "web") return;
 
     function handleResponse(response: Notifications.NotificationResponse) {
       const identifier = response.notification.request.identifier;

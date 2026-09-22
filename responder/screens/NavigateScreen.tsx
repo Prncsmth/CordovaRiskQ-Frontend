@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   Share,
   StyleSheet,
@@ -22,6 +23,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { MapHandle } from "@/components/map/AppMap";
 import TravelModeToggle from "@/components/common/TravelModeToggle";
+import {
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTitle,
+} from "@/components/common/Dialog";
 import { darken } from "@/responder/components/shared/colorUtils";
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
 import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
@@ -29,6 +38,8 @@ import RButton from "@/responder/components/shared/RButton";
 import { useAuth } from "@/context/AuthContext";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import { getIncidentById, updateMyResponderStatus } from "@/responder/services/incident.service";
+import { connectToIncidentSocket } from "@/responder/services/incidentSocket.service";
+import { mergeIncidentUpdate } from "@/responder/components/incident-detail/mergeIncidentUpdate";
 import type { TravelProfile } from "@/services/directions.service";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
@@ -65,6 +76,7 @@ export default function NavigateScreen() {
   const [isArriving, setIsArriving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [closedNotice, setClosedNotice] = useState<"completed" | "cancelled" | null>(null);
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
@@ -97,6 +109,49 @@ export default function NavigateScreen() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // IncidentDetailScreen (the screen this one is pushed on top of) keeps its
+  // own live socket connection, but that screen stays mounted underneath and
+  // this one never opened its own -- so without this, a responder could sit
+  // on this full-screen map with a stale incident.status while another
+  // responder/admin closes the incident, and still tap Arrive on a closed
+  // incident. Same connectToIncidentSocket/mergeIncidentUpdate pattern as
+  // IncidentDetailScreen so both screens agree on incident state.
+  useEffect(() => {
+    if (!token || !id) return;
+    const disconnect = connectToIncidentSocket(
+      token,
+      id,
+      (update) => {
+        setIncident((prev) => (prev ? mergeIncidentUpdate(prev, update) : prev));
+      },
+      () => {
+        getIncidentById(token, id)
+          .then((fresh) => {
+            if (fresh) setIncident((prev) => (prev ? { ...fresh, distanceKm: prev.distanceKm } : fresh));
+          })
+          .catch(() => {
+            // Best-effort resync -- the next reconnect or socket update retries.
+          });
+      },
+    );
+    return disconnect;
+  }, [token, id]);
+
+  useEffect(() => {
+    if (incident && (incident.status === "completed" || incident.status === "cancelled")) {
+      setClosedNotice(incident.status);
+    }
+  }, [incident]);
+
+  function dismissClosedNotice() {
+    setClosedNotice(null);
+    if (incident) {
+      router.dismissTo({ pathname: "/responder/[id]", params: { id: incident.id } });
+    } else {
+      router.dismissTo("/responder");
+    }
+  }
 
   // Layout the floating stack top-to-bottom below the safe area: incident
   // card (header row + the travel-mode toggle row), then the trip stats
@@ -199,7 +254,7 @@ export default function NavigateScreen() {
   };
 
   const handleArrive = async () => {
-    if (!token || isArriving) return;
+    if (!token || isArriving || closedNotice) return;
     setIsArriving(true);
     try {
       await updateMyResponderStatus(token, incident.id, "arrived");
@@ -336,11 +391,41 @@ export default function NavigateScreen() {
             icon="checkmark"
             variant="success"
             onPress={handleArrive}
-            disabled={isArriving}
+            disabled={isArriving || closedNotice !== null}
             style={styles.sheetButton}
           />
         </View>
       </View>
+
+      <Modal
+        transparent
+        visible={closedNotice !== null}
+        animationType="fade"
+        onRequestClose={dismissClosedNotice}
+      >
+        <Dialog>
+          <DialogIcon
+            name={closedNotice === "completed" ? "checkmark-done-outline" : "close-circle-outline"}
+            color={closedNotice === "completed" ? COLORS.success : COLORS.danger}
+          />
+          <DialogTitle>
+            {closedNotice === "completed" ? "Incident resolved" : "Incident cancelled"}
+          </DialogTitle>
+          <DialogMessage>
+            {closedNotice === "completed"
+              ? "This incident has been marked resolved."
+              : "This incident was cancelled."}
+          </DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="OK"
+              variant="primary"
+              color={closedNotice === "completed" ? COLORS.success : undefined}
+              onPress={dismissClosedNotice}
+            />
+          </DialogActions>
+        </Dialog>
+      </Modal>
     </View>
   );
 }
