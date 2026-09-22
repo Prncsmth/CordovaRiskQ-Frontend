@@ -52,8 +52,6 @@ function createStyles(COLORS: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       gap: SPACING.sm,
-      marginLeft: SPACING.xs,
-      marginTop: -SPACING.xs / 2,
     },
     track: {
       flex: 1,

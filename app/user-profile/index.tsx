@@ -19,7 +19,7 @@ import ProfileAvatarEdit from "@/components/user-profile/ProfileAvatarEdit";
 import ProfileFieldInput from "@/components/user-profile/ProfileFieldInput";
 import { useAuth } from "@/context/AuthContext";
 import { getProfile, updateProfile } from "@/services/user.service";
-import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 function splitName(name: string | null | undefined): {
   firstName: string;
@@ -129,7 +129,7 @@ export default function UserProfileScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.avatarSection}>
+            <View style={styles.avatarCard}>
               <ProfileAvatarEdit />
               {fullName ? (
                 <View style={styles.identity}>
@@ -141,19 +141,26 @@ export default function UserProfileScreen() {
 
             <View style={styles.fieldsSection}>
               <Text style={styles.sectionLabel}>Personal Information</Text>
-              <View style={styles.fields}>
-                <ProfileFieldInput
-                  label="First Name"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                />
-                <ProfileFieldInput
-                  label="Last Name"
-                  value={lastName}
-                  onChangeText={setLastName}
-                />
+              <View style={styles.fieldsCard}>
+                <View style={styles.nameRow}>
+                  <ProfileFieldInput
+                    label="First Name"
+                    icon="person-outline"
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    containerStyle={styles.nameField}
+                  />
+                  <ProfileFieldInput
+                    label="Last Name"
+                    icon="person-outline"
+                    value={lastName}
+                    onChangeText={setLastName}
+                    containerStyle={styles.nameField}
+                  />
+                </View>
                 <ProfileFieldInput
                   label="E-Mail"
+                  icon="mail-outline"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -161,6 +168,7 @@ export default function UserProfileScreen() {
                 />
                 <ProfileFieldInput
                   label="Mobile"
+                  icon="call-outline"
                   value={mobile}
                   onChangeText={setMobile}
                   keyboardType="phone-pad"
@@ -168,7 +176,7 @@ export default function UserProfileScreen() {
               </View>
             </View>
 
-            <PrimaryButton title="SAVE" onPress={handleSave} disabled={isSaving} />
+            <PrimaryButton title="Save" onPress={handleSave} disabled={isSaving} />
           </>
         )}
       </ScrollView>
@@ -223,10 +231,16 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.white,
     fontWeight: "700",
   },
-  avatarSection: {
+  avatarCard: {
     alignItems: "center",
     gap: SPACING.sm,
-    paddingTop: SPACING.xs,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    paddingVertical: SPACING.lg,
+    paddingHorizontal: SPACING.md,
+    ...SHADOW,
   },
   identity: {
     alignItems: "center",
@@ -248,12 +262,23 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.small,
     fontWeight: "700",
     color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
     marginLeft: SPACING.xs,
   },
-  fields: {
+  fieldsCard: {
     gap: SPACING.md,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    padding: SPACING.md,
+    ...SHADOW,
+  },
+  nameRow: {
+    flexDirection: "row",
+    gap: SPACING.sm,
+  },
+  nameField: {
+    flex: 1,
   },
   });
 }

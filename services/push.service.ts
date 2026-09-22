@@ -1,7 +1,7 @@
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import { Alert, Platform } from "react-native";
+import { Platform } from "react-native";
 
 import { apiPatch } from "./api";
 
@@ -38,12 +38,12 @@ export async function registerForPushNotifications(token: string): Promise<void>
 
   const pushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
 
-  // TEMPORARY: surfaces the push token on-device so it can be pasted into
-  // https://expo.dev/notifications for a manual test send, to confirm the
-  // client-side receive/display path works independently of the backend
-  // (which doesn't send real pushes yet). Remove once that's verified.
-  console.log("[push] Expo push token:", pushToken);
-  Alert.alert("Push token (debug)", pushToken);
-
+  // The backend already sends real Expo push notifications from here: this
+  // PATCH stores the token on the user record, and notification.service.ts
+  // (server-side) looks it up and calls Expo's push API whenever it creates
+  // a notification for this user -- e.g. an on-duty responder's token gets
+  // a real push the moment a citizen triggers SOS. Delivery to a closed app
+  // is handled by the OS once the token is registered; setNotificationHandler
+  // above only controls how a push is presented while the app is foregrounded.
   await apiPatch("/api/users/push-token", { token: pushToken }, token);
 }

@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -24,7 +24,6 @@ import {
   FONT_FAMILY,
   RADIUS,
   SHADOW,
-  SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
   type ColorPalette,
@@ -76,15 +75,14 @@ export default function ContactSupportScreen() {
         </View>
 
         <View style={styles.hero}>
-          <LinearGradient
-            colors={[COLORS.tide, COLORS.tide]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroIcon}
-          >
-            <Ionicons name="chatbubbles-outline" size={24} color={COLORS.white} />
-          </LinearGradient>
-          <Text style={styles.eyebrow}>RISKQ CARE</Text>
+          <View style={styles.brandRow}>
+            <Image
+              source={require("@/assets/images/riskq.png")}
+              style={styles.heroLogo}
+              resizeMode="contain"
+            />
+            <Text style={styles.eyebrow}>RISKQ CARE</Text>
+          </View>
           <Text style={styles.title}>We&rsquo;re here to help.</Text>
           <Text style={styles.subtitle}>
             Tell us what you need and our support team will get back to you as
@@ -199,21 +197,21 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.text,
   },
   hero: { paddingTop: SPACING.xs, paddingBottom: SPACING.sm },
-  heroIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 17,
+  brandRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.md,
-    ...SHADOW_LG,
+    gap: SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  heroLogo: {
+    width: 26,
+    height: 26,
   },
   eyebrow: {
     color: COLORS.tide,
     fontSize: 11,
     fontWeight: "800",
     letterSpacing: 1.1,
-    marginBottom: SPACING.xs,
   },
   title: {
     fontFamily: FONT_FAMILY.display,

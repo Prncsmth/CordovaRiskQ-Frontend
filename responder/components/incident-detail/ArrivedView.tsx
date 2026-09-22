@@ -81,18 +81,30 @@ export default function ArrivedView({
         </View>
 
         <Text style={styles.sectionLabel}>Incident Details</Text>
-        <DetailRow label="Location" value={incident.location} />
-        <DetailRow
-          label="Reported time"
-          value={formatRelativeTime(incident.createdAt)}
-        />
-        <DetailRow label="Priority" value={capitalize(incident.urgency)} />
+        <View style={styles.detailsCard}>
+          <DetailRow
+            icon="location-outline"
+            label="Location"
+            value={incident.location}
+          />
+          <DetailRow
+            icon="time-outline"
+            label="Reported time"
+            value={formatRelativeTime(incident.createdAt)}
+          />
+          <DetailRow
+            icon="flag-outline"
+            label="Priority"
+            value={capitalize(incident.urgency)}
+            last
+          />
+        </View>
       </ScrollView>
 
       <RButton
         label="Mark Resolved"
         icon="checkmark-done"
-        variant="primary"
+        variant="success"
         onPress={onCompleteIncident}
         style={styles.markResolvedButton}
       />
@@ -169,6 +181,14 @@ function createStyles(COLORS: ColorPalette) {
       fontWeight: "700",
       marginBottom: SPACING.sm,
       marginTop: SPACING.sm,
+    },
+    detailsCard: {
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      paddingHorizontal: SPACING.md,
+      ...SHADOW,
     },
     markResolvedButton: {
       marginTop: SPACING.md,

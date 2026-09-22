@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -108,7 +109,7 @@ export default function ProfileScreen() {
 
       <ProfileHeader
         name={user?.name ?? "User"}
-        onLogout={() => setShowLogoutConfirm(true)}
+        onPress={() => router.push("/user-profile")}
       />
 
       <Text style={styles.sectionHeading}>Settings</Text>
@@ -129,6 +130,17 @@ export default function ProfileScreen() {
       </View>
 
       <ContactSupportCard />
+
+      <Pressable
+        style={({ pressed }) => [styles.logoutCard, pressed && styles.pressed]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setShowLogoutConfirm(true);
+        }}
+      >
+        <Ionicons name="log-out-outline" size={20} color={COLORS.danger} />
+        <Text style={styles.logoutText}>Log Out</Text>
+      </Pressable>
 
       <Modal
         transparent
@@ -189,6 +201,26 @@ function createStyles(COLORS: ColorPalette) {
   menuRowDivider: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderMuted,
+  },
+  logoutCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: SPACING.sm,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    paddingVertical: SPACING.md,
+    ...SHADOW,
+  },
+  logoutText: {
+    fontSize: TYPOGRAPHY.body,
+    fontWeight: "700",
+    color: COLORS.danger,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   });
 }

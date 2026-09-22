@@ -38,6 +38,11 @@ const FALLBACK_ROUTE_BY_TYPE: Record<
   NotificationType,
   "/(tabs)/report-history" | "/(tabs)/home" | "/responder"
 > = {
+  // "announcement" falls back to home only for notification rows created
+  // before the backend started sending a referenceId -- see
+  // getNotificationRoute below, which routes a referenceId'd announcement
+  // to /announcement-detail/[id] instead, matching
+  // hooks/useNotificationDeepLink.ts's push-notification behavior.
   incident_status: "/(tabs)/report-history",
   announcement: "/(tabs)/home",
   tide_risk: "/(tabs)/home",
@@ -58,6 +63,9 @@ function getNotificationRoute(item: AppNotification) {
   }
   if (RESPONDER_NOTIFICATION_TYPES.includes(item.type) && item.referenceId) {
     return `/responder/${item.referenceId}` as const;
+  }
+  if (item.type === "announcement" && item.referenceId) {
+    return { pathname: "/announcement-detail/[id]", params: { id: item.referenceId } } as const;
   }
   return FALLBACK_ROUTE_BY_TYPE[item.type] ?? "/(tabs)/home";
 }
@@ -156,14 +164,7 @@ export default function NotificationRow({
               scale.value = withTiming(1, { duration: 100 });
             }}
           >
-            <View
-              style={[
-                styles.iconCircle,
-                { backgroundColor: bg, borderColor: border, borderWidth: item.read ? 0 : 1.5 },
-              ]}
-            >
-              <Ionicons name={icon} size={18} color={color} />
-            </View>
+            <Ionicons name={icon} size={20} color={color} style={styles.icon} />
 
             <View style={styles.textCol}>
               <Text style={styles.title} numberOfLines={1}>
@@ -230,12 +231,11 @@ function createStyles(COLORS: ColorPalette) {
       padding: SPACING.md,
       ...SHADOW,
     },
-    iconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: RADIUS.full,
-      alignItems: "center",
-      justifyContent: "center",
+    // No circle background -- a fixed width keeps the row's text column
+    // aligned regardless of which glyph's natural width differs slightly.
+    icon: {
+      width: 26,
+      textAlign: "center",
     },
     textCol: {
       flex: 1,

@@ -51,7 +51,6 @@ export default function HomeActionList({
           eyebrow="NEAREST EVACUATION CENTER"
           icon="home"
           iconColor={COLORS.success}
-          iconBg={COLORS.successBg}
           title={nearestCenter.name}
           subtitle={`${nearestCenter.distanceKm.toFixed(1)} km · ${walkMinutes} min walk`}
           badge={isOpen ? "OPEN" : "FULL"}
@@ -66,7 +65,6 @@ export default function HomeActionList({
         styles={styles}
         icon="warning"
         iconColor={COLORS.primary}
-        iconBg={COLORS.primaryTint}
         title="Report an Incident"
         subtitle="Flood, blocked road, power"
         onPress={onPressReport}
@@ -77,7 +75,6 @@ export default function HomeActionList({
         styles={styles}
         icon="call"
         iconColor={COLORS.tide}
-        iconBg={COLORS.tideTint}
         title="Emergency Hotlines"
         subtitle="MDRRMO, BFP, PNP"
         onPress={onPressHotlines}
@@ -93,7 +90,6 @@ function Row({
   eyebrow,
   icon,
   iconColor,
-  iconBg,
   title,
   subtitle,
   badge,
@@ -107,7 +103,6 @@ function Row({
   eyebrow?: string;
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
-  iconBg: string;
   title: string;
   subtitle: string;
   badge?: string;
@@ -126,9 +121,7 @@ function Row({
           onPress();
         }}
       >
-        <View style={[styles.iconCircle, { backgroundColor: iconBg }]}>
-          <Ionicons name={icon} size={18} color={iconColor} />
-        </View>
+        <Ionicons name={icon} size={22} color={iconColor} style={styles.icon} />
         <View style={styles.textCol}>
           <Text style={styles.title} numberOfLines={1}>
             {title}
@@ -177,12 +170,11 @@ function createStyles(COLORS: ColorPalette) {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: COLORS.borderMuted,
     },
-    iconCircle: {
-      width: 40,
-      height: 40,
-      borderRadius: RADIUS.full,
-      alignItems: "center",
-      justifyContent: "center",
+    // No circle background -- a fixed width keeps every row's text column
+    // aligned regardless of which glyph's natural width differs slightly.
+    icon: {
+      width: 26,
+      textAlign: "center",
     },
     textCol: {
       flex: 1,

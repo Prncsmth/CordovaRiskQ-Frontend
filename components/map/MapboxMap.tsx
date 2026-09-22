@@ -84,19 +84,18 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   const [mapError, setMapError] = useState<string | null>(null);
   const [styleKey, setStyleKey] = useState<StyleKey>("streets");
   const [layerMenuOpen, setLayerMenuOpen] = useState(false);
-  // Drives a "logo" marker's pulse ring and any marker.pulse === true glow
-  // (a live incident, or a flat evacuation-center marker) -- NOT the "you
-  // are here" blue dot, which is deliberately static, not animated. A
-  // plain circle/marker just sitting there is easy to miss, so this
-  // animates it expanding + fading out on a loop (classic radar-ping look)
-  // rather than only resizing it. One shared loop drives every pulsing
-  // marker, rather than a separate timer per marker.
+  // Drives any marker.pulse === true glow (a live incident, or a flat
+  // evacuation-center marker) -- NOT the "logo" marker (deliberately
+  // static, same reasoning as the "you are here" blue dot) and NOT the
+  // blue dot itself. A plain circle/marker just sitting there is easy to
+  // miss, so this animates it expanding + fading out on a loop (classic
+  // radar-ping look) rather than only resizing it. One shared loop drives
+  // every pulsing marker, rather than a separate timer per marker.
   const [pulseProgress, setPulseProgress] = useState(0);
-  const hasLogoMarker = markers.some((marker) => marker.icon === "logo");
   const hasPulsingMarker = markers.some((marker) => marker.pulse);
 
   useEffect(() => {
-    if (!interactive || (!hasLogoMarker && !hasPulsingMarker)) {
+    if (!interactive || !hasPulsingMarker) {
       return;
     }
     const durationMs = 1600;
@@ -106,7 +105,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
       setPulseProgress(elapsed / durationMs);
     }, 50);
     return () => clearInterval(timer);
-  }, [interactive, hasLogoMarker, hasPulsingMarker]);
+  }, [interactive, hasPulsingMarker]);
   const cameraRef = useRef<any>(null);
   const currentZoomRef = useRef(zoom);
 
@@ -316,24 +315,8 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           marker.icon === "logo" ? (
             <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
               <View style={styles.logoMarkerWrap}>
-                {/* Same radar-ping technique as the blue "you are here" dot
-                    (rqUserLocationPulse) -- expanding, fading ring driven by
-                    the same pulseProgress loop -- just kept as the RiskQ
-                    icon instead of reverting to a plain colored dot. */}
-                <View
-                  style={[
-                    styles.logoPulseRing,
-                    {
-                      // Never the "you are here" blue -- this marker's whole
-                      // point is to read as the RiskQ icon, not a
-                      // repainted blue dot. Falls back to the app's own
-                      // responder-orange, not USER_LOCATION_BLUE.
-                      backgroundColor: marker.color ?? COLORS.secondary,
-                      opacity: 0.35 * (1 - pulseProgress),
-                      transform: [{ scale: 0.6 + pulseProgress * 0.9 }],
-                    },
-                  ]}
-                />
+                {/* Deliberately static -- no pulse/radar-ping loop, same
+                    reasoning as the "you are here" blue dot. */}
                 <Pressable hitSlop={8} onPress={() => onMarkerPress?.(marker.id)}>
                   <Image
                     source={require("@/assets/images/riskq.png")}
@@ -511,12 +494,6 @@ function createStyles(COLORS: ColorPalette) {
       height: 52,
       alignItems: "center",
       justifyContent: "center",
-    },
-    logoPulseRing: {
-      position: "absolute",
-      width: 40,
-      height: 40,
-      borderRadius: RADIUS.full,
     },
     logoPin: {
       width: 36,

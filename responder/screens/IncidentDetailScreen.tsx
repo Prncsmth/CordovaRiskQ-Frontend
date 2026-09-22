@@ -6,9 +6,10 @@
 // server. Each phase's UI lives in components/responder/incident-detail/ --
 // this file only owns the derived phase and the backend calls that advance
 // it.
+import { Ionicons } from "@expo/vector-icons";
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Modal, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -42,6 +43,7 @@ import { useLiveLocationUpload } from "@/hooks/useLiveLocationUpload";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import {
   FONT_FAMILY,
+  RADIUS,
   SPACING,
   TYPOGRAPHY,
   useThemeColors,
@@ -415,25 +417,29 @@ export default function IncidentDetailScreen() {
         onRequestClose={() => setShowResolveConfirm(false)}
       >
         <Dialog>
-          <DialogIcon name="checkmark-done-outline" color={COLORS.success} />
-          <DialogTitle>Mark incident resolved?</DialogTitle>
-          <DialogMessage>
+          <View style={styles.resolveIconBadge}>
+            <Ionicons name="checkmark-done" size={28} color={COLORS.white} />
+          </View>
+          <DialogTitle>Mark Incident Resolved?</DialogTitle>
+          <Text style={styles.resolveMessage}>
             This confirms the incident has been handled and closes it for
-            everyone.
-          </DialogMessage>
-          <DialogActions>
-            <DialogButton
-              label="Cancel"
-              variant="secondary"
+            everyone involved.
+          </Text>
+          <View style={styles.resolveActions}>
+            <Pressable
+              style={styles.resolveCancelButton}
               onPress={() => setShowResolveConfirm(false)}
-            />
-            <DialogButton
-              label="Mark Resolved"
-              variant="primary"
-              color={COLORS.success}
+            >
+              <Text style={styles.resolveCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={styles.resolveConfirmButton}
               onPress={confirmCompleteIncident}
-            />
-          </DialogActions>
+            >
+              <Ionicons name="checkmark-done" size={16} color={COLORS.white} />
+              <Text style={styles.resolveConfirmText}>Mark Resolved</Text>
+            </Pressable>
+          </View>
         </Dialog>
       </Modal>
 
@@ -501,6 +507,68 @@ function createStyles(COLORS: ColorPalette) {
     },
     loading: {
       marginTop: SPACING.xl,
+    },
+    resolveIconBadge: {
+      width: 60,
+      height: 60,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.success,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.sm,
+      shadowColor: COLORS.success,
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: 4,
+    },
+    resolveMessage: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+      marginTop: SPACING.xs,
+      lineHeight: 20,
+    },
+    resolveActions: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+      width: "100%",
+    },
+    resolveCancelButton: {
+      flex: 1,
+      height: 52,
+      borderRadius: RADIUS.md,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    resolveCancelText: {
+      color: COLORS.text,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.body,
+    },
+    resolveConfirmButton: {
+      flex: 1,
+      height: 52,
+      borderRadius: RADIUS.md,
+      backgroundColor: COLORS.success,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      shadowColor: COLORS.success,
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+    },
+    resolveConfirmText: {
+      color: COLORS.white,
+      fontWeight: "800",
+      fontSize: TYPOGRAPHY.body,
     },
   });
 }

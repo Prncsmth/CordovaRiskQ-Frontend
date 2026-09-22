@@ -9,14 +9,7 @@ import React, { useMemo } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  Dialog,
-  DialogActions,
-  DialogButton,
-  DialogIcon,
-  DialogMessage,
-  DialogTitle,
-} from "@/components/common/Dialog";
+import { Dialog, DialogTitle } from "@/components/common/Dialog";
 import GeofenceBlockedModal, { type GeofenceModalVariant } from "@/components/common/GeofenceBlockedModal";
 import GeofenceToast from "@/components/common/GeofenceToast";
 import RippleRings from "@/components/common/RippleRings";
@@ -72,9 +65,19 @@ export default function SosOverlay() {
           {stage === "confirm" ? (
             <ConfirmView onConfirm={confirmSOS} onCancel={cancelSOS} />
           ) : stage === "verifying" ? (
-            <LoadingView COLORS={COLORS} message="Getting your accurate location..." />
+            <LoadingView
+              COLORS={COLORS}
+              icon="locate"
+              title="Getting Your Location"
+              subtitle="Pinpointing your exact position so help can find you faster."
+            />
           ) : stage === "sending" ? (
-            <LoadingView COLORS={COLORS} message="Sending your SOS alert..." />
+            <LoadingView
+              COLORS={COLORS}
+              icon="paper-plane"
+              title="Sending Your Alert"
+              subtitle="Notifying emergency responders now. This will only take a moment."
+            />
           ) : (
             <ActiveView
               incidentId={incidentId}
@@ -121,15 +124,79 @@ export default function SosOverlay() {
   );
 }
 
-function LoadingView({ COLORS, message }: { COLORS: ColorPalette; message: string }) {
+// Same purpose-built weight as ConfirmView below -- a bare spinner + one
+// line of text read as a stalled app, not a real-time emergency dispatch in
+// progress, so each in-flight stage gets its own icon badge (with the
+// spinner as a ring around it, not floating separately) and a reassuring
+// subtitle instead of just a title.
+function LoadingView({
+  COLORS,
+  icon,
+  title,
+  subtitle,
+}: {
+  COLORS: ColorPalette;
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle: string;
+}) {
+  const styles = useMemo(() => createLoadingStyles(COLORS), [COLORS]);
   return (
     <Dialog>
-      <ActivityIndicator size="large" color={COLORS.primary} />
-      <DialogTitle style={{ marginTop: SPACING.sm }}>{message}</DialogTitle>
+      <View style={styles.iconBadge}>
+        <Ionicons name={icon} size={26} color={COLORS.white} />
+        <ActivityIndicator
+          size="large"
+          color={COLORS.white}
+          style={[StyleSheet.absoluteFill, styles.spinnerRing]}
+        />
+      </View>
+      <DialogTitle style={styles.title}>{title}</DialogTitle>
+      <Text style={styles.subtitle}>{subtitle}</Text>
     </Dialog>
   );
 }
 
+function createLoadingStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    iconBadge: {
+      width: 64,
+      height: 64,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.sm,
+      shadowColor: COLORS.primary,
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: 4,
+    },
+    spinnerRing: {
+      alignItems: "center",
+      justifyContent: "center",
+      transform: [{ scale: 1.35 }],
+    },
+    title: {
+      marginTop: SPACING.sm,
+    },
+    subtitle: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+      marginTop: SPACING.xs,
+      lineHeight: 20,
+    },
+  });
+}
+
+// Purpose-built, not the generic shared Dialog buttons/icon -- this is the
+// single highest-stakes confirmation in the app (a real emergency dispatch),
+// so it gets its own weight: a solid (not tinted) warning badge, a distinct
+// caution strip pulled out of the body copy instead of buried in a
+// paragraph, and a bolder Send SOS button, instead of looking identical to
+// "delete this report?"
 function ConfirmView({
   onConfirm,
   onCancel,
@@ -137,20 +204,119 @@ function ConfirmView({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const COLORS = useThemeColors();
+  const styles = useMemo(() => createConfirmStyles(COLORS), [COLORS]);
   return (
     <Dialog>
-      <DialogIcon name="warning" />
+      <View style={styles.iconBadge}>
+        <Ionicons name="warning" size={30} color={COLORS.white} />
+      </View>
       <DialogTitle>Send Emergency SOS?</DialogTitle>
-      <DialogMessage>
-        Emergency responders will be notified with your current location.
-        Only do this in a real emergency.
-      </DialogMessage>
-      <DialogActions>
-        <DialogButton label="Cancel" variant="secondary" onPress={onCancel} />
-        <DialogButton label="Send SOS" variant="primary" onPress={onConfirm} />
-      </DialogActions>
+      <Text style={styles.message}>
+        Emergency responders will be notified immediately, along with your
+        current location.
+      </Text>
+      <View style={styles.caution}>
+        <Ionicons name="alert-circle" size={16} color={COLORS.primary} />
+        <Text style={styles.cautionText}>
+          Only use this in a real, life-threatening emergency.
+        </Text>
+      </View>
+      <View style={styles.actions}>
+        <Pressable style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </Pressable>
+        <Pressable style={styles.confirmButton} onPress={onConfirm}>
+          <Ionicons name="warning" size={16} color={COLORS.white} />
+          <Text style={styles.confirmText}>Send SOS</Text>
+        </Pressable>
+      </View>
     </Dialog>
   );
+}
+
+function createConfirmStyles(COLORS: ColorPalette) {
+  return StyleSheet.create({
+    iconBadge: {
+      width: 64,
+      height: 64,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primary,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: SPACING.sm,
+      shadowColor: COLORS.primary,
+      shadowOpacity: 0.3,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 5 },
+      elevation: 4,
+    },
+    message: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      textAlign: "center",
+      marginTop: SPACING.xs,
+      lineHeight: 20,
+    },
+    caution: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+      width: "100%",
+      backgroundColor: COLORS.primaryTint,
+      borderRadius: RADIUS.md,
+      padding: SPACING.sm,
+      marginTop: SPACING.md,
+    },
+    cautionText: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.primary,
+      lineHeight: 16,
+    },
+    actions: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+      width: "100%",
+    },
+    cancelButton: {
+      flex: 1,
+      height: 52,
+      borderRadius: RADIUS.md,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cancelText: {
+      color: COLORS.text,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.body,
+    },
+    confirmButton: {
+      flex: 1,
+      height: 52,
+      borderRadius: RADIUS.md,
+      backgroundColor: COLORS.primary,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      shadowColor: COLORS.primary,
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+    },
+    confirmText: {
+      color: COLORS.white,
+      fontWeight: "800",
+      fontSize: TYPOGRAPHY.body,
+    },
+  });
 }
 
 function ActiveView({
