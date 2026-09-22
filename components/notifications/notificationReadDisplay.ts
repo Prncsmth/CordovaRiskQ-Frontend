@@ -18,13 +18,17 @@ const ORANGE = "#F97316"; // routine announcement / caution
 const GREEN = "#22C55E"; // resolved / arrived
 const GRAY = "#9CA3AF"; // in progress, nothing to act on yet
 
+// Solid (not "-outline") icons -- matching the rest of the app's flat,
+// no-circle-background icon treatment, a solid glyph shows far more of its
+// own color than a thin outline stroke, so the type/urgency reads clearly
+// at a glance now that there's no tinted circle behind it either.
 const ICON_BY_TYPE: Record<NotificationType, IconName> = {
-  announcement: "megaphone-outline",
-  incident_status: "document-text-outline",
-  tide_risk: "water-outline",
-  new_incident: "alert-circle-outline",
-  roster_update: "people-outline",
-  team_ring: "alarm-outline",
+  announcement: "megaphone",
+  incident_status: "document-text",
+  tide_risk: "water",
+  new_incident: "alert-circle",
+  roster_update: "people",
+  team_ring: "alarm",
 };
 
 // AppNotification has no structured category field, only free-text
@@ -56,24 +60,24 @@ function getIncidentStatusVisual(item: AppNotification): { icon: IconName; color
   const category = detectCategoryVisual(text);
 
   if (text.includes("resolved")) {
-    return { icon: category?.icon ?? "checkmark-done-outline", color: GREEN };
+    return { icon: category?.icon ?? "checkmark-done", color: GREEN };
   }
   if (text.includes("cancelled") || text.includes("canceled")) {
-    return { icon: category?.icon ?? "close-circle-outline", color: RED };
+    return { icon: category?.icon ?? "close-circle", color: RED };
   }
   if (text.includes("arrived")) {
-    return { icon: category?.icon ?? "flag-outline", color: GREEN };
+    return { icon: category?.icon ?? "flag", color: GREEN };
   }
   if (text.includes("on the way") || text.includes("on_the_way") || text.includes("en route")) {
     // Matches the app's own responder-orange used on the Track Responder
     // screen (marker/route/icon all COLORS.secondary) -- en route is worth
     // a glance, not a "nothing to act on yet" gray.
-    return { icon: category?.icon ?? "car-outline", color: ORANGE };
+    return { icon: category?.icon ?? "car", color: ORANGE };
   }
   if (text.includes("assigned")) {
     // A responder accepting the report is good news -- the report is
     // getting a response, same "this is working" tier as resolved/arrived.
-    return { icon: category?.icon ?? "person-add-outline", color: GREEN };
+    return { icon: category?.icon ?? "person-add", color: GREEN };
   }
   return { icon: category?.icon ?? ICON_BY_TYPE.incident_status, color: category?.color ?? GRAY };
 }
@@ -88,7 +92,7 @@ function getAnnouncementVisual(item: AppNotification): { icon: IconName; color: 
     text.includes("emergency") ||
     text.includes("immediate") ||
     text.includes("evacuate");
-  return { icon: isUrgent ? "warning-outline" : ICON_BY_TYPE.announcement, color: RED };
+  return { icon: isUrgent ? "warning" : ICON_BY_TYPE.announcement, color: RED };
 }
 
 function getNotificationVisual(item: AppNotification): { icon: IconName; color: string } {
@@ -119,16 +123,16 @@ function getNotificationVisual(item: AppNotification): { icon: IconName; color: 
     team_ring: RED,
   };
   return {
-    icon: ICON_BY_TYPE[item.type] ?? "notifications-outline",
+    icon: ICON_BY_TYPE[item.type] ?? "notifications",
     color: TYPE_COLOR[item.type] ?? GRAY,
   };
 }
 
 // Icon + color always reflect the notification's type/outcome, whether or
-// not it's been read. The icon circle's background is always a tint of
-// that same color too -- just a bit lighter once read -- so it never
-// mismatches the glyph color by falling back to plain gray, and stays
-// clearly visible as a highlight rather than a barely-there wash.
+// not it's been read -- the icon itself renders bare (no circle background,
+// same flat treatment as the rest of the app). `bg`/`border` are a tint of
+// that same color for the card's own border and the "New" pill, a bit
+// lighter once read, so they never mismatch the glyph color.
 export function getNotificationReadDisplay(item: AppNotification, COLORS: ColorPalette) {
   const { icon, color } = getNotificationVisual(item);
   if (!item.read) {

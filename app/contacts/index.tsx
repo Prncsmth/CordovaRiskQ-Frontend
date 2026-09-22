@@ -180,9 +180,7 @@ export default function ContactsScreen() {
       </View>
 
       <View style={styles.heroCard}>
-        <View style={[styles.heroIcon, { backgroundColor: COLORS.primaryTint }]}>
-          <Ionicons name="call" size={18} color={COLORS.primary} />
-        </View>
+        <Ionicons name="call" size={22} color={COLORS.tide} style={styles.heroIcon} />
         <View style={styles.heroCopy}>
           <Text style={styles.heroTitle}>One tap connects you to help</Text>
           <Text style={styles.heroSubtitle}>
@@ -266,12 +264,11 @@ function createStyles(COLORS: ColorPalette) {
     borderColor: COLORS.borderMuted,
     padding: SPACING.md,
   },
+  // No circle background -- a fixed width keeps it aligned with the copy
+  // beside it, matching the plain-icon treatment used elsewhere.
   heroIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
+    width: 30,
+    textAlign: "center",
   },
   heroCopy: { flex: 1, gap: 2 },
   heroTitle: {

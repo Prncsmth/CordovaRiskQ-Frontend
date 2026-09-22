@@ -178,19 +178,12 @@ function buildHtml(options: {
     });
   }
 
-  function logoIcon(color) {
-    // Same rq-pulse keyframe the blue "you are here" dot uses (that
-    // animation itself doesn't bake in a color, each element sets its own
-    // background) -- kept as the RiskQ icon, never reverted to a plain
-    // colored dot, with a pulse ring in the marker's own color instead.
-    // Falls back to the app's own responder-orange (COLORS.secondary),
-    // never USER_LOCATION_BLUE -- every real caller already passes its own
-    // color, so this only matters as a defensive default.
-    var ringColor = color || '#FF6B35';
+  function logoIcon() {
+    // Deliberately static -- no pulse/radar-ping ring, same reasoning as
+    // the "you are here" blue dot.
     return L.divIcon({
       className: '',
       html: '<div style="width:52px;height:52px;position:relative;">' +
-        '<div style="position:absolute;top:50%;left:50%;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;background:' + ringColor + ';opacity:0.35;animation:rq-pulse 1.6s ease-out infinite;"></div>' +
         '<img src="' + RISKQ_LOGO + '" class="rq-logo-marker" style="position:absolute;top:50%;left:50%;width:36px;height:36px;margin:-18px 0 0 -18px;" />' +
         '</div>',
       iconSize: [52, 52],
@@ -218,7 +211,7 @@ function buildHtml(options: {
     var markers = JSON.parse(json);
     markersLayer.clearLayers();
     markers.forEach(function (m) {
-      var icon = m.icon === 'logo' ? logoIcon(m.color)
+      var icon = m.icon === 'logo' ? logoIcon()
         : m.icon === 'label' ? labelIcon(m.label || '', m.color)
         : pinIcon(m.color || '#2563eb', m.pulse);
       var marker = L.marker([m.latitude, m.longitude], { icon: icon });

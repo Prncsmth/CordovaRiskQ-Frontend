@@ -46,7 +46,7 @@ export default function PasswordField({
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label}>{label}:</Text>
       <View style={[styles.field, isFocused && styles.fieldFocused]}>
         <Ionicons
           name="lock-closed-outline"
@@ -99,8 +99,6 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.textSecondary,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
       marginLeft: SPACING.xs,
     },
     field: {

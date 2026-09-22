@@ -23,7 +23,7 @@ export default function GreetingBlock({ name, location }: GreetingBlockProps) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.greeting}>
-        {getTimeOfDayGreeting().toUpperCase()}, {name.toUpperCase()}
+        {getTimeOfDayGreeting()}, {name}!
       </Text>
       <View style={styles.locationRow}>
         <Ionicons name="location" size={14} color={COLORS.primary} />

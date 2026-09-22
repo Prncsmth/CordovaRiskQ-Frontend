@@ -14,6 +14,7 @@ import {
 import { TourProvider } from "@/context/TourContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
+import { useNotificationDeepLink } from "@/hooks/useNotificationDeepLink";
 import { registerForPushNotifications } from "@/services/push.service";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
 import {
@@ -167,6 +168,11 @@ function RootLayoutNav() {
       registerForPushNotifications(token).catch(() => {});
     }
   }, [isAuthenticated, token, pushNotificationsEnabled]);
+
+  // Not role-restricted: new_incident only ever reaches on-duty responders
+  // and announcement reaches citizens too, so both roles need this live --
+  // see hooks/useNotificationDeepLink.ts's header comment.
+  useNotificationDeepLink(isAuthenticated && !isLoading);
 
   if (isLoading) {
     // Brief splash while we check SecureStore for a saved session

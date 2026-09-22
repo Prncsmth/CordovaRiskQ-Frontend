@@ -85,6 +85,7 @@ export default function LoginScreen() {
             label="Password"
             placeholder="Enter your password"
             secureTextEntry
+            secureToggle
             rightLabel="Forgot Password?"
             onRightLabelPress={() => router.push("/forgot-password")}
             value={password}

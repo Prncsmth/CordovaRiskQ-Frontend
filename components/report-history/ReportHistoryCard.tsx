@@ -119,11 +119,12 @@ export default function ReportHistoryCard({
             style={styles.card}
             onPress={() => router.push(`/report-detail/${item.id}`)}
           >
-            <View
-              style={[styles.iconCircle, { backgroundColor: `${categoryVisual.color}1A` }]}
-            >
-              <Ionicons name={categoryVisual.icon} size={18} color={categoryVisual.color} />
-            </View>
+            <Ionicons
+              name={categoryVisual.icon}
+              size={20}
+              color={categoryVisual.color}
+              style={styles.icon}
+            />
 
             <View style={styles.textCol}>
               <Text style={styles.category} numberOfLines={1}>
@@ -192,12 +193,11 @@ function createStyles(COLORS: ColorPalette) {
     padding: SPACING.md,
     ...SHADOW,
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
+  // No circle background -- a fixed width keeps every card's text column
+  // aligned regardless of which glyph's natural width differs slightly.
+  icon: {
+    width: 26,
+    textAlign: "center",
   },
   textCol: {
     flex: 1,

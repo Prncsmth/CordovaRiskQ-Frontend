@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "@/components/common/Avatar";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
@@ -9,34 +9,30 @@ import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette 
 
 type ProfileHeaderProps = {
   name: string;
-  onLogout: () => void;
+  onPress: () => void;
 };
 
-export default function ProfileHeader({ name, onLogout }: ProfileHeaderProps) {
+export default function ProfileHeader({ name, onPress }: ProfileHeaderProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { photoUri } = useProfilePhoto();
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+      accessibilityRole="button"
+      accessibilityLabel="Open user profile"
+    >
       <Avatar name={name} photoUri={photoUri} />
       <View style={styles.textCol}>
         <Text style={styles.welcome}>Welcome</Text>
         <Text style={styles.name}>{name}</Text>
       </View>
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onLogout();
-        }}
-        activeOpacity={0.7}
-        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        accessibilityRole="button"
-        accessibilityLabel="Log out"
-      >
-        <Ionicons name="log-out-outline" size={19} color={COLORS.gray} />
-      </TouchableOpacity>
-    </View>
+      <Ionicons name="chevron-forward" size={20} color={COLORS.textFaint} />
+    </Pressable>
   );
 }
 
@@ -53,6 +49,9 @@ function createStyles(COLORS: ColorPalette) {
     padding: SPACING.md,
     ...SHADOW,
   },
+  pressed: {
+    opacity: 0.85,
+  },
   textCol: {
     flex: 1,
   },
@@ -68,17 +67,6 @@ function createStyles(COLORS: ColorPalette) {
     fontWeight: "800",
     color: COLORS.text,
     marginTop: 2,
-  },
-  logoutButton: {
-    width: 40,
-    height: 40,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOW,
   },
   });
 }

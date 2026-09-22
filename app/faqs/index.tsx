@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+    Image,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -23,7 +23,6 @@ import {
     FONT_FAMILY,
     RADIUS,
     SHADOW,
-    SHADOW_LG,
     SPACING,
     TYPOGRAPHY,
     useThemeColors,
@@ -184,19 +183,14 @@ export default function FaqsScreen() {
         </View>
 
         <View style={styles.hero}>
-          <LinearGradient
-            colors={COLORS.iconTileGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroIcon}
-          >
-            <Ionicons
-              name="sparkles-outline"
-              size={22}
-              color={COLORS.primary}
+          <View style={styles.brandRow}>
+            <Image
+              source={require("@/assets/images/riskq.png")}
+              style={styles.heroLogo}
+              resizeMode="contain"
             />
-          </LinearGradient>
-          <Text style={styles.eyebrow}>RISKQ GUIDE</Text>
+            <Text style={styles.eyebrow}>RISKQ GUIDE</Text>
+          </View>
           <Text style={styles.title}>Answers, when you need them.</Text>
           <Text style={styles.subtitle}>
             Quick guidance for staying safe, reporting incidents, and getting
@@ -368,21 +362,21 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.text,
     },
     hero: { paddingTop: SPACING.xs, paddingBottom: SPACING.sm },
-    heroIcon: {
-      width: 46,
-      height: 46,
-      borderRadius: 16,
+    brandRow: {
+      flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
-      marginBottom: SPACING.md,
-      ...SHADOW_LG,
+      gap: SPACING.xs,
+      marginBottom: SPACING.sm,
+    },
+    heroLogo: {
+      width: 26,
+      height: 26,
     },
     eyebrow: {
       color: COLORS.primary,
       fontSize: 11,
       fontWeight: "800",
       letterSpacing: 1.2,
-      marginBottom: SPACING.xs,
     },
     title: {
       fontFamily: FONT_FAMILY.display,

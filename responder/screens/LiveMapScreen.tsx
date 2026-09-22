@@ -122,6 +122,9 @@ export default function LiveMapScreen() {
       latitude: incident.incidentCoords!.latitude,
       longitude: incident.incidentCoords!.longitude,
       color: getCategoryVisual(incident.categoryId).color,
+      // Bare icon, no circular pin background -- same flat treatment as the
+      // citizen map's evacuation markers, instead of a busier filled pin.
+      flat: true,
       // Every active incident on this map is "live right now" -- SOS and
       // regular reports alike -- so all of them glow, not just SOS.
       pulse: true,
