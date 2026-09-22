@@ -73,8 +73,8 @@ function ResponderWelcomeContent() {
       </View>
 
       <PrimaryButton
-        title="Go to Dashboard"
-        onPress={() => router.replace("/responder")}
+        title="Continue"
+        onPress={() => router.replace("/responder/tour")}
       />
     </View>
   );
