@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "154796622464",
+    "project_id": "project-3054292540879802330",
+    "storage_bucket": "project-3054292540879802330.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:154796622464:android:f7b959783a588e1fe81c65",
+        "android_client_info": {
+          "package_name": "com.cordovariskq.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEfak04eh4IKte84JtEDkfMXLYisK0jhE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

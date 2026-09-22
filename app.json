@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.cordovariskq.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -60,7 +61,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.554660920363-fs5jb9tm7umukhc6m4na52j3t9olu635"
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
