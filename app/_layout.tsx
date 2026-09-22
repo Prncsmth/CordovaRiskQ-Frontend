@@ -164,9 +164,25 @@ function RootLayoutNav() {
   ]);
 
   useEffect(() => {
+    // TODO(push-debug): temporary instrumentation added to trace why
+    // User.pushToken stays NULL for citizen accounts -- remove once resolved.
+    console.log("[push-debug] registration effect ran", {
+      isAuthenticated,
+      hasToken: !!token,
+      pushNotificationsEnabled,
+      role: user?.role,
+    });
     if (isAuthenticated && token && pushNotificationsEnabled) {
-      registerForPushNotifications(token).catch(() => {});
+      registerForPushNotifications(token).catch((err) => {
+        console.log("[push-debug] registerForPushNotifications rejected:", err);
+      });
+    } else {
+      console.log("[push-debug] registration skipped: gate not satisfied");
     }
+    // user?.role is debug-log-only (doesn't affect the gate above), so it's
+    // deliberately left out of the deps -- same as the existing pattern in
+    // this file's auth-redirect effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, token, pushNotificationsEnabled]);
 
   // Not role-restricted: new_incident only ever reaches on-duty responders

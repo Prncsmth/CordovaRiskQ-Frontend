@@ -3,7 +3,7 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-import { apiPatch } from "./api";
+import { API_BASE_URL, apiPatch } from "./api";
 
 // Remote push notifications were removed from Expo Go on Android in SDK 53+;
 // calling into expo-notifications there throws. iOS Expo Go is unaffected —
@@ -27,16 +27,43 @@ if (!remotePushUnsupported) {
   });
 }
 
+// TODO(push-debug): temporary instrumentation added to trace why
+// User.pushToken stays NULL for citizen accounts -- remove once resolved.
 export async function registerForPushNotifications(token: string): Promise<void> {
-  if (remotePushUnsupported || !Device.isDevice) return;
+  console.log("[push-debug] registerForPushNotifications called", {
+    platform: Platform.OS,
+    isExpoGo,
+    remotePushUnsupported,
+    isDevice: Device.isDevice,
+  });
+
+  if (remotePushUnsupported || !Device.isDevice) {
+    console.log("[push-debug] bailing early: remotePushUnsupported or not a physical device");
+    return;
+  }
 
   const { status } = await Notifications.requestPermissionsAsync();
-  if (status !== "granted") return;
+  console.log("[push-debug] requestPermissionsAsync status:", status);
+  if (status !== "granted") {
+    console.log("[push-debug] bailing early: permission not granted");
+    return;
+  }
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-  if (!projectId) return;
+  console.log("[push-debug] projectId:", projectId);
+  if (!projectId) {
+    console.log("[push-debug] bailing early: no projectId in Constants.expoConfig.extra.eas");
+    return;
+  }
 
-  const pushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  let pushToken: string;
+  try {
+    pushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    console.log("[push-debug] getExpoPushTokenAsync succeeded:", pushToken);
+  } catch (err) {
+    console.log("[push-debug] getExpoPushTokenAsync threw:", err);
+    throw err;
+  }
 
   // The backend already sends real Expo push notifications from here: this
   // PATCH stores the token on the user record, and notification.service.ts
@@ -45,5 +72,17 @@ export async function registerForPushNotifications(token: string): Promise<void>
   // a real push the moment a citizen triggers SOS. Delivery to a closed app
   // is handled by the OS once the token is registered; setNotificationHandler
   // above only controls how a push is presented while the app is foregrounded.
-  await apiPatch("/api/users/push-token", { token: pushToken }, token);
+  const url = `${API_BASE_URL}/api/users/push-token`;
+  console.log("[push-debug] PATCH firing:", url);
+  try {
+    await apiPatch("/api/users/push-token", { token: pushToken }, token);
+    console.log("[push-debug] PATCH succeeded:", url);
+  } catch (err) {
+    console.log("[push-debug] PATCH failed:", {
+      url,
+      status: (err as Partial<{ status: number }>)?.status,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
 }
