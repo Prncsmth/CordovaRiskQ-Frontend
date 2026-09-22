@@ -47,3 +47,11 @@ export async function registerForPushNotifications(token: string): Promise<void>
   // above only controls how a push is presented while the app is foregrounded.
   await apiPatch("/api/users/push-token", { token: pushToken }, token);
 }
+
+// Push-notifications opt-out: clears the stored Expo push token so the
+// backend stops sending this device anything, rather than only skipping a
+// future re-registration (registerForPushNotifications simply wasn't called
+// again -- the previously-registered token stayed live server-side).
+export async function unregisterPushNotifications(token: string): Promise<void> {
+  await apiPatch("/api/users/push-token", { token: null }, token);
+}

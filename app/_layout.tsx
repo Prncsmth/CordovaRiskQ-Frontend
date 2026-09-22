@@ -15,7 +15,10 @@ import { TourProvider } from "@/context/TourContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
 import { useNotificationDeepLink } from "@/hooks/useNotificationDeepLink";
-import { registerForPushNotifications } from "@/services/push.service";
+import {
+    registerForPushNotifications,
+    unregisterPushNotifications,
+} from "@/services/push.service";
 import { ArchivoBlack_400Regular } from "@expo-google-fonts/archivo-black";
 import {
     Sora_600SemiBold,
@@ -164,8 +167,13 @@ function RootLayoutNav() {
   ]);
 
   useEffect(() => {
-    if (isAuthenticated && token && pushNotificationsEnabled) {
+    if (!isAuthenticated || !token) return;
+    if (pushNotificationsEnabled) {
       registerForPushNotifications(token).catch(() => {});
+    } else {
+      // Toggled off in Settings/Profile -- clear the stored token so the
+      // backend actually stops sending pushes, not just skip re-registering.
+      unregisterPushNotifications(token).catch(() => {});
     }
   }, [isAuthenticated, token, pushNotificationsEnabled]);
 
