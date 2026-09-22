@@ -13,6 +13,7 @@ export default function ResponderLayout() {
     >
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="tour" options={{ gestureEnabled: false }} />
       <Stack.Screen name="[id]" />
       <Stack.Screen
         name="navigate"

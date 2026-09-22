@@ -1,25 +1,31 @@
+// responder/screens/TourScreen.tsx
+// Responder counterpart to app/(onboarding)/app-intro.tsx -- shown right
+// after responder/welcome.tsx (Continue), before a fresh responder account
+// lands on the Dashboard. Same paginated slide UI (topRow Back/Skip, dots,
+// swipe, FeaturePreview screenshots) as the citizen intro. forceLight
+// matches WelcomeScreen.tsx, the screen immediately before this one.
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
-    withTiming,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import FeaturePreview, { type FeaturePreviewType } from "@/components/onboarding/FeaturePreview";
+import { ThemeProvider } from "@/context/ThemeContext";
 import {
-    FONT_FAMILY,
-    RADIUS,
-    SPACING,
-    TYPOGRAPHY,
-    useThemeColors,
-    type ColorPalette,
+  FONT_FAMILY,
+  RADIUS,
+  SPACING,
+  TYPOGRAPHY,
+  useThemeColors,
+  type ColorPalette,
 } from "@/theme";
 
 const SLIDES: {
@@ -29,51 +35,53 @@ const SLIDES: {
   text: string;
 }[] = [
   {
-    icon: "radio-outline",
-    title: "Ready for the moments that matter.",
-    text: "One place for emergency help, local alerts, and safer decisions in Cordova.",
-  },
-  {
-    icon: "alert-circle-outline",
-    preview: "sos",
-    title: "Get help when it matters",
-    text: "Send an SOS with your live location when you need urgent assistance.",
-  },
-  {
-    icon: "document-text-outline",
-    preview: "report",
-    title: "Report what's happening",
-    text: "File a report with a category, photo, and pinned location in seconds.",
-  },
-  {
-    icon: "map-outline",
-    preview: "map",
-    title: "Know your safer options",
-    text: "Find nearby evacuation centers and useful locations around Cordova.",
+    icon: "shield-checkmark",
+    title: "Welcome to the Team",
+    text: "This app shows you active incidents, their locations, and lets you coordinate your response -- all in one place.",
   },
   {
     icon: "notifications-outline",
-    preview: "notifications",
-    title: "Stay informed",
-    text: "Get real-time updates on your reports and alerts from your community.",
+    preview: "responder-new-incident",
+    title: "Never Miss a Call",
+    text: "Get notified the instant a new incident needs a response. Accept or decline right from the alert.",
   },
   {
-    icon: "time-outline",
-    preview: "history",
-    title: "Track your reports",
-    text: "See the status of everything you've reported, from pending to resolved.",
+    icon: "map-outline",
+    preview: "responder-live-map",
+    title: "Track Every Incident",
+    text: "See every active incident on a live map, along with your own current location.",
   },
   {
-    icon: "call-outline",
-    preview: "hotlines",
-    title: "Help beyond emergencies",
-    text: "Reach official hotlines, browse FAQs, and manage your account anytime.",
+    icon: "people-outline",
+    preview: "responder-lobby",
+    title: "Coordinate With Your Team",
+    text: "See who's joined, ring the team, and head out together once everyone's ready.",
+  },
+  {
+    icon: "navigate-outline",
+    preview: "responder-navigate",
+    title: "Get There Fast",
+    text: "Navigate straight to the incident with turn-by-turn directions.",
+  },
+  {
+    icon: "alert-circle-outline",
+    preview: "responder-notifications",
+    title: "Stay in the Loop",
+    text: "Get real-time alerts for new incidents and updates happening near you.",
   },
 ];
 
 const SWIPE_THRESHOLD = 50;
 
-export default function AppIntroScreen() {
+export default function ResponderTourScreen() {
+  return (
+    <ThemeProvider forceLight>
+      <ResponderTourContent />
+    </ThemeProvider>
+  );
+}
+
+function ResponderTourContent() {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -98,11 +106,6 @@ export default function AppIntroScreen() {
     contentTranslateY.value = withSpring(0, { damping: 14, stiffness: 120 });
   }, [visualOpacity, visualScale, contentOpacity, contentTranslateY]);
 
-  // Screen-focus entrance (first arrival) and every slide change (swipe or
-  // button) both replay the same fade/scale-in -- gives each slide a fresh
-  // reveal without the original's heavier staggered, multi-stage sequence,
-  // which would feel sluggish repeated on every step change now that this
-  // screen is paginated instead of a single static list.
   useFocusEffect(
     useCallback(() => {
       playEntranceAnimation();
@@ -121,13 +124,13 @@ export default function AppIntroScreen() {
     transform: [{ translateY: contentTranslateY.value }],
   }));
 
-  function goToLogin() {
-    router.push("/(auth)/login");
+  function goToDashboard() {
+    router.replace("/responder");
   }
 
   function handleNext() {
     if (isLast) {
-      goToLogin();
+      goToDashboard();
       return;
     }
     setIndex((i) => i + 1);
@@ -150,8 +153,6 @@ export default function AppIntroScreen() {
   return (
     <GestureDetector gesture={swipe}>
       <View style={styles.container}>
-        <StatusBar style="dark" />
-
         <View style={styles.topRow}>
           {!isFirst ? (
             <Pressable onPress={handleBack} hitSlop={12} style={styles.sideButton}>
@@ -160,7 +161,7 @@ export default function AppIntroScreen() {
           ) : (
             <View style={styles.sideButton} />
           )}
-          <Pressable onPress={goToLogin} hitSlop={12} style={styles.sideButton}>
+          <Pressable onPress={goToDashboard} hitSlop={12} style={styles.sideButton}>
             <Text style={styles.sideButtonText}>Skip</Text>
           </Pressable>
         </View>
@@ -171,12 +172,11 @@ export default function AppIntroScreen() {
               <FeaturePreview type={slide.preview} />
             ) : (
               <View style={styles.introVisual}>
-                <Ionicons name={slide.icon} size={34} color={COLORS.primary} />
+                <Ionicons name={slide.icon} size={34} color={COLORS.tide} />
               </View>
             )}
           </Animated.View>
           <Animated.View style={contentAnimation}>
-            <Text style={styles.eyebrow}>CORDOVA RISKQ</Text>
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.subtitle}>{slide.text}</Text>
           </Animated.View>
@@ -184,23 +184,15 @@ export default function AppIntroScreen() {
 
         <View style={styles.dotsRow}>
           {SLIDES.map((s, i) => (
-            <View
-              key={s.title}
-              style={[styles.dot, i === index && styles.dotActive]}
-            />
+            <View key={s.title} style={[styles.dot, i === index && styles.dotActive]} />
           ))}
         </View>
 
         <View style={styles.actionArea}>
           <PrimaryButton
-            title={isLast ? "Continue to Login" : "Next"}
+            title={isLast ? "Get Started" : "Next"}
             onPress={handleNext}
           />
-          {isLast ? (
-            <Text style={styles.signUpHint}>
-              New to Cordova RiskQ? You can create an account from the next screen.
-            </Text>
-          ) : null}
         </View>
       </View>
     </GestureDetector>
@@ -212,7 +204,7 @@ function createStyles(COLORS: ColorPalette) {
     container: {
       flex: 1,
       backgroundColor: COLORS.background,
-      paddingTop: 32,
+      paddingTop: 62,
       paddingHorizontal: SPACING.lg,
       paddingBottom: SPACING.lg,
     },
@@ -221,8 +213,6 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "space-between",
     },
-    // Fixed width so Skip stays anchored in the same spot whether or not
-    // Back is showing next to it (first slide has no Back).
     sideButton: {
       minWidth: 40,
     },
@@ -240,37 +230,30 @@ function createStyles(COLORS: ColorPalette) {
       width: 68,
       height: 68,
       borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primaryTint,
+      backgroundColor: COLORS.tideTint,
       borderWidth: 1,
-      borderColor: COLORS.primaryLight,
+      borderColor: COLORS.tideTint,
       alignItems: "center",
       justifyContent: "center",
       alignSelf: "center",
       marginBottom: SPACING.md,
     },
-    eyebrow: {
-      color: COLORS.primary,
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "800",
-      letterSpacing: 1.2,
-      textAlign: "center",
-    },
     title: {
-      color: COLORS.text,
       fontFamily: FONT_FAMILY.display,
       fontSize: TYPOGRAPHY.title,
+      color: COLORS.text,
       lineHeight: 36,
       marginTop: SPACING.xs,
       maxWidth: 340,
       textAlign: "center",
     },
     subtitle: {
-      color: COLORS.textSecondary,
       fontSize: TYPOGRAPHY.body,
-      lineHeight: 23,
-      marginTop: SPACING.md,
-      maxWidth: 340,
+      color: COLORS.textSecondary,
       textAlign: "center",
+      marginTop: SPACING.md,
+      lineHeight: 23,
+      maxWidth: 340,
     },
     dotsRow: {
       flexDirection: "row",
@@ -287,17 +270,10 @@ function createStyles(COLORS: ColorPalette) {
     },
     dotActive: {
       width: 22,
-      backgroundColor: COLORS.primary,
+      backgroundColor: COLORS.tide,
     },
     actionArea: {
       paddingBottom: SPACING.sm,
-    },
-    signUpHint: {
-      color: COLORS.textSecondary,
-      fontSize: TYPOGRAPHY.small,
-      lineHeight: 18,
-      textAlign: "center",
-      marginTop: SPACING.sm,
     },
   });
 }

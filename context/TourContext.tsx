@@ -243,8 +243,15 @@ export function TourProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     // Resetting internal state when the id this load is keyed to changes --
     // same pattern/justification as ResponderAlertContext's reset-on-logout.
+    // currentStep/isVisible must reset too: activeSteps is keyed off the
+    // NEW user's role, which can be a shorter list than whatever the
+    // previous user's tour had reached (citizen's 9 steps vs responder's
+    // 5) -- leaving a stale currentStep past the new list's end crashes
+    // FirstTimeGuideOverlay's unconditional `steps[currentStep]` read.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsCompletedMapLoaded(false);
+    setCurrentStep(0);
+    setIsVisible(false);
 
     authStorage
       .getItem(TOUR_COMPLETED_KEY)
