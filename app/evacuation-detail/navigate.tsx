@@ -52,6 +52,7 @@ export default function EvacuationNavigateScreen() {
   const [center, setCenter] = useState<EvacuationCenter | undefined>(undefined);
   const [citizenCoords, setCitizenCoords] = useState<Coordinates | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const mapRef = useRef<MapHandle>(null);
@@ -73,11 +74,18 @@ export default function EvacuationNavigateScreen() {
   const loadData = useCallback(() => {
     if (!id || !token) return;
     setIsLoading(true);
+    setLoadFailed(false);
+    // getCurrentLocation never rejects (resolves undefined when location is
+    // unavailable), so Promise.all only rejects on a real
+    // getEvacuationCenterById failure -- that's the only case the loadFailed
+    // fallback below is for, kept distinct from "location unavailable"
+    // (same split already used on the responder Navigate screen).
     Promise.all([getEvacuationCenterById(token, id), getCurrentLocation()])
       .then(([centerData, coords]) => {
         setCenter(centerData);
         setCitizenCoords(coords);
       })
+      .catch(() => setLoadFailed(true))
       .finally(() => setIsLoading(false));
   }, [id, token]);
 
@@ -129,6 +137,25 @@ export default function EvacuationNavigateScreen() {
           options={{ headerShown: false, presentation: "fullScreenModal" }}
         />
         <ActivityIndicator color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <View style={styles.fallbackScreen}>
+        <Stack.Screen
+          options={{ headerShown: false, presentation: "fullScreenModal" }}
+        />
+        <Text style={styles.fallbackText}>
+          Couldn&apos;t load this evacuation center. Check your connection.
+        </Text>
+        <Pressable onPress={loadData} style={styles.fallbackRetry}>
+          <Text style={styles.fallbackRetryText}>Retry</Text>
+        </Pressable>
+        <Pressable onPress={() => router.back()} style={styles.fallbackClose}>
+          <Text style={styles.fallbackCloseText}>Close</Text>
+        </Pressable>
       </View>
     );
   }
