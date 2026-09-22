@@ -75,10 +75,10 @@ function PhoneNumberContent() {
   }
 
   async function handleContinue() {
-    if (phone.trim().length === 0) {
+    if (phone.length !== 10) {
       Alert.alert(
-        "Phone number required",
-        "Enter a valid mobile number first.",
+        "Incomplete phone number",
+        "Enter your complete 10-digit mobile number.",
       );
       return;
     }
@@ -125,7 +125,7 @@ function PhoneNumberContent() {
       <PrimaryButton
         title="Continue"
         loading={isSaving}
-        disabled={phone.length === 0 || isSaving}
+        disabled={phone.length !== 10 || isSaving}
         onPress={handleContinue}
       />
 
