@@ -2,8 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { AppState, Alert, Linking, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -21,6 +21,10 @@ import { useAuth } from "@/context/AuthContext";
 import { usePreferences } from "@/context/PreferencesContext";
 import { useTour } from "@/context/TourContext";
 import { useThemeMode } from "@/context/ThemeContext";
+import {
+  getLocationPermissionStatus,
+  requestLocationPermission,
+} from "@/services/location.service";
 import {
   useThemeColors,
   FONT_FAMILY,
@@ -55,8 +59,54 @@ export default function SettingsScreen({
   const isResponder = user?.role === "responder";
 
   const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
-  const [locationAccess, setLocationAccess] = useState(true);
+  const [locationAccess, setLocationAccess] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Reflects the real OS permission rather than an app-owned boolean --
+  // neither platform lets an app silently revoke a permission it was
+  // granted, so this re-checks whenever the screen (re)gains focus,
+  // including when the user returns here after visiting system settings.
+  const refreshLocationPermission = useCallback(() => {
+    getLocationPermissionStatus().then((status) => setLocationAccess(status === "granted"));
+  }, []);
+
+  useEffect(() => {
+    refreshLocationPermission();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshLocationPermission();
+    });
+    return () => subscription.remove();
+  }, [refreshLocationPermission]);
+
+  async function handleLocationAccessChange(next: boolean) {
+    if (next) {
+      const status = await requestLocationPermission();
+      if (status === "granted") {
+        setLocationAccess(true);
+      } else {
+        Alert.alert(
+          "Location access needed",
+          "Turn on location access for Cordova RiskQ in your device Settings.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ],
+        );
+      }
+      return;
+    }
+
+    // Can't be turned off from in-app -- only the OS settings can revoke an
+    // already-granted permission.
+    Alert.alert(
+      "Turn off location access?",
+      "This app can't turn off location access directly. You'll be taken to your device Settings to do it there.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Open Settings", onPress: () => Linking.openSettings() },
+      ],
+    );
+  }
 
   const handleLogout = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -121,7 +171,7 @@ export default function SettingsScreen({
         ? "Used to navigate to incidents and share your live location"
         : "Used to find nearby evacuation centers",
       value: locationAccess,
-      onValueChange: setLocationAccess,
+      onValueChange: handleLocationAccessChange,
     },
     {
       key: "dark-mode",

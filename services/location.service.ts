@@ -82,6 +82,46 @@ export async function getCurrentLocation(): Promise<Coordinates | undefined> {
   }
 }
 
+// Read-only check of the current OS foreground-location permission, used by
+// the Settings screen's "Location Access" toggle -- neither iOS nor Android
+// let an app silently revoke a permission it was granted, so that toggle
+// reflects this instead of maintaining its own fake on/off state.
+export async function getLocationPermissionStatus(): Promise<
+  "granted" | "denied" | "undetermined" | "unavailable"
+> {
+  try {
+    const module = require("expo-location") as typeof import("expo-location");
+    const getFn =
+      (module as any).getForegroundPermissionsAsync ??
+      (module as any).default?.getForegroundPermissionsAsync;
+    if (typeof getFn !== "function") return "unavailable";
+    const { status } = await getFn();
+    return status;
+  } catch {
+    return "unavailable";
+  }
+}
+
+// Triggers the OS permission prompt -- only actually shows a dialog the
+// first time, or again on Android after a non-permanent denial; a
+// permanently-denied/blocked permission resolves immediately with "denied"
+// and the caller needs to send the user to system settings instead.
+export async function requestLocationPermission(): Promise<
+  "granted" | "denied" | "undetermined" | "unavailable"
+> {
+  try {
+    const module = require("expo-location") as typeof import("expo-location");
+    const requestFn =
+      (module as any).requestForegroundPermissionsAsync ??
+      (module as any).default?.requestForegroundPermissionsAsync;
+    if (typeof requestFn !== "function") return "unavailable";
+    const { status } = await requestFn();
+    return status;
+  } catch {
+    return "unavailable";
+  }
+}
+
 const VERIFIED_FIX_TIMEOUT_MS = 10_000;
 
 export type VerifiedLocationResult =
