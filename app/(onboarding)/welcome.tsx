@@ -145,7 +145,8 @@ function createStyles(COLORS: ColorPalette) {
 
     brandDescriptor: {
       fontSize: TYPOGRAPHY.caption,
-      color: COLORS.black,
+      fontWeight: "700",
+      color: COLORS.gray,
       textAlign: "center",
       marginTop: SPACING.md,
       lineHeight: 23,

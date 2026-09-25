@@ -222,15 +222,6 @@ export default function SettingsScreen({
         router.push(isResponder ? "/responder" : "/(tabs)/home");
       },
     },
-    // TODO(temp): quick way to preview the responder onboarding tour from
-    // any account without logging out/registering a fresh responder --
-    // remove once onboarding review is done.
-    {
-      key: "preview-responder-tour",
-      icon: "eye-outline",
-      label: "Preview Responder Onboarding",
-      onPress: () => router.push("/responder/tour"),
-    },
   ];
 
   return (
