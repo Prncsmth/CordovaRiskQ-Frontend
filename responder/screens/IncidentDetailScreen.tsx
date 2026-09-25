@@ -357,12 +357,17 @@ export default function IncidentDetailScreen() {
       {phase !== "on_the_way" && (
         <View style={styles.header}>
           <BackButton onPress={() => router.dismissTo("/responder")} />
-          <Text style={styles.headerTitle}>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
             {phase === "pending"
               ? isRejoin
                 ? "Rejoin Incident"
                 : "New Incident"
-              : `Incident #${incident.id}`}
+              : // Full incident id is a UUID -- way too long for a one-line
+                // title, so it wrapped to a second line and grew into the
+                // back button above it. A short prefix is enough to tell
+                // incidents apart at a glance; the full id is still visible
+                // wherever it actually matters (e.g. support/debugging).
+                `Incident #${incident.id.slice(0, 8)}`}
           </Text>
           <View style={{ width: 36 }} />
         </View>
@@ -490,6 +495,8 @@ function createStyles(COLORS: ColorPalette) {
       marginBottom: SPACING.md,
     },
     headerTitle: {
+      flex: 1,
+      textAlign: "center",
       fontFamily: FONT_FAMILY.display,
       fontSize: TYPOGRAPHY.subtitle,
       color: COLORS.text,

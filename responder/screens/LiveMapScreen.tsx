@@ -170,7 +170,17 @@ export default function LiveMapScreen() {
     if (!mapReady || markers.length === 0) return;
     if (markers.length <= lastFittedCountRef.current) return;
     lastFittedCountRef.current = markers.length;
-    mapRef.current?.fitToPoints(markers, insets.top + 120);
+    if (markers.length === 1) {
+      // A single point (just the responder's own position, no active
+      // incidents yet) has no real bounds to fit -- fitToPoints on a
+      // zero-area box makes Mapbox zoom out much further than intended,
+      // which is why the map kept looking zoomed out by default even after
+      // bumping the static initial zoom above. Fly straight to it at the
+      // same fixed "clear" zoom handleLocate uses instead.
+      mapRef.current?.flyTo(markers[0].latitude, markers[0].longitude, 15);
+    } else {
+      mapRef.current?.fitToPoints(markers, insets.top + 120);
+    }
     // markers is a new array literal every render (incidentMarkers/markers
     // above aren't memoized) -- depending on the array itself would re-run
     // this effect on every render, for no benefit, since the count check
@@ -194,7 +204,11 @@ export default function LiveMapScreen() {
         ref={mapRef}
         style={styles.map}
         center={defaultCenter}
-        zoom={13}
+        // Matches handleLocate's own flyTo zoom below -- the file's existing
+        // definition of "clear enough to read Cordova without zooming in" --
+        // instead of a wider default that only tightens once fitToPoints
+        // fires (which never happens with zero active incidents).
+        zoom={15}
         showLayerSwitcher
         showUserLocationDot={false}
         topInset={insets.top}

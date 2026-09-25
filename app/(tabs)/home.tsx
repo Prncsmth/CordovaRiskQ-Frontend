@@ -26,6 +26,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useEvacuationCenters } from "@/context/EvacuationCenterContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useSos } from "@/context/SosContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
 import { getActiveAnnouncement, type Announcement } from "@/services/advisory.service";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
@@ -70,6 +71,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const tabBarHeight = useTabBarHeight();
   const { openConfirm } = useSos();
   const { user, needsOnboarding, needsTerms } = useAuth();
   const {
@@ -215,7 +217,13 @@ export default function HomeScreen() {
       style={[styles.flex, homeEntranceStyle]}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + SPACING.xs },
+        {
+          paddingTop: insets.top + SPACING.xs,
+          // The floating tab bar is now an absolute overlay (see TabBar.tsx),
+          // so content needs its own clearance to avoid the last section
+          // landing behind the pill instead of the previous fixed padding.
+          paddingBottom: tabBarHeight + SPACING.md,
+        },
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -288,7 +296,6 @@ function createStyles(COLORS: ColorPalette) {
     },
     content: {
       paddingHorizontal: SPACING.md,
-      paddingBottom: SPACING.xl,
       gap: SPACING.lg,
     },
     sosSection: {

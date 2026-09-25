@@ -35,6 +35,7 @@ import RButton from "@/responder/components/shared/RButton";
 import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
 import { getIncidents } from "@/responder/services/incident.service";
 import type { Coordinates } from "@/services/location.service";
@@ -66,6 +67,7 @@ type DutyStatus = "online" | "offline";
 export default function ResponderIncidentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useTabBarHeight();
   const { user, token } = useAuth();
   const { photoUri } = useProfilePhoto();
   const {
@@ -504,7 +506,7 @@ export default function ResponderIncidentsScreen() {
             <SectionList<Incident, { title: BarangayGroup }>
               sections={sections}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={styles.list}
+              contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + SPACING.md }]}
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
               ListHeaderComponent={
@@ -724,7 +726,6 @@ function createStyles(COLORS: ColorPalette) {
   list: {
     paddingHorizontal: SPACING.md,
     paddingTop: SPACING.sm,
-    paddingBottom: SPACING.xl,
     gap: SPACING.md,
   },
   nearestSection: {

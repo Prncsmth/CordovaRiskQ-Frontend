@@ -11,6 +11,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useSetTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour, type TourTargetId } from "@/context/TourContext";
 import {
   RADIUS,
@@ -68,6 +69,8 @@ export default function ResponderTabBar({ state, navigation }: BottomTabBarProps
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
+  const setTabBarHeight = useSetTabBarHeight();
+  const bottomMargin = Math.max(insets.bottom, 16);
   const dashboardRef = useRef<View>(null);
   const liveMapRef = useRef<View>(null);
   const settingsRef = useRef<View>(null);
@@ -128,8 +131,11 @@ export default function ResponderTabBar({ state, navigation }: BottomTabBarProps
   }
 
   return (
-    <View style={[styles.outer, { marginBottom: Math.max(insets.bottom, 16) }]}>
-      <View style={styles.container}>
+    <View style={[styles.outer, { marginBottom: bottomMargin }]}>
+      <View
+        style={styles.container}
+        onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height + bottomMargin)}
+      >
         {TABS.map(renderTab)}
       </View>
     </View>
@@ -138,7 +144,15 @@ export default function ResponderTabBar({ state, navigation }: BottomTabBarProps
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
+    // Absolute, not a normal flex sibling of the screen content -- so the
+    // screen extends the full height behind it instead of being squeezed
+    // into its own reserved row with a mismatched background showing
+    // through the pill's side margins.
     outer: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
       marginHorizontal: SPACING.md,
     },
     container: {

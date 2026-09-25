@@ -74,7 +74,7 @@ export default function ArrivedView({
             icon={visual.icon}
             COLORS={COLORS}
           />
-          <View>
+          <View style={styles.summaryTextCol}>
             <Text style={styles.summaryTitle}>{incident.type}</Text>
             <Text style={styles.summarySubtitle}>{incident.location}</Text>
           </View>
@@ -161,6 +161,12 @@ function createStyles(COLORS: ColorPalette) {
       marginBottom: SPACING.md,
       gap: SPACING.sm,
       ...SHADOW,
+    },
+    // Without this, the text column had no width constraint next to the
+    // fixed-size icon circle, so a long address overflowed past the card's
+    // edge instead of wrapping within the remaining space.
+    summaryTextCol: {
+      flex: 1,
     },
     summaryTitle: {
       fontSize: TYPOGRAPHY.body,

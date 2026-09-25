@@ -16,6 +16,7 @@ import PrimaryButton from "@/components/auth/PrimaryButton";
 import { EmptyState } from "@/components/common/EmptyState";
 import ReportHistoryCard from "@/components/report-history/ReportHistoryCard";
 import { useAuth } from "@/context/AuthContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import {
   deleteReport,
   getReportHistory,
@@ -29,6 +30,7 @@ export default function ReportHistoryScreen() {
   const { token } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const tabBarHeight = useTabBarHeight();
   const [reports, setReports] = useState<ReportHistoryItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -98,7 +100,7 @@ export default function ReportHistoryScreen() {
       style={styles.flex}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
+        { paddingTop: insets.top + SPACING.sm, paddingBottom: tabBarHeight + SPACING.md },
       ]}
       refreshControl={
         <RefreshControl

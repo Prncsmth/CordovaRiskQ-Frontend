@@ -32,6 +32,7 @@ import { useAuth } from "@/context/AuthContext";
 import * as authStorage from "@/context/authStorage";
 import { useEvacuationCenters } from "@/context/EvacuationCenterContext";
 import { useReportLocation } from "@/context/ReportLocationContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { reverseGeocode } from "@/services/geocoding.service";
 import { getVerifiedLocation } from "@/services/location.service";
 import {
@@ -56,6 +57,7 @@ export default function MapScreen() {
   const isChangingLocation = intent === "change-location";
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const tabBarHeight = useTabBarHeight();
   const { user } = useAuth();
   const { centers } = useEvacuationCenters();
   const mapRef = useRef<MapHandle>(null);
@@ -475,7 +477,7 @@ export default function MapScreen() {
           onDismiss={() => setShowOutsideCordovaToast(false)}
           style={{
             bottom:
-              insets.bottom +
+              tabBarHeight +
               SPACING.lg +
               44 +
               SPACING.sm +
@@ -506,7 +508,7 @@ export default function MapScreen() {
           onPress={handleTogglePinMode}
           style={{
             bottom:
-              insets.bottom + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm,
+              tabBarHeight + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm,
           }}
         />
 
@@ -517,7 +519,7 @@ export default function MapScreen() {
           onPress={handleToggleNearest}
           style={{
             bottom:
-              insets.bottom +
+              tabBarHeight +
               SPACING.lg +
               44 +
               SPACING.sm +
@@ -534,17 +536,17 @@ export default function MapScreen() {
           maxZoom={MAX_ZOOM}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
-          style={{ bottom: insets.bottom + SPACING.lg + 44 + SPACING.sm }}
+          style={{ bottom: tabBarHeight + SPACING.lg + 44 + SPACING.sm }}
         />
 
         <LocateButton
           ref={locateTargetRef}
           isLocating={isLocating}
           onPress={handleLocateMe}
-          style={{ bottom: insets.bottom + SPACING.lg }}
+          style={{ bottom: tabBarHeight + SPACING.lg }}
         />
 
-        <MapLegend style={{ left: SPACING.md, bottom: insets.bottom + SPACING.lg }} />
+        <MapLegend style={{ left: SPACING.md, bottom: tabBarHeight + SPACING.lg }} />
       </View>
 
       {showMapGuide ? (

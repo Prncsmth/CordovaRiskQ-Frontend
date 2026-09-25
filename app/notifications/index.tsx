@@ -17,6 +17,7 @@ import BackButton from "@/components/common/BackButton";
 import { EmptyState } from "@/components/common/EmptyState";
 import NotificationRow from "@/components/notifications/NotificationRow";
 import { useNotifications } from "@/context/NotificationContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import {
   useThemeColors,
   FONT_FAMILY,
@@ -59,6 +60,7 @@ export default function NotificationsScreen({
     markAllRead,
     deleteNotification: removeNotification,
   } = useNotifications();
+  const tabBarHeight = useTabBarHeight();
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -112,7 +114,14 @@ export default function NotificationsScreen({
       style={styles.flex}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
+        {
+          paddingTop: insets.top + SPACING.sm,
+          // tabBarHeight is 0 when this screen is reached as the citizen's
+          // pushed stack route (no tab bar there at all) -- Math.max keeps
+          // the old fixed padding for that case instead of regressing it,
+          // while still clearing the floating pill on the responder tab.
+          paddingBottom: Math.max(tabBarHeight + SPACING.md, SPACING.xl),
+        },
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={

@@ -9,6 +9,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSos } from "@/context/SosContext";
+import { useSetTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
 import {
   RADIUS,
@@ -51,6 +52,8 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
+  const setTabBarHeight = useSetTabBarHeight();
+  const bottomMargin = Math.max(insets.bottom, 16);
   const mapTabRef = useRef<View>(null);
   const historyTabRef = useRef<View>(null);
   const profileTabRef = useRef<View>(null);
@@ -124,8 +127,11 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
   }
 
   return (
-    <View style={[styles.outer, { marginBottom: Math.max(insets.bottom, 16) }]}>
-      <View style={styles.container}>
+    <View style={[styles.outer, { marginBottom: bottomMargin }]}>
+      <View
+        style={styles.container}
+        onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height + bottomMargin)}
+      >
         <BlurView intensity={70} tint={COLORS.glassTint} style={styles.blur} />
         {LEFT_TABS.map(renderTab)}
 
@@ -162,7 +168,16 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
+    // Absolute, not a normal flex sibling of the screen content -- so the
+    // screen extends the full height behind it (matching what the glass
+    // blur effect below is actually meant to blur) instead of being
+    // squeezed into its own reserved row with a mismatched background
+    // showing through the pill's side margins.
     outer: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
       marginHorizontal: SPACING.md,
     },
     container: {

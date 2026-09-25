@@ -18,6 +18,7 @@ import MenuRow from "@/components/profile/MenuRow";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import { useAuth } from "@/context/AuthContext";
 import { usePreferences } from "@/context/PreferencesContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -42,6 +43,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const tabBarHeight = useTabBarHeight();
   const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -102,7 +104,7 @@ export default function ProfileScreen() {
       style={styles.flex}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
+        { paddingTop: insets.top + SPACING.sm, paddingBottom: tabBarHeight + SPACING.md },
       ]}
     >
       <Text style={styles.title}>Profile</Text>

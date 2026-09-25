@@ -19,6 +19,7 @@ import NavSettingRow, { type NavRow } from "@/components/settings/NavSettingRow"
 import ToggleSettingRow, { type ToggleRow } from "@/components/settings/ToggleSettingRow";
 import { useAuth } from "@/context/AuthContext";
 import { usePreferences } from "@/context/PreferencesContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
 import { useThemeMode } from "@/context/ThemeContext";
 import {
@@ -50,6 +51,7 @@ export default function SettingsScreen({
   hideBackButton = false,
 }: SettingsScreenProps = {}) {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useTabBarHeight();
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -229,7 +231,14 @@ export default function SettingsScreen({
       style={styles.flex}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + SPACING.sm, paddingBottom: SPACING.xl },
+        {
+          paddingTop: insets.top + SPACING.sm,
+          // tabBarHeight is 0 when this screen is reached as the citizen's
+          // pushed stack route (no tab bar there at all) -- Math.max keeps
+          // the old fixed padding for that case instead of regressing it,
+          // while still clearing the floating pill on the responder tab.
+          paddingBottom: Math.max(tabBarHeight + SPACING.md, SPACING.xl),
+        },
       ]}
       showsVerticalScrollIndicator={false}
     >
