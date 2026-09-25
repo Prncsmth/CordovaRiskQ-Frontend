@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Linking,
@@ -15,8 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
 import ContactRow from "@/components/contacts/ContactRow";
-import { getHotlines, type Hotline } from "@/services/contacts.service";
-import { useAuth } from "@/context/AuthContext";
+import type { Hotline } from "@/services/contacts.service";
+import { useHotlines } from "@/context/HotlineContext";
 import {
   useThemeColors,
   FONT_FAMILY,
@@ -125,24 +125,13 @@ const OTHER_CATEGORY = { key: "other" as const, label: "Other" };
 export default function ContactsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { token } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const [hotlines, setHotlines] = useState<Hotline[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    getHotlines(token)
-      .then(setHotlines)
-      // Backend unreachable -- fall back to the last-known-good hotline
-      // list rather than leaving the screen empty (see FALLBACK_HOTLINES).
-      .catch(() => setHotlines(FALLBACK_HOTLINES))
-      .finally(() => setIsLoading(false));
-  }, [token]);
+  const { hotlines: liveHotlines, isLoading, loadFailed } = useHotlines();
+  // Backend unreachable -- fall back to the last-known-good hotline list
+  // rather than leaving the screen empty (see FALLBACK_HOTLINES). The
+  // context's own list otherwise updates live on every admin edit.
+  const hotlines = loadFailed ? FALLBACK_HOTLINES : liveHotlines;
 
   const groupedHotlines = useMemo(() => {
     const knownKeys = new Set<string>(CATEGORIES.map((c) => c.key));

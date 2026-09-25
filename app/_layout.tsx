@@ -3,6 +3,7 @@ import SosOverlay from "@/components/sos/SosOverlay";
 import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { EvacuationCenterProvider } from "@/context/EvacuationCenterContext";
+import { HotlineProvider } from "@/context/HotlineContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { PreferencesProvider, usePreferences } from "@/context/PreferencesContext";
 import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
@@ -281,17 +282,19 @@ export default function RootLayout() {
       <AuthProvider>
         <NotificationProvider>
           <EvacuationCenterProvider>
-            <UserProvider>
-              <ProfilePhotoProvider>
-                <PreferencesProvider>
-                  <ReportLocationProvider>
-                    <AppThemeProvider>
-                      <ThemedApp />
-                    </AppThemeProvider>
-                  </ReportLocationProvider>
-                </PreferencesProvider>
-              </ProfilePhotoProvider>
-            </UserProvider>
+            <HotlineProvider>
+              <UserProvider>
+                <ProfilePhotoProvider>
+                  <PreferencesProvider>
+                    <ReportLocationProvider>
+                      <AppThemeProvider>
+                        <ThemedApp />
+                      </AppThemeProvider>
+                    </ReportLocationProvider>
+                  </PreferencesProvider>
+                </ProfilePhotoProvider>
+              </UserProvider>
+            </HotlineProvider>
           </EvacuationCenterProvider>
         </NotificationProvider>
       </AuthProvider>
