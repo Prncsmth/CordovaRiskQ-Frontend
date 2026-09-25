@@ -16,13 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BackButton from "@/components/common/BackButton";
 import { EmptyState } from "@/components/common/EmptyState";
 import NotificationRow from "@/components/notifications/NotificationRow";
-import { useAuth } from "@/context/AuthContext";
-import {
-  deleteNotification,
-  getNotifications,
-  markAllNotificationsRead,
-  type AppNotification,
-} from "@/services/notification.service";
+import { useNotifications } from "@/context/NotificationContext";
 import {
   useThemeColors,
   FONT_FAMILY,
@@ -57,46 +51,32 @@ export default function NotificationsScreen({
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { token } = useAuth();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const {
+    notifications,
+    isLoading,
+    loadFailed,
+    refresh,
+    markAllRead,
+    deleteNotification: removeNotification,
+  } = useNotifications();
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadNotifications = useCallback(() => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
-    setLoadFailed(false);
-
-    getNotifications(token)
-      .then((result) => {
-        setNotifications(result);
-        markAllNotificationsRead(token).catch(() => {});
-      })
-      .catch(() => setLoadFailed(true))
-      .finally(() => setIsLoading(false));
-  }, [token]);
-
+  // Matches the previous per-load behavior: opening this screen marks
+  // whatever's currently loaded as read. NotificationProvider already did
+  // the initial fetch app-wide (for the Home bell badge), so this only
+  // needs to mark it read, not fetch it again.
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    markAllRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefresh = useCallback(() => {
-    if (!token) return;
     setRefreshing(true);
-    setLoadFailed(false);
-    getNotifications(token)
-      .then((result) => {
-        setNotifications(result);
-        markAllNotificationsRead(token).catch(() => {});
-      })
-      .catch(() => setLoadFailed(true))
+    refresh()
+      .then(() => markAllRead())
       .finally(() => setRefreshing(false));
-  }, [token]);
+  }, [refresh, markAllRead]);
 
   // Only removes the row once the backend confirms the delete -- this route
   // doesn't exist yet (see deleteNotification's comment in
@@ -105,12 +85,8 @@ export default function NotificationsScreen({
   // reappearing on the next refresh.
   const handleDelete = useCallback(
     (id: string) => {
-      if (!token) return;
       setDeletingIds((prev) => new Set(prev).add(id));
-      deleteNotification(token, id)
-        .then(() => {
-          setNotifications((prev) => prev.filter((n) => n.id !== id));
-        })
+      removeNotification(id)
         .catch(() => {
           Alert.alert(
             "Couldn't delete notification",
@@ -125,7 +101,7 @@ export default function NotificationsScreen({
           });
         });
     },
-    [token],
+    [removeNotification],
   );
 
   const today = notifications.filter((n) => isToday(n.createdAt));
@@ -157,13 +133,13 @@ export default function NotificationsScreen({
         <View style={{ width: 36 }} />
       </View>
 
-      {isLoading && token ? (
+      {isLoading ? (
         <ActivityIndicator color={COLORS.primary} style={styles.loading} />
       ) : loadFailed ? (
         <View style={styles.errorState}>
           <Ionicons name="cloud-offline-outline" size={28} color={COLORS.textTertiary} />
           <Text style={styles.errorText}>Couldn&apos;t load notifications. Check your connection.</Text>
-          <Pressable onPress={loadNotifications} style={styles.retryButton}>
+          <Pressable onPress={refresh} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>

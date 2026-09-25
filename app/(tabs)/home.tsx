@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, {
   useCallback,
   useEffect,
@@ -23,6 +23,7 @@ import TideBanner from "@/components/home/TideBanner";
 import { SOSButton } from "@/components/sos/SOSButton";
 import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { useSos } from "@/context/SosContext";
 import { useTour } from "@/context/TourContext";
 import { getActiveAnnouncement, type Announcement } from "@/services/advisory.service";
@@ -31,14 +32,12 @@ import {
   type EvacuationCenter,
 } from "@/services/evacuation.service";
 import { getCurrentLocation } from "@/services/location.service";
-import { getNotifications } from "@/services/notification.service";
 import { getTideStatus, type TideStatus } from "@/services/tide.service";
 import { SPACING, useThemeColors, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
 import { formatTime } from "@/utils/formatter";
 
 const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
-const NOTIFICATIONS_POLL_INTERVAL_MS = 12000;
 
 const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
   normal: "No flood risk detected in your area",
@@ -87,7 +86,7 @@ export default function HomeScreen() {
   const sosAnchorRef = useRef<View>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
-  const [hasUnread, setHasUnread] = useState(false);
+  const { hasUnread, refresh: refreshNotifications } = useNotifications();
   const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(
     null,
   );
@@ -140,27 +139,6 @@ export default function HomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsOnboarding, needsTerms]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!token) return;
-
-      // Best-effort badge, not a data screen -- there's no error/retry UI for
-      // a bell-icon dot to show. A failed fetch leaves hasUnread at its last
-      // known value instead of resetting it, and the poll below retries on
-      // its own within NOTIFICATIONS_POLL_INTERVAL_MS, so a transient
-      // failure self-heals without needing to surface it here.
-      const pollUnread = () => {
-        getNotifications(token)
-          .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
-          .catch(() => {});
-      };
-
-      pollUnread();
-      const interval = setInterval(pollUnread, NOTIFICATIONS_POLL_INTERVAL_MS);
-      return () => clearInterval(interval);
-    }, [token]),
-  );
-
   // Shared by the mount-time load and pull-to-refresh so there's one place
   // that knows how to fetch the screen's data, instead of duplicating it.
   const loadHomeData = useCallback(() => {
@@ -209,15 +187,8 @@ export default function HomeScreen() {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([
-      loadHomeData(),
-      token
-        ? getNotifications(token)
-            .then((notifications) => setHasUnread(notifications.some((n) => !n.read)))
-            .catch(() => {})
-        : Promise.resolve(),
-    ]).finally(() => setRefreshing(false));
-  }, [loadHomeData, token]);
+    Promise.all([loadHomeData(), refreshNotifications()]).finally(() => setRefreshing(false));
+  }, [loadHomeData, refreshNotifications]);
 
   const STALE_TIDE_THRESHOLD_MS = 16 * 60 * 60 * 1000; // 2x the backend's 8h poll interval
   const displayTide =

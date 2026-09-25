@@ -2,6 +2,7 @@ import RingOverlay from "@/components/responder/RingOverlay";
 import SosOverlay from "@/components/sos/SosOverlay";
 import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { PreferencesProvider, usePreferences } from "@/context/PreferencesContext";
 import { ProfilePhotoProvider } from "@/context/ProfilePhotoContext";
 import { ReportLocationProvider } from "@/context/ReportLocationContext";
@@ -277,17 +278,19 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <UserProvider>
-          <ProfilePhotoProvider>
-            <PreferencesProvider>
-              <ReportLocationProvider>
-                <AppThemeProvider>
-                  <ThemedApp />
-                </AppThemeProvider>
-              </ReportLocationProvider>
-            </PreferencesProvider>
-          </ProfilePhotoProvider>
-        </UserProvider>
+        <NotificationProvider>
+          <UserProvider>
+            <ProfilePhotoProvider>
+              <PreferencesProvider>
+                <ReportLocationProvider>
+                  <AppThemeProvider>
+                    <ThemedApp />
+                  </AppThemeProvider>
+                </ReportLocationProvider>
+              </PreferencesProvider>
+            </ProfilePhotoProvider>
+          </UserProvider>
+        </NotificationProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );
