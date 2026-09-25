@@ -23,15 +23,12 @@ import TideBanner from "@/components/home/TideBanner";
 import { SOSButton } from "@/components/sos/SOSButton";
 import { getNearestBarangay } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
+import { useEvacuationCenters } from "@/context/EvacuationCenterContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useSos } from "@/context/SosContext";
 import { useTour } from "@/context/TourContext";
 import { getActiveAnnouncement, type Announcement } from "@/services/advisory.service";
-import {
-  getEvacuationCenters,
-  type EvacuationCenter,
-} from "@/services/evacuation.service";
-import { getCurrentLocation } from "@/services/location.service";
+import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import { getTideStatus, type TideStatus } from "@/services/tide.service";
 import { SPACING, useThemeColors, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
@@ -74,7 +71,7 @@ export default function HomeScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { openConfirm } = useSos();
-  const { user, token, needsOnboarding, needsTerms } = useAuth();
+  const { user, needsOnboarding, needsTerms } = useAuth();
   const {
     registerTarget,
     unregisterTarget,
@@ -86,10 +83,13 @@ export default function HomeScreen() {
   const sosAnchorRef = useRef<View>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
-  const { hasUnread, refresh: refreshNotifications } = useNotifications();
-  const [nearestCenter, setNearestCenter] = useState<EvacuationCenter | null>(
-    null,
-  );
+  const { hasUnread, latestAnnouncementEvent, refresh: refreshNotifications } = useNotifications();
+  const { centers } = useEvacuationCenters();
+  // Reused by the live-announcement refresh effect below so it can re-query
+  // the same barangay loadHomeData last resolved, without needing a fresh
+  // GPS fix just to refresh one card.
+  const barangayNameRef = useRef<string | undefined>(undefined);
+  const [fix, setFix] = useState<Coordinates | undefined>(undefined);
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -146,44 +146,56 @@ export default function HomeScreen() {
       .then(setTideStatus)
       .catch(() => {});
 
-    const restPromise = Promise.all([
-      token ? getEvacuationCenters(token) : Promise.resolve([]),
-      getCurrentLocation(),
-    ])
-      .then(([centers, fix]) => {
+    const restPromise = getCurrentLocation()
+      .then((currentFix) => {
+        setFix(currentFix);
+
         let barangayName: string | undefined;
-        if (fix) {
-          const nearestBarangay = getNearestBarangay(fix.latitude, fix.longitude);
+        if (currentFix) {
+          const nearestBarangay = getNearestBarangay(currentFix.latitude, currentFix.longitude);
           barangayName = nearestBarangay.name;
           setLocation(`Barangay ${nearestBarangay.name}, Cordova`);
         }
+        barangayNameRef.current = barangayName;
 
         getActiveAnnouncement(barangayName)
           .then(setAnnouncement)
           .catch(() => {});
-
-        if (centers.length === 0) return;
-
-        const withDistance = fix
-          ? centers.map((center) => ({
-              ...center,
-              distanceKm: haversineDistanceKm(fix, center),
-            }))
-          : centers;
-
-        const nearest = withDistance.reduce((closest, center) =>
-          center.distanceKm < closest.distanceKm ? center : closest,
-        );
-        setNearestCenter(nearest);
       })
       .catch(() => {});
 
     return Promise.all([tidePromise, restPromise]);
-  }, [token]);
+  }, []);
+
+  // Derived from the app-wide EvacuationCenterProvider, so an admin's live
+  // status/facilities edit updates this card the instant it happens, the
+  // same way latestAnnouncementEvent does for the Announcement Card above.
+  const nearestCenter = useMemo(() => {
+    if (centers.length === 0) return null;
+    const withDistance = fix
+      ? centers.map((center) => ({
+          ...center,
+          distanceKm: haversineDistanceKm(fix, center),
+        }))
+      : centers;
+    return withDistance.reduce((closest, center) =>
+      center.distanceKm < closest.distanceKm ? center : closest,
+    );
+  }, [centers, fix]);
 
   useEffect(() => {
     loadHomeData();
   }, [loadHomeData]);
+
+  // Fires only on a genuine live "announcement" arriving over the socket
+  // (see NotificationContext) -- re-queries the Announcement Card the
+  // instant an admin publishes one, without polling or a manual refresh.
+  useEffect(() => {
+    if (!latestAnnouncementEvent) return;
+    getActiveAnnouncement(barangayNameRef.current)
+      .then(setAnnouncement)
+      .catch(() => {});
+  }, [latestAnnouncementEvent]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);

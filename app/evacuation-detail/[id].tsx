@@ -17,13 +17,10 @@ import * as Haptics from "expo-haptics";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
-import { useAuth } from "@/context/AuthContext";
+import { useEvacuationCenters } from "@/context/EvacuationCenterContext";
 import { darken } from "@/responder/components/shared/colorUtils";
-import {
-  getEvacuationCenterById,
-  type EvacuationCenter,
-} from "@/services/evacuation.service";
-import { getCurrentLocation } from "@/services/location.service";
+import { type EvacuationCenter } from "@/services/evacuation.service";
+import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import { haversineDistanceKm } from "@/utils/distance";
 import {
   useThemeColors,
@@ -62,25 +59,27 @@ export default function EvacuationDetailScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = useAuth();
+  const { centers, isLoading: centersLoading } = useEvacuationCenters();
 
-  const [center, setCenter] = useState<EvacuationCenter | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [fix, setFix] = useState<Coordinates | undefined>(undefined);
+  const [isLocating, setIsLocating] = useState(true);
 
   useEffect(() => {
-    if (!id || !token) {
-      setIsLoading(false);
-      return;
-    }
-    Promise.all([getEvacuationCenterById(token, id), getCurrentLocation()])
-      .then(([result, fix]) => {
-        setCenter(
-          result && fix ? { ...result, distanceKm: haversineDistanceKm(fix, result) } : result ?? null,
-        );
-      })
-      .catch(() => setCenter(null))
-      .finally(() => setIsLoading(false));
-  }, [id, token]);
+    getCurrentLocation()
+      .then(setFix)
+      .catch(() => {})
+      .finally(() => setIsLocating(false));
+  }, []);
+
+  // Derived from the app-wide EvacuationCenterProvider, so an admin's live
+  // status/facilities edit updates this screen the instant it happens.
+  const center = useMemo<EvacuationCenter | null>(() => {
+    const found = centers.find((c) => c.id === id);
+    if (!found) return null;
+    return fix ? { ...found, distanceKm: haversineDistanceKm(fix, found) } : found;
+  }, [centers, id, fix]);
+
+  const isLoading = centersLoading || isLocating;
 
   if (isLoading) {
     return (

@@ -30,11 +30,8 @@ import {
 } from "@/constants/cordovaBarangays";
 import { useAuth } from "@/context/AuthContext";
 import * as authStorage from "@/context/authStorage";
+import { useEvacuationCenters } from "@/context/EvacuationCenterContext";
 import { useReportLocation } from "@/context/ReportLocationContext";
-import {
-    getEvacuationCenters,
-    type EvacuationCenter,
-} from "@/services/evacuation.service";
 import { reverseGeocode } from "@/services/geocoding.service";
 import { getVerifiedLocation } from "@/services/location.service";
 import {
@@ -59,7 +56,8 @@ export default function MapScreen() {
   const isChangingLocation = intent === "change-location";
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { user, token } = useAuth();
+  const { user } = useAuth();
+  const { centers } = useEvacuationCenters();
   const mapRef = useRef<MapHandle>(null);
   const searchTargetRef = useRef<View>(null);
   const pinTargetRef = useRef<View>(null);
@@ -68,7 +66,6 @@ export default function MapScreen() {
   const hasCenteredOnUser = useRef(false);
   const pinRequestIdRef = useRef(0);
   const { setLocation: setReportLocation, changeRequestId } = useReportLocation();
-  const [centers, setCenters] = useState<EvacuationCenter[]>([]);
   const [locationDenied, setLocationDenied] = useState(false);
   const [userLocation, setUserLocation] = useState<MapUserLocation | null>(
     null,
@@ -133,13 +130,6 @@ export default function MapScreen() {
       barangay.name.toLowerCase().includes(query),
     ).slice(0, 6);
   }, [searchQuery]);
-
-  useEffect(() => {
-    if (!token) return;
-    getEvacuationCenters(token)
-      .then(setCenters)
-      .catch(() => {});
-  }, [token]);
 
   useEffect(() => {
     let mounted = true;

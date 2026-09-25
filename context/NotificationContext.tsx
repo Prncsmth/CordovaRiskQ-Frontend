@@ -28,6 +28,10 @@ type NotificationContextValue = {
   isLoading: boolean;
   loadFailed: boolean;
   hasUnread: boolean;
+  // Set only by a live "announcement" arriving over the socket (never by the
+  // initial historical fetch) -- Home watches this to refresh its
+  // Announcement Card the instant one is published, without polling.
+  latestAnnouncementEvent: AppNotification | null;
   refresh: () => Promise<void>;
   markAllRead: () => void;
   deleteNotification: (id: string) => Promise<void>;
@@ -40,6 +44,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [latestAnnouncementEvent, setLatestAnnouncementEvent] = useState<AppNotification | null>(
+    null,
+  );
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -69,7 +76,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const disconnect = connectToNotificationSocket(
       token,
-      (incoming) => setNotifications((prev) => addIncomingNotification(prev, incoming)),
+      (incoming) => {
+        setNotifications((prev) => addIncomingNotification(prev, incoming));
+        if (incoming.type === "announcement") {
+          setLatestAnnouncementEvent(incoming);
+        }
+      },
       // Reconnecting means the socket was down for some stretch of time --
       // refetch once to catch anything created while disconnected.
       () => refresh(),
@@ -101,11 +113,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       isLoading,
       loadFailed,
       hasUnread,
+      latestAnnouncementEvent,
       refresh,
       markAllRead,
       deleteNotification,
     }),
-    [notifications, isLoading, loadFailed, hasUnread, refresh, markAllRead, deleteNotification],
+    [
+      notifications,
+      isLoading,
+      loadFailed,
+      hasUnread,
+      latestAnnouncementEvent,
+      refresh,
+      markAllRead,
+      deleteNotification,
+    ],
   );
 
   return (
