@@ -224,6 +224,11 @@ function createStyles(COLORS: ColorPalette) {
       gap: 3,
     },
     cardLocation: {
+      // Without this, a long address had no width constraint next to the
+      // location icon, so it overflowed past the card's edge instead of
+      // wrapping/truncating within the row.
+      flex: 1,
+      flexShrink: 1,
       fontSize: TYPOGRAPHY.caption,
       color: COLORS.textSecondary,
     },

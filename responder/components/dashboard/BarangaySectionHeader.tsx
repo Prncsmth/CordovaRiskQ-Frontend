@@ -33,7 +33,9 @@ export default function BarangaySectionHeader({ group }: { group: BarangayGroup 
       <View
         style={[styles.dot, { backgroundColor: severityColor(topUrgency, COLORS) }]}
       />
-      <Text style={styles.name}>{group.name}</Text>
+      <Text style={styles.name} numberOfLines={1}>
+        {group.name}
+      </Text>
       <Text style={styles.count}>
         {group.incidents.length} Active Incident
         {group.incidents.length === 1 ? "" : "s"}
@@ -58,14 +60,23 @@ function createStyles(COLORS: ColorPalette) {
       height: 8,
       borderRadius: RADIUS.full,
     },
+    // Without flex/flexShrink, a long barangay name had no width constraint
+    // next to the count label, risking overflow at larger accessibility
+    // font sizes -- numberOfLines above keeps it to one line, truncating
+    // rather than pushing the count off the row.
     name: {
+      flex: 1,
+      flexShrink: 1,
       fontSize: TYPOGRAPHY.body,
       fontWeight: "700",
       color: COLORS.textSecondary,
       letterSpacing: 0.2,
     },
     count: {
-      marginLeft: "auto",
+      // row's own `gap` already spaces this from `name` -- marginLeft:
+      // "auto" isn't needed either now that `name` has flex:1 to fill the
+      // remaining space itself.
+      flexShrink: 0,
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
       fontWeight: "600",

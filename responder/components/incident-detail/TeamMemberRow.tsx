@@ -60,7 +60,9 @@ export default function TeamMemberRow({ member }: { member: TeamMember }) {
 
       <View style={styles.info}>
         <View style={styles.nameRow}>
-          <Text style={styles.name}>{member.name}</Text>
+          <Text style={styles.name} numberOfLines={1}>
+            {member.name}
+          </Text>
           {member.isCaptain ? (
             <View style={styles.captainBadge}>
               <Text style={styles.captainText}>Captain</Text>
@@ -122,6 +124,11 @@ function createStyles(COLORS: ColorPalette) {
     gap: 6,
   },
   name: {
+    // Without this, a long full name had no width constraint next to the
+    // Captain badge, so it could overflow past `info`'s bound into the
+    // status chip instead of truncating within its own row.
+    flex: 1,
+    flexShrink: 1,
     color: COLORS.text,
     fontWeight: "600",
     fontSize: TYPOGRAPHY.body,

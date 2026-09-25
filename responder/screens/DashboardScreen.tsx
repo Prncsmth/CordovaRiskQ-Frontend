@@ -597,6 +597,13 @@ function createStyles(COLORS: ColorPalette) {
   headerSubtitle: {
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
+    // Without this, the count+timestamp string had no width constraint next
+    // to the duty pill, so it could overflow past the row on a long
+    // "Updated X minutes ago" value instead of wrapping/truncating.
+    flex: 1,
+    flexShrink: 1,
+    textAlign: "right",
+    marginLeft: SPACING.sm,
   },
   // Plain icon, no circular background/border -- just a big enough tap
   // target (44x44, Apple/Android's own minimum) centered around it.
@@ -632,6 +639,8 @@ function createStyles(COLORS: ColorPalette) {
     borderRadius: RADIUS.full,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    // Never shrink -- only the subtitle text next to it should give up width.
+    flexShrink: 0,
   },
   dutyPillOffline: {
     backgroundColor: COLORS.background,
