@@ -5,7 +5,7 @@
 // swipe, FeaturePreview screenshots) as the citizen intro. forceLight
 // matches WelcomeScreen.tsx, the screen immediately before this one.
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -97,20 +97,21 @@ function ResponderTourContent() {
 
   const playEntranceAnimation = useCallback(() => {
     visualOpacity.value = 0;
-    visualScale.value = 0.82;
+    visualScale.value = 0.92;
     contentOpacity.value = 0;
-    contentTranslateY.value = 14;
-    visualOpacity.value = withTiming(1, { duration: 300 });
-    visualScale.value = withSpring(1, { damping: 12, stiffness: 125 });
-    contentOpacity.value = withTiming(1, { duration: 320 });
-    contentTranslateY.value = withSpring(0, { damping: 14, stiffness: 120 });
+    contentTranslateY.value = 10;
+    visualOpacity.value = withTiming(1, { duration: 360 });
+    visualScale.value = withSpring(1, { damping: 16, stiffness: 140 });
+    contentOpacity.value = withTiming(1, { duration: 360 });
+    contentTranslateY.value = withSpring(0, { damping: 16, stiffness: 140 });
   }, [visualOpacity, visualScale, contentOpacity, contentTranslateY]);
 
-  useFocusEffect(
-    useCallback(() => {
-      playEntranceAnimation();
-    }, [playEntranceAnimation]),
-  );
+  // A single effect keyed on `index` covers both mount (index's initial
+  // value) and every slide change -- a second useFocusEffect trigger used
+  // to sit alongside this and fire at the same time on mount, restarting
+  // the animation from 0 right after it had already started, which caused
+  // a visible stutter. Damping/stiffness above are tuned soft-and-quick
+  // (no overshoot bounce) so the transition reads as smooth.
   React.useEffect(() => {
     playEntranceAnimation();
   }, [index, playEntranceAnimation]);

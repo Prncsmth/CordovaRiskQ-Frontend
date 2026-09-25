@@ -21,6 +21,10 @@ import { useAuth } from "@/context/AuthContext";
 import { getProfile, updateProfile } from "@/services/user.service";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
+// Mirrors the backend's updateProfileSchema check (services/user.validation.ts)
+// -- accepts "09171234567" or "+639171234567", with or without spaces/dashes.
+const PH_MOBILE_REGEX = /^(\+639\d{9}|09\d{9})$/;
+
 function splitName(name: string | null | undefined): {
   firstName: string;
   lastName: string;
@@ -77,6 +81,19 @@ export default function UserProfileScreen() {
 
   async function handleSave() {
     if (!token) return;
+
+    if (!email.trim().toLowerCase().endsWith("@gmail.com")) {
+      Alert.alert("Invalid email", "Only Gmail addresses (@gmail.com) are allowed.");
+      return;
+    }
+    const trimmedMobile = mobile.trim();
+    if (trimmedMobile && !PH_MOBILE_REGEX.test(trimmedMobile.replace(/[\s-]/g, ""))) {
+      Alert.alert(
+        "Invalid mobile number",
+        "Enter a valid PH mobile number (e.g. 09171234567).",
+      );
+      return;
+    }
 
     setIsSaving(true);
     try {

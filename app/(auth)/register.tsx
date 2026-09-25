@@ -41,6 +41,11 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!email.trim().toLowerCase().endsWith("@gmail.com")) {
+      setError("Only Gmail addresses (@gmail.com) are allowed.");
+      return;
+    }
+
     setError(null);
     setLoading(true);
 

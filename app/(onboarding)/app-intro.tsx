@@ -1,8 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
     useAnimatedStyle,
@@ -25,11 +25,13 @@ import {
 const SLIDES: {
   icon: keyof typeof Ionicons.glyphMap;
   preview?: FeaturePreviewType;
+  isLogo?: boolean;
   title: string;
   text: string;
 }[] = [
   {
     icon: "radio-outline",
+    isLogo: true,
     title: "Ready for the moments that matter.",
     text: "One place for emergency help, local alerts, and safer decisions in Cordova.",
   },
@@ -89,25 +91,22 @@ export default function AppIntroScreen() {
 
   const playEntranceAnimation = useCallback(() => {
     visualOpacity.value = 0;
-    visualScale.value = 0.82;
+    visualScale.value = 0.92;
     contentOpacity.value = 0;
-    contentTranslateY.value = 14;
-    visualOpacity.value = withTiming(1, { duration: 300 });
-    visualScale.value = withSpring(1, { damping: 12, stiffness: 125 });
-    contentOpacity.value = withTiming(1, { duration: 320 });
-    contentTranslateY.value = withSpring(0, { damping: 14, stiffness: 120 });
+    contentTranslateY.value = 10;
+    visualOpacity.value = withTiming(1, { duration: 360 });
+    visualScale.value = withSpring(1, { damping: 16, stiffness: 140 });
+    contentOpacity.value = withTiming(1, { duration: 360 });
+    contentTranslateY.value = withSpring(0, { damping: 16, stiffness: 140 });
   }, [visualOpacity, visualScale, contentOpacity, contentTranslateY]);
 
-  // Screen-focus entrance (first arrival) and every slide change (swipe or
-  // button) both replay the same fade/scale-in -- gives each slide a fresh
-  // reveal without the original's heavier staggered, multi-stage sequence,
-  // which would feel sluggish repeated on every step change now that this
-  // screen is paginated instead of a single static list.
-  useFocusEffect(
-    useCallback(() => {
-      playEntranceAnimation();
-    }, [playEntranceAnimation]),
-  );
+  // A single effect keyed on `index` covers both mount (index's initial
+  // value) and every slide change (swipe or button) -- a second
+  // useFocusEffect trigger used to sit alongside this and fire at the same
+  // time on mount, restarting the animation from 0 right after it had
+  // already started, which caused a visible stutter. Damping/stiffness
+  // above are tuned soft-and-quick (no overshoot bounce) so the transition
+  // reads as smooth rather than springy.
   React.useEffect(() => {
     playEntranceAnimation();
   }, [index, playEntranceAnimation]);
@@ -169,6 +168,14 @@ export default function AppIntroScreen() {
           <Animated.View style={visualAnimation}>
             {slide.preview ? (
               <FeaturePreview type={slide.preview} />
+            ) : slide.isLogo ? (
+              <View style={styles.introVisual}>
+                <Image
+                  source={require("@/assets/images/riskq.png")}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
             ) : (
               <View style={styles.introVisual}>
                 <Ionicons name={slide.icon} size={34} color={COLORS.primary} />
@@ -247,6 +254,10 @@ function createStyles(COLORS: ColorPalette) {
       justifyContent: "center",
       alignSelf: "center",
       marginBottom: SPACING.md,
+    },
+    logoImage: {
+      width: 40,
+      height: 40,
     },
     eyebrow: {
       color: COLORS.primary,
