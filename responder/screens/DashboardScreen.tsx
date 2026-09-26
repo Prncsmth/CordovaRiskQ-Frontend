@@ -4,10 +4,16 @@
 // Tapping one opens the phased detail flow in [id].tsx (accept/decline ->
 // lobby -> on the way -> arrived).
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -22,22 +28,27 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/common/Avatar";
 import RippleRings from "@/components/common/RippleRings";
 import QueuedAlertBadge from "@/components/responder/QueuedAlertBadge";
-import BarangaySectionHeader from "@/responder/components/dashboard/BarangaySectionHeader";
-import {
-  incidentBarangay,
-  filterIncidents,
-  type IncidentFilters,
-} from "@/responder/components/dashboard/filterIncidents";
-import { groupIncidentsByBarangay, UNKNOWN_LOCATION_ID, type BarangayGroup } from "@/responder/components/dashboard/groupIncidentsByBarangay";
-import IncidentCard from "@/responder/components/dashboard/IncidentCard";
-import IncidentFilterBar from "@/responder/components/dashboard/IncidentFilterBar";
-import RButton from "@/responder/components/shared/RButton";
-import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
+import BarangaySectionHeader from "@/responder/components/dashboard/BarangaySectionHeader";
+import {
+  filterIncidents,
+  incidentBarangay,
+  type IncidentFilters,
+} from "@/responder/components/dashboard/filterIncidents";
+import {
+  groupIncidentsByBarangay,
+  UNKNOWN_LOCATION_ID,
+  type BarangayGroup,
+} from "@/responder/components/dashboard/groupIncidentsByBarangay";
+import IncidentCard from "@/responder/components/dashboard/IncidentCard";
+import IncidentFilterBar from "@/responder/components/dashboard/IncidentFilterBar";
+import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
+import RButton from "@/responder/components/shared/RButton";
 import { getIncidents } from "@/responder/services/incident.service";
+import type { Incident } from "@/responder/types/responder";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
 import { getNotifications } from "@/services/notification.service";
@@ -53,7 +64,6 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import type { Incident } from "@/responder/types/responder";
 import { formatRelativeTime } from "@/utils/formatter";
 
 const POLL_INTERVAL_MS = 12000;
@@ -88,14 +98,17 @@ export default function ResponderIncidentsScreen() {
   // deliberately does not register its own Notifications tab under this id.
   useEffect(() => {
     registerTarget("responder-notifications", notificationsBellRef);
-    return () => unregisterTarget("responder-notifications", notificationsBellRef);
+    return () =>
+      unregisterTarget("responder-notifications", notificationsBellRef);
   }, [registerTarget, unregisterTarget]);
   const [duty, setDuty] = useState<DutyStatus>(() =>
     user?.isOnDuty === false ? "offline" : "online",
   );
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [newIncidentIds, setNewIncidentIds] = useState<Set<string>>(new Set());
-  const [firstSeenSnapshot, setFirstSeenSnapshot] = useState<Record<string, number>>({});
+  const [firstSeenSnapshot, setFirstSeenSnapshot] = useState<
+    Record<string, number>
+  >({});
   const [filters, setFilters] = useState<IncidentFilters>({
     search: "",
     urgencies: new Set(),
@@ -161,7 +174,9 @@ export default function ResponderIncidentsScreen() {
         }
       }
       if (initialIncidentIdsRef.current === null) {
-        initialIncidentIdsRef.current = new Set(data.map((incident) => incident.id));
+        initialIncidentIdsRef.current = new Set(
+          data.map((incident) => incident.id),
+        );
       }
 
       const newIds = new Set(
@@ -228,7 +243,9 @@ export default function ResponderIncidentsScreen() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const responderLocation = await getCurrentLocation().catch(() => undefined);
+      const responderLocation = await getCurrentLocation().catch(
+        () => undefined,
+      );
       await loadIncidents(responderLocation);
       setLoadError(false);
     } catch {
@@ -243,7 +260,8 @@ export default function ResponderIncidentsScreen() {
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
   const availableTypes = useMemo(
-    () => Array.from(new Set(incidents.map((incident) => incident.type))).sort(),
+    () =>
+      Array.from(new Set(incidents.map((incident) => incident.type))).sort(),
     [incidents],
   );
 
@@ -272,10 +290,12 @@ export default function ResponderIncidentsScreen() {
 
   const sections = useMemo(
     () =>
-      groupIncidentsByBarangay(filteredIncidents, firstSeenSnapshot).map((group) => ({
-        title: group,
-        data: group.incidents,
-      })),
+      groupIncidentsByBarangay(filteredIncidents, firstSeenSnapshot).map(
+        (group) => ({
+          title: group,
+          data: group.incidents,
+        }),
+      ),
     [filteredIncidents, firstSeenSnapshot],
   );
 
@@ -312,14 +332,18 @@ export default function ResponderIncidentsScreen() {
           colors={COLORS.heroGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.heroGradient, { paddingTop: insets.top + SPACING.sm }]}
+          style={[styles.heroGradient, { paddingTop: insets.top + SPACING.xs }]}
         >
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Avatar name={user?.name ?? "Responder"} photoUri={photoUri} />
+              <Avatar
+                name={user?.name ?? "Responder"}
+                photoUri={photoUri}
+                size={40}
+              />
               <View>
                 <Text style={styles.headerGreeting}>Hi, {firstName}</Text>
-                <Text style={styles.headerTitle}>Dashboard</Text>
+                <Text style={styles.headerTitle}>Responder</Text>
               </View>
             </View>
 
@@ -338,7 +362,11 @@ export default function ResponderIncidentsScreen() {
                   hasUnread ? "Notifications, unread" : "Notifications"
                 }
               >
-                <Ionicons name="notifications-outline" size={26} color={COLORS.primary} />
+                <Ionicons
+                  name="notifications-outline"
+                  size={26}
+                  color={COLORS.primary}
+                />
                 {hasUnread ? <View style={styles.unreadDot} /> : null}
               </Pressable>
             </View>
@@ -387,10 +415,12 @@ export default function ResponderIncidentsScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.statIcon}
               >
-                <Ionicons name="navigate" size={16} color={COLORS.tide} />
+                <Ionicons name="navigate" size={14} color={COLORS.tide} />
               </LinearGradient>
-              <Text style={styles.statValue}>{incidents.length}</Text>
-              <Text style={styles.statLabel}>Nearby</Text>
+              <View style={styles.statTextCol}>
+                <Text style={styles.statValue}>{incidents.length}</Text>
+                <Text style={styles.statLabel}>Nearby</Text>
+              </View>
             </View>
             <Pressable
               style={[
@@ -414,14 +444,16 @@ export default function ResponderIncidentsScreen() {
               >
                 <Ionicons
                   name="alert-circle"
-                  size={16}
+                  size={14}
                   color={COLORS.primary}
                 />
               </LinearGradient>
-              <Text style={[styles.statValue, { color: COLORS.primary }]}>
-                {highUrgencyCount}
-              </Text>
-              <Text style={styles.statLabel}>High Urgency</Text>
+              <View style={styles.statTextCol}>
+                <Text style={[styles.statValue, { color: COLORS.primary }]}>
+                  {highUrgencyCount}
+                </Text>
+                <Text style={styles.statLabel}>High Urgency</Text>
+              </View>
             </Pressable>
           </View>
         </LinearGradient>
@@ -506,7 +538,10 @@ export default function ResponderIncidentsScreen() {
             <SectionList<Incident, { title: BarangayGroup }>
               sections={sections}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={[styles.list, { paddingBottom: tabBarHeight + SPACING.md }]}
+              contentContainerStyle={[
+                styles.list,
+                { paddingBottom: tabBarHeight + SPACING.md },
+              ]}
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
               ListHeaderComponent={
@@ -556,195 +591,198 @@ export default function ResponderIncidentsScreen() {
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: COLORS.surface,
-  },
-  hero: {
-    ...SHADOW_LG,
-  },
-  heroGradient: {
-    borderBottomLeftRadius: RADIUS.xl + 6,
-    borderBottomRightRadius: RADIUS.xl + 6,
-    paddingBottom: SPACING.md,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-  },
-  headerGreeting: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
-  },
-  headerTitle: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.heading,
-    color: COLORS.text,
-  },
-  headerSubtitle: {
-    fontSize: TYPOGRAPHY.caption,
-    color: COLORS.textSecondary,
-    // Without this, the count+timestamp string had no width constraint next
-    // to the duty pill, so it could overflow past the row on a long
-    // "Updated X minutes ago" value instead of wrapping/truncating.
-    flex: 1,
-    flexShrink: 1,
-    textAlign: "right",
-    marginLeft: SPACING.sm,
-  },
-  // Plain icon, no circular background/border -- just a big enough tap
-  // target (44x44, Apple/Android's own minimum) centered around it.
-  bellButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  unreadDot: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 7,
-    height: 7,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.primary,
-    borderWidth: 1.5,
-    borderColor: COLORS.background,
-  },
-  statusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  dutyPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: COLORS.primaryTint,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    // Never shrink -- only the subtitle text next to it should give up width.
-    flexShrink: 0,
-  },
-  dutyPillOffline: {
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  dutyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: RADIUS.full,
-  },
-  dutyText: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.text,
-  },
-  statsRow: {
-    flexDirection: "row",
-    gap: SPACING.sm,
-    paddingHorizontal: SPACING.md,
-    marginBottom: SPACING.md,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: "center",
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderLeftWidth: 4,
-    paddingVertical: SPACING.md,
-    ...SHADOW,
-  },
-  statCardActive: {
-    backgroundColor: COLORS.primaryTint,
-  },
-  statIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.full,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: SPACING.xs,
-  },
-  statValue: {
-    fontFamily: FONT_FAMILY.display,
-    fontSize: TYPOGRAPHY.heading,
-    color: COLORS.text,
-  },
-  statLabel: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textTertiary,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-  offlineState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: SPACING.xl,
-    paddingTop: SPACING.sm,
-    gap: SPACING.sm,
-  },
-  offlineWatermark: {
-    position: "absolute",
-  },
-  offlineText: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.textTertiary,
-    textAlign: "center",
-    fontWeight: "600",
-  },
-  goOnlineButton: {
-    width: "100%",
-    marginTop: SPACING.sm,
-  },
-  noResultsState: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: SPACING.xl,
-    gap: SPACING.sm,
-  },
-  noResultsText: {
-    fontSize: TYPOGRAPHY.body,
-    color: COLORS.textTertiary,
-    textAlign: "center",
-    fontWeight: "600",
-  },
-  retryButton: {
-    width: 160,
-    marginTop: SPACING.sm,
-  },
-  list: {
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.sm,
-    gap: SPACING.md,
-  },
-  nearestSection: {
-    gap: SPACING.md,
-  },
-  nearestLabel: {
-    fontSize: TYPOGRAPHY.body,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-    letterSpacing: 0.2,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: COLORS.surface,
+    },
+    hero: {
+      ...SHADOW_LG,
+    },
+    heroGradient: {
+      borderBottomLeftRadius: RADIUS.xl + 6,
+      borderBottomRightRadius: RADIUS.xl + 6,
+      paddingBottom: SPACING.sm,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+    },
+    headerActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+    },
+    headerGreeting: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+    },
+    headerTitle: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.heading,
+      color: COLORS.text,
+    },
+    headerSubtitle: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      // Without this, the count+timestamp string had no width constraint next
+      // to the duty pill, so it could overflow past the row on a long
+      // "Updated X minutes ago" value instead of wrapping/truncating.
+      flex: 1,
+      flexShrink: 1,
+      textAlign: "right",
+      marginLeft: SPACING.sm,
+    },
+    // Plain icon, no circular background/border -- just a big enough tap
+    // target (44x44, Apple/Android's own minimum) centered around it.
+    bellButton: {
+      width: 44,
+      height: 44,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    unreadDot: {
+      position: "absolute",
+      top: 8,
+      right: 8,
+      width: 7,
+      height: 7,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primary,
+      borderWidth: 1.5,
+      borderColor: COLORS.background,
+    },
+    statusRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
+    dutyPill: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      backgroundColor: COLORS.primaryTint,
+      borderRadius: RADIUS.full,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      // Never shrink -- only the subtitle text next to it should give up width.
+      flexShrink: 0,
+    },
+    dutyPillOffline: {
+      backgroundColor: COLORS.background,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    dutyDot: {
+      width: 8,
+      height: 8,
+      borderRadius: RADIUS.full,
+    },
+    dutyText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.text,
+    },
+    statsRow: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+    },
+    statCard: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      backgroundColor: COLORS.background,
+      borderRadius: RADIUS.lg,
+      borderLeftWidth: 4,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.sm,
+      ...SHADOW,
+    },
+    statCardActive: {
+      backgroundColor: COLORS.primaryTint,
+    },
+    statIcon: {
+      width: 26,
+      height: 26,
+      borderRadius: RADIUS.full,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    statTextCol: {
+      flexShrink: 1,
+    },
+    statValue: {
+      fontFamily: FONT_FAMILY.display,
+      fontSize: TYPOGRAPHY.heading,
+      color: COLORS.text,
+    },
+    statLabel: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textTertiary,
+      fontWeight: "600",
+    },
+    offlineState: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: SPACING.xl,
+      paddingTop: SPACING.sm,
+      gap: SPACING.sm,
+    },
+    offlineWatermark: {
+      position: "absolute",
+    },
+    offlineText: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.textTertiary,
+      textAlign: "center",
+      fontWeight: "600",
+    },
+    goOnlineButton: {
+      width: "100%",
+      marginTop: SPACING.sm,
+    },
+    noResultsState: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: SPACING.xl,
+      gap: SPACING.sm,
+    },
+    noResultsText: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.textTertiary,
+      textAlign: "center",
+      fontWeight: "600",
+    },
+    retryButton: {
+      width: 160,
+      marginTop: SPACING.sm,
+    },
+    list: {
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.sm,
+      gap: SPACING.sm,
+    },
+    nearestSection: {
+      gap: SPACING.sm,
+    },
+    nearestLabel: {
+      fontSize: TYPOGRAPHY.body,
+      fontWeight: "700",
+      color: COLORS.textSecondary,
+      letterSpacing: 0.2,
+    },
   });
 }

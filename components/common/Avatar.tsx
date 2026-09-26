@@ -12,14 +12,17 @@ function getInitials(name: string): string {
     .join("");
 }
 
+const DEFAULT_SIZE = 56;
+
 type AvatarProps = {
   name: string;
   photoUri?: string | null;
+  size?: number;
 };
 
-export function Avatar({ name, photoUri }: AvatarProps) {
+export function Avatar({ name, photoUri, size = DEFAULT_SIZE }: AvatarProps) {
   const COLORS = useThemeColors();
-  const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const styles = useMemo(() => createStyles(COLORS, size), [COLORS, size]);
 
   return (
     <LinearGradient
@@ -37,11 +40,11 @@ export function Avatar({ name, photoUri }: AvatarProps) {
   );
 }
 
-function createStyles(COLORS: ColorPalette) {
+function createStyles(COLORS: ColorPalette, size: number) {
   return StyleSheet.create({
     avatar: {
-      width: 56,
-      height: 56,
+      width: size,
+      height: size,
       borderRadius: RADIUS.full,
       overflow: "hidden",
       justifyContent: "center",
@@ -60,7 +63,7 @@ function createStyles(COLORS: ColorPalette) {
     text: {
       color: COLORS.white,
       fontWeight: "700",
-      fontSize: TYPOGRAPHY.subtitle,
+      fontSize: TYPOGRAPHY.subtitle * (size / DEFAULT_SIZE),
     },
   });
 }

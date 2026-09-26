@@ -7,9 +7,28 @@
 // this file only owns the derived phase and the backend calls that advance
 // it.
 import { Ionicons } from "@expo/vector-icons";
-import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
@@ -22,13 +41,17 @@ import {
   DialogTitle,
 } from "@/components/common/Dialog";
 import QueuedAlertBadge from "@/components/responder/QueuedAlertBadge";
+import { useAuth } from "@/context/AuthContext";
+import { useLiveLocationUpload } from "@/hooks/useLiveLocationUpload";
 import ArrivedView from "@/responder/components/incident-detail/ArrivedView";
-import LobbyView, { type LobbyTab } from "@/responder/components/incident-detail/LobbyView";
+import LobbyView, {
+  type LobbyTab,
+} from "@/responder/components/incident-detail/LobbyView";
+import { mergeIncidentUpdate } from "@/responder/components/incident-detail/mergeIncidentUpdate";
 import OnTheWayView from "@/responder/components/incident-detail/OnTheWayView";
 import PendingView from "@/responder/components/incident-detail/PendingView";
 import { phaseForMyStatus } from "@/responder/components/incident-detail/phaseForMyStatus";
 import RButton from "@/responder/components/shared/RButton";
-import { useAuth } from "@/context/AuthContext";
 import {
   declineIncident,
   getIncidentById,
@@ -38,9 +61,11 @@ import {
   updateMyResponderStatus,
 } from "@/responder/services/incident.service";
 import { connectToIncidentSocket } from "@/responder/services/incidentSocket.service";
-import { mergeIncidentUpdate } from "@/responder/components/incident-detail/mergeIncidentUpdate";
-import { useLiveLocationUpload } from "@/hooks/useLiveLocationUpload";
-import { getCurrentLocation, type Coordinates } from "@/services/location.service";
+import type { Incident } from "@/responder/types/responder";
+import {
+  getCurrentLocation,
+  type Coordinates,
+} from "@/services/location.service";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -49,7 +74,6 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import type { Incident } from "@/responder/types/responder";
 
 export default function IncidentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,7 +91,9 @@ export default function IncidentDetailScreen() {
   const isClosingRef = useRef(false);
   const hasFocusedOnceRef = useRef(false);
   const [showResolveConfirm, setShowResolveConfirm] = useState(false);
-  const [closedNotice, setClosedNotice] = useState<"completed" | "cancelled" | null>(null);
+  const [closedNotice, setClosedNotice] = useState<
+    "completed" | "cancelled" | null
+  >(null);
   // Fetched once and reused for the rest of this screen's lifetime, matching
   // the merge logic below that already carries distanceKm forward unchanged
   // across refreshes -- null means "not yet attempted", undefined means
@@ -129,12 +155,17 @@ export default function IncidentDetailScreen() {
       token,
       id,
       (update) => {
-        setIncident((prev) => (prev ? mergeIncidentUpdate(prev, update) : prev));
+        setIncident((prev) =>
+          prev ? mergeIncidentUpdate(prev, update) : prev,
+        );
       },
       () => {
         getIncidentById(token, id)
           .then((fresh) => {
-            if (fresh) setIncident((prev) => (prev ? { ...fresh, distanceKm: prev.distanceKm } : fresh));
+            if (fresh)
+              setIncident((prev) =>
+                prev ? { ...fresh, distanceKm: prev.distanceKm } : fresh,
+              );
           })
           .catch(() => {
             // Best-effort resync -- the next reconnect (or the socket's own
@@ -154,7 +185,9 @@ export default function IncidentDetailScreen() {
   // live by the socket effect above, so this reacts immediately once the
   // incident resolves/cancels, without its own polling.
   const isSendingLiveLocation =
-    myPhase === "on_the_way" && incident?.status !== "completed" && incident?.status !== "cancelled";
+    myPhase === "on_the_way" &&
+    incident?.status !== "completed" &&
+    incident?.status !== "cancelled";
   useLiveLocationUpload(token, isSendingLiveLocation);
 
   // Only reachable via a stale link -- declined incidents are already
@@ -164,11 +197,9 @@ export default function IncidentDetailScreen() {
   // alert is declined-only.
   useEffect(() => {
     if (incident && myPhase === null) {
-      Alert.alert(
-        "Already declined",
-        "You already declined this incident.",
-        [{ text: "OK", onPress: () => router.back() }],
-      );
+      Alert.alert("Already declined", "You already declined this incident.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     }
   }, [incident, myPhase, router]);
 
@@ -274,7 +305,11 @@ export default function IncidentDetailScreen() {
   const handleHeadOut = async () => {
     if (!token) return;
     try {
-      const updated = await updateMyResponderStatus(token, incident.id, "on_the_way");
+      const updated = await updateMyResponderStatus(
+        token,
+        incident.id,
+        "on_the_way",
+      );
       setIncident({ ...updated, distanceKm: incident.distanceKm });
     } catch (err) {
       Alert.alert(
@@ -301,7 +336,11 @@ export default function IncidentDetailScreen() {
   const handleArrive = async () => {
     if (!token) return;
     try {
-      const updated = await updateMyResponderStatus(token, incident.id, "arrived");
+      const updated = await updateMyResponderStatus(
+        token,
+        incident.id,
+        "arrived",
+      );
       setIncident({ ...updated, distanceKm: incident.distanceKm });
     } catch (err) {
       Alert.alert(
@@ -344,7 +383,9 @@ export default function IncidentDetailScreen() {
   const confirmCompleteIncident = async () => {
     setShowResolveConfirm(false);
     if (token) {
-      await updateIncidentStatus(token, incident.id, "completed").catch(() => {});
+      await updateIncidentStatus(token, incident.id, "completed").catch(
+        () => {},
+      );
     }
     isClosingRef.current = true;
     router.back();
@@ -357,7 +398,11 @@ export default function IncidentDetailScreen() {
       {phase !== "on_the_way" && (
         <View style={styles.header}>
           <BackButton onPress={() => router.dismissTo("/responder")} />
-          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          <Text
+            style={styles.headerTitle}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
             {phase === "pending"
               ? isRejoin
                 ? "Rejoin Incident"
@@ -442,7 +487,7 @@ export default function IncidentDetailScreen() {
               onPress={confirmCompleteIncident}
             >
               <Ionicons name="checkmark-done" size={16} color={COLORS.white} />
-              <Text style={styles.resolveConfirmText}>Mark Resolved</Text>
+              <Text style={styles.resolveConfirmText}>Comfirm</Text>
             </Pressable>
           </View>
         </Dialog>
@@ -456,11 +501,19 @@ export default function IncidentDetailScreen() {
       >
         <Dialog>
           <DialogIcon
-            name={closedNotice === "completed" ? "checkmark-done-outline" : "close-circle-outline"}
-            color={closedNotice === "completed" ? COLORS.success : COLORS.danger}
+            name={
+              closedNotice === "completed"
+                ? "checkmark-done-outline"
+                : "close-circle-outline"
+            }
+            color={
+              closedNotice === "completed" ? COLORS.success : COLORS.danger
+            }
           />
           <DialogTitle>
-            {closedNotice === "completed" ? "Incident resolved" : "Incident cancelled"}
+            {closedNotice === "completed"
+              ? "Incident resolved"
+              : "Incident cancelled"}
           </DialogTitle>
           <DialogMessage>
             {closedNotice === "completed"

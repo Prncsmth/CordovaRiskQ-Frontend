@@ -51,7 +51,7 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       gap: SPACING.xs,
       paddingHorizontal: SPACING.md,
-      paddingTop: SPACING.md,
+      paddingTop: SPACING.sm,
       paddingBottom: SPACING.xs,
       backgroundColor: COLORS.surface,
     },

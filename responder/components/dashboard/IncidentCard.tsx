@@ -109,17 +109,23 @@ export default function IncidentCard({
         </View>
 
         <View style={styles.cardBody}>
-          <Text style={styles.cardTitle}>{incident.type}</Text>
+          <View style={styles.cardTitleRow}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {incident.type}
+            </Text>
+            <UrgencyBadge urgency={incident.urgency} />
+          </View>
           <View style={styles.cardLocationRow}>
             <Ionicons
               name="location-outline"
               size={12}
               color={COLORS.textSecondary}
             />
-            <Text style={styles.cardLocation}>{incident.location}</Text>
+            <Text style={styles.cardLocation} numberOfLines={1}>
+              {incident.location}
+            </Text>
           </View>
           <View style={styles.cardMetaRow}>
-            <UrgencyBadge urgency={incident.urgency} />
             {myStatus && (
               <View
                 style={[
@@ -213,7 +219,15 @@ function createStyles(COLORS: ColorPalette) {
       flex: 1,
       gap: 3,
     },
+    cardTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: SPACING.sm,
+    },
     cardTitle: {
+      flex: 1,
+      flexShrink: 1,
       fontSize: TYPOGRAPHY.body,
       fontWeight: "700",
       color: COLORS.text,
