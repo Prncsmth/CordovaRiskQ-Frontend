@@ -1,7 +1,6 @@
 // components/tabs/TabBar.tsx
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
-import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useRef } from "react";
@@ -132,7 +131,6 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
         style={styles.container}
         onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height + bottomMargin)}
       >
-        <BlurView intensity={70} tint={COLORS.glassTint} style={styles.blur} />
         {LEFT_TABS.map(renderTab)}
 
         <View style={styles.fabSlot}>
@@ -187,15 +185,13 @@ function createStyles(COLORS: ColorPalette) {
       paddingBottom: 8,
       paddingHorizontal: 8,
       borderRadius: RADIUS.xl,
-      backgroundColor: COLORS.glassOverlay,
+      // Solid, not translucent -- a glass/blur backing here read as
+      // barely-there against the map screen behind it (same fix already
+      // applied to ResponderTabBar and the map's own floating controls).
+      backgroundColor: COLORS.surface,
       borderWidth: 1,
-      borderColor: COLORS.glassBorder,
+      borderColor: COLORS.border,
       ...SHADOW_LG,
-    },
-    blur: {
-      ...StyleSheet.absoluteFill,
-      borderRadius: RADIUS.xl,
-      overflow: "hidden",
     },
 
     tab: {

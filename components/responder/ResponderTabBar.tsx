@@ -163,10 +163,15 @@ function createStyles(COLORS: ColorPalette) {
       // Flat, not translucent -- same fix already applied to the map's own
       // floating controls (SearchBar/PinButton/ZoomControls/LocateButton):
       // a BlurView "glass" look read as broken/see-through rather than
-      // intentional, so this uses a solid surface color instead.
-      backgroundColor: COLORS.surface,
+      // intentional, so this uses a solid color instead. Uses `background`
+      // rather than `surface` specifically because the responder screens
+      // this bar floats over (DashboardScreen, LiveMapScreen) are
+      // themselves `surface`-colored -- matching that would make the bar
+      // blend into the screen instead of reading as a distinct floating
+      // element.
+      backgroundColor: COLORS.background,
       borderWidth: 1,
-      borderColor: COLORS.borderMuted,
+      borderColor: COLORS.border,
       ...SHADOW_LG,
     },
     tab: {
