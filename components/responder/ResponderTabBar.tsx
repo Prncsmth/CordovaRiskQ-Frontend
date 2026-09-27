@@ -7,6 +7,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -104,7 +105,7 @@ export default function ResponderTabBar({ state, navigation }: BottomTabBarProps
 
   function renderTab(tab: TabConfig) {
     const focused = activeName === tab.name;
-    const color = focused ? COLORS.primary : COLORS.textTertiary;
+    const color = focused ? COLORS.white : "rgba(255, 255, 255, 0.6)";
 
     return (
       <TouchableOpacity
@@ -115,6 +116,7 @@ export default function ResponderTabBar({ state, navigation }: BottomTabBarProps
           navigation.navigate(tab.name);
         }}
         activeOpacity={0.7}
+        hitSlop={8}
       >
         <View
           ref={tab.targetId ? refByTarget[tab.targetId] : undefined}
@@ -123,7 +125,7 @@ export default function ResponderTabBar({ state, navigation }: BottomTabBarProps
           style={styles.tabContent}
         >
           {focused ? <View style={styles.activeDot} /> : null}
-          <Ionicons name={focused ? tab.activeIcon : tab.icon} size={21} color={color} />
+          <Ionicons name={focused ? tab.activeIcon : tab.icon} size={24} color={color} />
           <Text style={[styles.label, { color }]}>{tab.label}</Text>
         </View>
       </TouchableOpacity>
@@ -132,12 +134,15 @@ export default function ResponderTabBar({ state, navigation }: BottomTabBarProps
 
   return (
     <View style={[styles.outer, { marginBottom: bottomMargin }]}>
-      <View
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.primaryDark]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={styles.container}
         onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height + bottomMargin)}
       >
         {TABS.map(renderTab)}
-      </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -154,25 +159,18 @@ function createStyles(COLORS: ColorPalette) {
       right: 0,
       bottom: 0,
       marginHorizontal: SPACING.md,
+      borderRadius: RADIUS.full,
+      ...SHADOW_LG,
     },
     container: {
       flexDirection: "row",
-      paddingVertical: 10,
+      paddingVertical: 14,
       paddingHorizontal: 8,
-      borderRadius: RADIUS.xl,
-      // Flat, not translucent -- same fix already applied to the map's own
-      // floating controls (SearchBar/PinButton/ZoomControls/LocateButton):
-      // a BlurView "glass" look read as broken/see-through rather than
-      // intentional, so this uses a solid color instead. Uses `background`
-      // rather than `surface` specifically because the responder screens
-      // this bar floats over (DashboardScreen, LiveMapScreen) are
-      // themselves `surface`-colored -- matching that would make the bar
-      // blend into the screen instead of reading as a distinct floating
-      // element.
-      backgroundColor: COLORS.background,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      ...SHADOW_LG,
+      borderRadius: RADIUS.full,
+      overflow: "hidden",
+      // Brand red gradient (matches the citizen tab bar's FAB), not a
+      // neutral token -- no border needed since it already reads as a
+      // distinct floating element against either screen background.
     },
     tab: {
       flex: 1,
@@ -180,7 +178,7 @@ function createStyles(COLORS: ColorPalette) {
     },
     tabContent: {
       alignItems: "center",
-      gap: 4,
+      gap: 6,
       paddingBottom: 2,
     },
     activeDot: {
@@ -189,7 +187,7 @@ function createStyles(COLORS: ColorPalette) {
       width: 4,
       height: 4,
       borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primary,
+      backgroundColor: COLORS.white,
     },
     label: {
       fontSize: 11,

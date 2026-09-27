@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
-import RippleRings from "@/components/common/RippleRings";
 import { getCategory, type CategoryId } from "@/components/report/categories";
 import {
   FONT_FAMILY,
@@ -14,7 +13,6 @@ import {
   SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
-  useIsDarkTheme,
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
@@ -36,21 +34,11 @@ export default function ReportConfirmation({
 }: ReportConfirmationProps) {
   const category = getCategory(categoryId);
   const COLORS = useThemeColors();
-  const isDark = useIsDarkTheme();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const rippleColor = isDark
-    ? "rgba(52, 211, 153, 0.18)"
-    : "rgba(30, 142, 62, 0.14)";
 
   return (
     <View style={styles.wrap}>
       <View style={styles.iconWrap}>
-        <RippleRings
-          size={140}
-          color={rippleColor}
-          ringCount={2}
-          style={styles.ripple}
-        />
         <View style={styles.iconCircle}>
           {/* A page glyph with a folded top-right corner (cut as negative
               space, revealing the circle behind it) and a checkmark, both
@@ -133,18 +121,12 @@ function createStyles(COLORS: ColorPalette) {
     wrap: {
       flex: 1,
       alignItems: "center",
-      justifyContent: "center",
       paddingHorizontal: SPACING.lg,
+      paddingTop: SPACING.xxl + SPACING.sm,
+      paddingBottom: SPACING.lg,
     },
     iconWrap: {
-      width: 140,
-      height: 140,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: SPACING.md,
-    },
-    ripple: {
-      position: "absolute",
+      marginBottom: SPACING.lg,
     },
     iconCircle: {
       width: 80,
@@ -177,7 +159,7 @@ function createStyles(COLORS: ColorPalette) {
       borderColor: COLORS.borderMuted,
       paddingVertical: SPACING.md,
       paddingHorizontal: SPACING.md,
-      marginBottom: SPACING.xl,
+      marginBottom: SPACING.lg,
       ...SHADOW,
     },
     summaryRow: {
@@ -233,6 +215,7 @@ function createStyles(COLORS: ColorPalette) {
     actions: {
       width: "100%",
       gap: SPACING.sm,
+      marginTop: "auto",
     },
     secondaryButton: {
       width: "100%",

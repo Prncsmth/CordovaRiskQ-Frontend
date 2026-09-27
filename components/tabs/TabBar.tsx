@@ -85,7 +85,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
   function renderTab(tab: TabConfig) {
     const focused = activeName === tab.name;
-    const color = focused ? COLORS.primary : COLORS.textTertiary;
+    const color = focused ? COLORS.white : "rgba(255, 255, 255, 0.6)";
 
     return (
       <TouchableOpacity
@@ -96,6 +96,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
           navigation.navigate(tab.name);
         }}
         activeOpacity={0.7}
+        hitSlop={8}
       >
         <View
           ref={
@@ -116,7 +117,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
           {focused ? <View style={styles.activeDot} /> : null}
           <Ionicons
             name={focused ? tab.activeIcon : tab.icon}
-            size={21}
+            size={24}
             color={color}
           />
           <Text style={[styles.label, { color }]}>{tab.label}</Text>
@@ -127,6 +128,15 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.outer, { marginBottom: bottomMargin }]}>
+      {/* A separate, clipped background layer -- the row below it needs to
+          stay unclipped so the FAB's negative marginTop can still poke up
+          above the bar instead of being cut off at its edge. */}
+      <LinearGradient
+        colors={[COLORS.primary, COLORS.primaryDark]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.background}
+      />
       <View
         style={styles.container}
         onLayout={(e) => setTabBarHeight(e.nativeEvent.layout.height + bottomMargin)}
@@ -142,6 +152,7 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
               navigation.navigate("report");
             }}
             activeOpacity={0.85}
+            hitSlop={8}
             onLayout={() => notifyTargetLayout()}
           >
             <LinearGradient
@@ -150,10 +161,10 @@ export default function TabBar({ state, navigation }: BottomTabBarProps) {
               end={{ x: 1, y: 1 }}
               style={styles.fab}
             >
-              <Ionicons name="document-text" size={26} color={COLORS.white} />
+              <Ionicons name="document-text" size={30} color={COLORS.white} />
             </LinearGradient>
           </TouchableOpacity>
-          <Text style={[styles.label, styles.fabLabel, { color: COLORS.textTertiary }]}>
+          <Text style={[styles.label, styles.fabLabel, { color: "rgba(255, 255, 255, 0.6)" }]}>
             Report
           </Text>
         </View>
@@ -177,21 +188,24 @@ function createStyles(COLORS: ColorPalette) {
       right: 0,
       bottom: 0,
       marginHorizontal: SPACING.md,
+      borderRadius: RADIUS.full,
+      ...SHADOW_LG,
+    },
+    background: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: RADIUS.full,
+      overflow: "hidden",
     },
     container: {
       flexDirection: "row",
       alignItems: "flex-end",
-      paddingTop: 10,
-      paddingBottom: 8,
+      paddingTop: 14,
+      paddingBottom: 12,
       paddingHorizontal: 8,
-      borderRadius: RADIUS.xl,
-      // Solid, not translucent -- a glass/blur backing here read as
-      // barely-there against the map screen behind it (same fix already
-      // applied to ResponderTabBar and the map's own floating controls).
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      ...SHADOW_LG,
     },
 
     tab: {
@@ -201,7 +215,7 @@ function createStyles(COLORS: ColorPalette) {
 
     tabContent: {
       alignItems: "center",
-      gap: 4,
+      gap: 6,
       paddingBottom: 2,
     },
 
@@ -211,7 +225,7 @@ function createStyles(COLORS: ColorPalette) {
       width: 4,
       height: 4,
       borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primary,
+      backgroundColor: COLORS.white,
     },
 
     label: {
@@ -225,7 +239,7 @@ function createStyles(COLORS: ColorPalette) {
     },
 
     fabOuter: {
-      marginTop: -40, // was -30, now moves it up further
+      marginTop: -46,
       borderRadius: RADIUS.full,
       shadowColor: COLORS.primary,
       shadowOpacity: 0.35,
@@ -235,8 +249,8 @@ function createStyles(COLORS: ColorPalette) {
     },
 
     fab: {
-      width: 58,
-      height: 58,
+      width: 66,
+      height: 66,
       borderRadius: RADIUS.full,
       alignItems: "center",
       justifyContent: "center",
