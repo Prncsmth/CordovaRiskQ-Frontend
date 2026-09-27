@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import React, { useMemo } from "react";
@@ -8,6 +9,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  View,
   ViewStyle,
 } from "react-native";
 import Animated, {
@@ -26,6 +28,8 @@ interface PrimaryButtonProps extends Omit<PressableProps, "style"> {
   // around a different accent (e.g. Contact Support's teal), so the button
   // doesn't clash with the rest of that screen.
   colors?: readonly [string, string];
+  // Optional icon shown after the title (e.g. an arrow on a "Continue" CTA).
+  trailingIcon?: keyof typeof Ionicons.glyphMap;
 }
 
 export default function PrimaryButton({
@@ -37,6 +41,7 @@ export default function PrimaryButton({
   onPressIn,
   onPressOut,
   colors,
+  trailingIcon,
   ...props
 }: PrimaryButtonProps) {
   const COLORS = useThemeColors();
@@ -90,7 +95,12 @@ export default function PrimaryButton({
           {loading ? (
             <ActivityIndicator color={COLORS.white} />
           ) : (
-            <Text style={styles.text}>{title}</Text>
+            <View style={styles.content}>
+              <Text style={styles.text}>{title}</Text>
+              {trailingIcon ? (
+                <Ionicons name={trailingIcon} size={18} color={COLORS.white} />
+              ) : null}
+            </View>
           )}
         </LinearGradient>
       </Pressable>
@@ -130,6 +140,12 @@ function createStyles(COLORS: ColorPalette) {
   disabled: {
     opacity: 0.6,
     shadowOpacity: 0,
+  },
+
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.sm,
   },
 
   text: {

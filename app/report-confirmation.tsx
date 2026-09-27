@@ -34,7 +34,7 @@ export default function ReportConfirmationScreen() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.background }}>
+    <View style={{ flex: 1, backgroundColor: COLORS.surface }}>
       <ReportConfirmation
         categoryId={category}
         location={location}
