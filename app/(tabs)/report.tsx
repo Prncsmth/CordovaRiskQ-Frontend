@@ -179,7 +179,7 @@ export default function ReportScreen() {
           reporterLongitude: result.coords.longitude,
           photoUrl,
         });
-        router.push({
+        router.replace({
           pathname: "/report-confirmation",
           params: { ref: submitResult.ref, category, location: activeLocation.address },
         });
