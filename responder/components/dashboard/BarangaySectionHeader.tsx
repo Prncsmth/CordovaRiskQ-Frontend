@@ -67,10 +67,11 @@ function createStyles(COLORS: ColorPalette) {
     name: {
       flex: 1,
       flexShrink: 1,
-      fontSize: TYPOGRAPHY.body,
+      fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.textSecondary,
       letterSpacing: 0.2,
+      textTransform: "uppercase",
     },
     count: {
       // row's own `gap` already spaces this from `name` -- marginLeft:

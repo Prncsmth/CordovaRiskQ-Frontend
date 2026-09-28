@@ -35,7 +35,7 @@ import {
 import { getNotificationReadDisplay } from "@/components/notifications/notificationReadDisplay";
 import type { AppNotification, NotificationType } from "@/services/notification.service";
 import { FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
-import { formatRelativeTime } from "@/utils/formatter";
+import { formatRelativeTime, formatShortDateTime } from "@/utils/formatter";
 
 const SWIPE_MAX = 120;
 const DELETE_THRESHOLD = 80;
@@ -184,7 +184,9 @@ export default function NotificationRow({
                     <Text style={styles.senderName} numberOfLines={1}>
                       Cordova RISKQ
                     </Text>
-                    <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
+                    <Text style={styles.dateText} numberOfLines={1}>
+                      {formatShortDateTime(item.createdAt)}
+                    </Text>
                     {!item.read && (
                       <View style={[styles.pill, { backgroundColor: bg }]}>
                         <Text style={[styles.pillText, { color }]}>New</Text>
@@ -318,9 +320,15 @@ function createStyles(COLORS: ColorPalette) {
       gap: 6,
     },
     senderName: {
+      flex: 1,
       fontFamily: FONT_FAMILY.displaySemibold,
       fontSize: TYPOGRAPHY.small,
       color: COLORS.text,
+    },
+    dateText: {
+      flexShrink: 0,
+      fontSize: 11,
+      color: COLORS.textTertiary,
     },
     // Background is always overridden inline with the type's own color
     // (getNotificationReadDisplay) -- this is just a sane fallback.

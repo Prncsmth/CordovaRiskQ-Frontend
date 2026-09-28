@@ -35,6 +35,7 @@ type NotificationContextValue = {
   refresh: () => Promise<void>;
   markAllRead: () => void;
   deleteNotification: (id: string) => Promise<void>;
+  clearAll: () => Promise<void>;
 };
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
@@ -105,6 +106,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     [token],
   );
 
+  // No bulk "delete all" route exists (same unconfirmed-contract situation
+  // as the single-delete request below) -- this fans out the same
+  // per-notification request instead of guessing at a second endpoint.
+  // Only the ones the backend actually confirmed come off the list, so a
+  // partial failure leaves the rest visible to retry individually rather
+  // than silently disappearing.
+  const clearAll = useCallback(async () => {
+    if (!token) return;
+    const ids = notifications.map((n) => n.id);
+    const results = await Promise.allSettled(
+      ids.map((id) => deleteNotificationRequest(token, id)),
+    );
+    const deletedIds = new Set(
+      ids.filter((_, index) => results[index].status === "fulfilled"),
+    );
+    setNotifications((prev) => prev.filter((n) => !deletedIds.has(n.id)));
+    if (deletedIds.size < ids.length) {
+      throw new Error("Some notifications couldn't be deleted");
+    }
+  }, [token, notifications]);
+
   const hasUnread = notifications.some((n) => !n.read);
 
   const value = useMemo<NotificationContextValue>(
@@ -117,6 +139,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       refresh,
       markAllRead,
       deleteNotification,
+      clearAll,
     }),
     [
       notifications,
@@ -127,6 +150,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       refresh,
       markAllRead,
       deleteNotification,
+      clearAll,
     ],
   );
 

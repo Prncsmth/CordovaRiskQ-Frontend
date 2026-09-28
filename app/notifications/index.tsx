@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -14,6 +15,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
+import {
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTitle,
+} from "@/components/common/Dialog";
 import { EmptyState } from "@/components/common/EmptyState";
 import NotificationRow from "@/components/notifications/NotificationRow";
 import { useNotifications } from "@/context/NotificationContext";
@@ -59,10 +68,13 @@ export default function NotificationsScreen({
     refresh,
     markAllRead,
     deleteNotification: removeNotification,
+    clearAll,
   } = useNotifications();
   const tabBarHeight = useTabBarHeight();
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
+  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
 
   // Matches the previous per-load behavior: opening this screen marks
   // whatever's currently loaded as read. NotificationProvider already did
@@ -106,10 +118,24 @@ export default function NotificationsScreen({
     [removeNotification],
   );
 
+  const handleConfirmClearAll = useCallback(() => {
+    setShowClearAllConfirm(false);
+    setIsClearingAll(true);
+    clearAll()
+      .catch(() => {
+        Alert.alert(
+          "Couldn't clear all notifications",
+          "Some notifications may not have been deleted. Please try again.",
+        );
+      })
+      .finally(() => setIsClearingAll(false));
+  }, [clearAll]);
+
   const today = notifications.filter((n) => isToday(n.createdAt));
   const earlier = notifications.filter((n) => !isToday(n.createdAt));
 
   return (
+    <>
     <ScrollView
       style={styles.flex}
       contentContainerStyle={[
@@ -139,7 +165,22 @@ export default function NotificationsScreen({
           <BackButton onPress={() => router.back()} />
         )}
         <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={{ width: 36 }} />
+        {notifications.length > 0 ? (
+          <Pressable
+            onPress={() => setShowClearAllConfirm(true)}
+            disabled={isClearingAll}
+            hitSlop={8}
+            style={styles.clearAllButton}
+          >
+            {isClearingAll ? (
+              <ActivityIndicator size="small" color={COLORS.primary} />
+            ) : (
+              <Text style={styles.clearAllText}>Clear All</Text>
+            )}
+          </Pressable>
+        ) : (
+          <View style={{ width: 36 }} />
+        )}
       </View>
 
       {isLoading ? (
@@ -194,6 +235,30 @@ export default function NotificationsScreen({
         </>
       )}
     </ScrollView>
+
+    <Modal
+      transparent
+      visible={showClearAllConfirm}
+      animationType="fade"
+      onRequestClose={() => setShowClearAllConfirm(false)}
+    >
+      <Dialog>
+        <DialogIcon name="trash-outline" color={COLORS.danger} />
+        <DialogTitle>Clear all notifications?</DialogTitle>
+        <DialogMessage>
+          This deletes every notification below. This can&apos;t be undone.
+        </DialogMessage>
+        <DialogActions>
+          <DialogButton
+            label="Cancel"
+            variant="secondary"
+            onPress={() => setShowClearAllConfirm(false)}
+          />
+          <DialogButton label="Clear All" variant="primary" onPress={handleConfirmClearAll} />
+        </DialogActions>
+      </Dialog>
+    </Modal>
+    </>
   );
 }
 
@@ -216,6 +281,17 @@ function createStyles(COLORS: ColorPalette) {
     fontFamily: FONT_FAMILY.displaySemibold,
     fontSize: TYPOGRAPHY.subtitle,
     color: COLORS.text,
+  },
+  clearAllButton: {
+    minWidth: 36,
+    height: 36,
+    alignItems: "flex-end",
+    justifyContent: "center",
+  },
+  clearAllText: {
+    fontSize: TYPOGRAPHY.caption,
+    fontWeight: "700",
+    color: COLORS.primary,
   },
   loading: {
     marginTop: SPACING.xl,
