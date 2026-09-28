@@ -1,24 +1,19 @@
 // components/responder/IncidentCard.tsx
 // Tappable incident row used by the responder Dashboard's incident list.
-// High-urgency incidents get a soft pulsing accent on their category
-// badge so the most critical incidents are scannable at a glance, not
-// just color-coded; `isNew` shows a small pill for incidents that
-// appeared since the dashboard's last poll.
+// Urgency reads from a single signal -- the UrgencyBadge label -- rather
+// than stacking a pulsing dot, a colored border, and a gradient badge on
+// top of it too; `isNew` shows a small inline dot next to the title for
+// incidents that appeared since the dashboard's last poll.
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
 import { responderStatusColor } from "@/responder/components/shared/responderStatusColors";
 import UrgencyBadge from "@/responder/components/shared/UrgencyBadge";
-import { RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 import type { Incident, ResponderStatus } from "@/responder/types/responder";
 import { formatRelativeTime } from "@/utils/formatter";
 
@@ -61,19 +56,10 @@ export default function IncidentCard({
     transform: [{ scale: scale.value }],
   }));
 
-  const pulse = useSharedValue(0);
-  useEffect(() => {
-    if (incident.urgency !== "high") return;
-    pulse.value = withRepeat(withTiming(1, { duration: 900 }), -1, true);
-  }, [incident.urgency, pulse]);
-  const pulseStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + pulse.value * 0.65,
-  }));
-
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
-        style={[styles.card, { borderLeftColor: visual.color }]}
+        style={styles.card}
         onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           onPress();
@@ -85,31 +71,13 @@ export default function IncidentCard({
           scale.value = withTiming(1, { duration: 100 });
         }}
       >
-        {isNew && (
-          <View style={styles.newBadge}>
-            <Text style={styles.newBadgeText}>NEW</Text>
-          </View>
-        )}
-
-        <View
-          style={[
-            styles.categoryBadge,
-            {
-              backgroundColor: `${visual.color}1A`,
-              borderColor: `${visual.color}33`,
-            },
-          ]}
-        >
-          <Ionicons name={visual.icon} size={22} color={visual.color} />
-          {incident.urgency === "high" && (
-            <Animated.View
-              style={[styles.pulseDot, { backgroundColor: visual.color }, pulseStyle]}
-            />
-          )}
+        <View style={[styles.categoryBadge, { backgroundColor: `${visual.color}1A` }]}>
+          <Ionicons name={visual.icon} size={20} color={visual.color} />
         </View>
 
         <View style={styles.cardBody}>
           <View style={styles.cardTitleRow}>
+            {isNew && <View style={styles.newDot} />}
             <Text style={styles.cardTitle} numberOfLines={1}>
               {incident.type}
             </Text>
@@ -176,44 +144,22 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       backgroundColor: COLORS.background,
       borderRadius: RADIUS.lg,
-      borderLeftWidth: 4,
-      padding: SPACING.md,
+      padding: SPACING.sm + 2,
       gap: SPACING.sm,
-      ...SHADOW_LG,
+      ...SHADOW,
     },
-    newBadge: {
-      position: "absolute",
-      top: -6,
-      right: SPACING.md,
-      backgroundColor: COLORS.tide,
+    newDot: {
+      width: 7,
+      height: 7,
       borderRadius: RADIUS.full,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      zIndex: 1,
-    },
-    newBadgeText: {
-      fontSize: 10,
-      fontWeight: "800",
-      letterSpacing: 0.4,
-      color: COLORS.white,
+      backgroundColor: COLORS.tide,
     },
     categoryBadge: {
-      width: 48,
-      height: 48,
+      width: 40,
+      height: 40,
       borderRadius: RADIUS.full,
-      borderWidth: 1,
       alignItems: "center",
       justifyContent: "center",
-    },
-    pulseDot: {
-      position: "absolute",
-      top: 2,
-      right: 2,
-      width: 10,
-      height: 10,
-      borderRadius: RADIUS.full,
-      borderWidth: 1.5,
-      borderColor: COLORS.background,
     },
     cardBody: {
       flex: 1,
@@ -223,12 +169,12 @@ function createStyles(COLORS: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      gap: SPACING.sm,
+      gap: SPACING.xs,
     },
     cardTitle: {
       flex: 1,
       flexShrink: 1,
-      fontSize: TYPOGRAPHY.body,
+      fontSize: TYPOGRAPHY.caption,
       fontWeight: "700",
       color: COLORS.text,
     },

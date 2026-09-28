@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo } from "react";
 import { StyleSheet, Text } from "react-native";
 
@@ -10,35 +9,26 @@ import {
 } from "@/theme";
 import type { Urgency } from "@/responder/types/responder";
 
-import { darken } from "./colorUtils";
-
 function getUrgencyStyles(
   COLORS: ColorPalette,
-): Record<Urgency, { colors: [string, string]; label: string }> {
+): Record<Urgency, { color: string; label: string }> {
   return {
-    high: { colors: [COLORS.primary, COLORS.primaryDark], label: "High" },
-    medium: {
-      colors: [COLORS.warning, darken(COLORS.warning, 40)],
-      label: "Medium",
-    },
-    low: { colors: [COLORS.success, darken(COLORS.success, 40)], label: "Low" },
+    high: { color: COLORS.primary, label: "High" },
+    medium: { color: COLORS.warning, label: "Medium" },
+    low: { color: COLORS.success, label: "Low" },
   };
 }
 
+// Flat solid fill, no gradient/shadow -- a card already carries urgency via
+// its own left-border color (see IncidentCard.tsx), so this badge is just
+// the text label, not a second competing "look at me" affordance.
 export default function UrgencyBadge({ urgency }: { urgency: Urgency }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const { colors, label } = getUrgencyStyles(COLORS)[urgency];
+  const { color, label } = getUrgencyStyles(COLORS)[urgency];
 
   return (
-    <LinearGradient
-      colors={colors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.badge, { shadowColor: colors[1] }]}
-    >
-      <Text style={styles.text}>{label}</Text>
-    </LinearGradient>
+    <Text style={[styles.badge, { backgroundColor: color }]}>{label}</Text>
   );
 }
 
@@ -49,16 +39,11 @@ function createStyles(COLORS: ColorPalette) {
       paddingVertical: 4,
       borderRadius: RADIUS.full,
       alignSelf: "flex-start",
-      shadowOpacity: 0.28,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 2,
-    },
-    text: {
       fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.white,
       letterSpacing: 0.2,
+      overflow: "hidden",
     },
   });
 }

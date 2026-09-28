@@ -29,6 +29,7 @@ import { Avatar } from "@/components/common/Avatar";
 import RippleRings from "@/components/common/RippleRings";
 import QueuedAlertBadge from "@/responder/components/shared/QueuedAlertBadge";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
@@ -51,12 +52,10 @@ import { getIncidents } from "@/responder/services/incident.service";
 import type { Incident } from "@/responder/types/responder";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
-import { getNotifications } from "@/services/notification.service";
 import { updateDutyStatus } from "@/services/user.service";
 import {
   FONT_FAMILY,
   RADIUS,
-  SHADOW,
   SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
@@ -71,6 +70,11 @@ const POLL_INTERVAL_MS = 12000;
 // dashboard first notices it.
 const NEW_BADGE_DURATION_MS = 60000;
 const NEAREST_INCIDENTS_COUNT = 3;
+// Collapsed preview length per barangay section -- long lists (many
+// incidents in one barangay) turned this list into a wall of scrolling;
+// "See All" expands a given section in place instead of always rendering
+// every incident up front.
+const BARANGAY_PREVIEW_COUNT = 2;
 
 type DutyStatus = "online" | "offline";
 
@@ -119,16 +123,20 @@ export default function ResponderIncidentsScreen() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
-  const [hasUnread, setHasUnread] = useState(false);
+  // Same live, socket-backed source as the citizen Home bell (HomeHeader)
+  // -- not a per-screen poll -- so the dot updates the instant a
+  // notification arrives or is read, identically for both roles.
+  const { hasUnread } = useNotifications();
+  // Which barangay sections/the Nearest to You header are currently showing
+  // every incident instead of just the collapsed preview -- toggled per
+  // section by its own "See All" button, independent of the others.
+  const [expandedBarangayIds, setExpandedBarangayIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [nearestExpanded, setNearestExpanded] = useState(false);
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  // "Nearby" stat icon is tide-tinted rather than the primary/danger tint
-  // that COLORS.iconTileGradient represents, so it needs its own
-  // theme-aware two-stop gradient instead of a hardcoded light-only hex.
-  const tideIconGradient: [string, string] = isDark
-    ? [COLORS.tideTint, "#1F5C58"]
-    : [COLORS.tideTint, "#CFEDEB"];
 
   // Shows the responder First-Time Guide exactly once per account, the
   // first time it ever reaches this Dashboard. Unlike home.tsx's citizen
@@ -200,7 +208,6 @@ export default function ResponderIncidentsScreen() {
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
-      const activeToken = token;
 
       let cancelled = false;
       let responderLocation: Coordinates | undefined;
@@ -218,12 +225,6 @@ export default function ResponderIncidentsScreen() {
         } finally {
           if (!cancelled) setHasLoadedOnce(true);
         }
-
-        getNotifications(activeToken)
-          .then((notifications) => {
-            if (!cancelled) setHasUnread(notifications.some((n) => !n.read));
-          })
-          .catch(() => {});
       }
 
       getCurrentLocation().then((fix) => {
@@ -283,21 +284,36 @@ export default function ResponderIncidentsScreen() {
     [incidents, filters],
   );
 
-  const nearestIncidents = useMemo(
-    () => selectNearestIncidents(filteredIncidents, NEAREST_INCIDENTS_COUNT),
+  const nearestAll = useMemo(
+    () => selectNearestIncidents(filteredIncidents, filteredIncidents.length),
     [filteredIncidents],
   );
+  const nearestIncidents = nearestExpanded
+    ? nearestAll
+    : nearestAll.slice(0, NEAREST_INCIDENTS_COUNT);
 
   const sections = useMemo(
     () =>
       groupIncidentsByBarangay(filteredIncidents, firstSeenSnapshot).map(
         (group) => ({
           title: group,
-          data: group.incidents,
+          data: expandedBarangayIds.has(group.id)
+            ? group.incidents
+            : group.incidents.slice(0, BARANGAY_PREVIEW_COUNT),
         }),
       ),
-    [filteredIncidents, firstSeenSnapshot],
+    [filteredIncidents, firstSeenSnapshot, expandedBarangayIds],
   );
+
+  const handleToggleBarangayExpanded = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setExpandedBarangayIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const handleToggleHighUrgency = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -371,7 +387,7 @@ export default function ResponderIncidentsScreen() {
                 }
               >
                 <Ionicons
-                  name="notifications-outline"
+                  name="notifications"
                   size={26}
                   color={COLORS.primary}
                 />
@@ -417,14 +433,9 @@ export default function ResponderIncidentsScreen() {
 
           <View style={styles.statsRow}>
             <View style={[styles.statCard, { borderLeftColor: COLORS.tide }]}>
-              <LinearGradient
-                colors={tideIconGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.statIcon}
-              >
+              <View style={[styles.statIcon, { backgroundColor: `${COLORS.tide}26` }]}>
                 <Ionicons name="navigate" size={14} color={COLORS.tide} />
-              </LinearGradient>
+              </View>
               <View style={styles.statTextCol}>
                 <Text style={styles.statValue}>{incidents.length}</Text>
                 <Text style={styles.statLabel}>Nearby</Text>
@@ -444,18 +455,9 @@ export default function ResponderIncidentsScreen() {
                   : "High urgency, tap to show high urgency incidents only"
               }
             >
-              <LinearGradient
-                colors={COLORS.iconTileGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.statIcon}
-              >
-                <Ionicons
-                  name="alert-circle"
-                  size={14}
-                  color={COLORS.primary}
-                />
-              </LinearGradient>
+              <View style={[styles.statIcon, { backgroundColor: `${COLORS.primary}26` }]}>
+                <Ionicons name="alert-circle" size={14} color={COLORS.primary} />
+              </View>
               <View style={styles.statTextCol}>
                 <Text style={[styles.statValue, { color: COLORS.primary }]}>
                   {highUrgencyCount}
@@ -570,6 +572,21 @@ export default function ResponderIncidentsScreen() {
                             }
                           />
                         ))}
+                        {nearestAll.length > NEAREST_INCIDENTS_COUNT && (
+                          <Pressable
+                            style={styles.seeAllButton}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setNearestExpanded((prev) => !prev);
+                            }}
+                          >
+                            <Text style={styles.seeAllText}>
+                              {nearestExpanded
+                                ? "Show Less"
+                                : `See All (${nearestAll.length - NEAREST_INCIDENTS_COUNT} more)`}
+                            </Text>
+                          </Pressable>
+                        )}
                       </View>
                     )
                   : undefined
@@ -589,6 +606,23 @@ export default function ResponderIncidentsScreen() {
                   }
                 />
               )}
+              renderSectionFooter={({ section }) => {
+                const total = section.title.incidents.length;
+                if (total <= BARANGAY_PREVIEW_COUNT) return null;
+                const isExpanded = expandedBarangayIds.has(section.title.id);
+                return (
+                  <Pressable
+                    style={styles.seeAllButton}
+                    onPress={() => handleToggleBarangayExpanded(section.title.id)}
+                  >
+                    <Text style={styles.seeAllText}>
+                      {isExpanded
+                        ? "Show Less"
+                        : `See All (${total - section.data.length} more)`}
+                    </Text>
+                  </Pressable>
+                );
+              }}
             />
           )}
         </>
@@ -656,9 +690,11 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "center",
     },
+    // Same offset from the 26px icon as HomeHeader's dot (its 36px box
+    // vs this 44px one, hence different raw numbers).
     unreadDot: {
       position: "absolute",
-      top: 8,
+      top: 6,
       right: 8,
       width: 7,
       height: 7,
@@ -712,10 +748,9 @@ function createStyles(COLORS: ColorPalette) {
       gap: SPACING.sm,
       backgroundColor: COLORS.background,
       borderRadius: RADIUS.lg,
-      borderLeftWidth: 4,
+      borderLeftWidth: 3,
       paddingVertical: SPACING.sm,
       paddingHorizontal: SPACING.sm,
-      ...SHADOW,
     },
     statCardActive: {
       backgroundColor: COLORS.primaryTint,
@@ -787,10 +822,21 @@ function createStyles(COLORS: ColorPalette) {
       gap: SPACING.sm,
     },
     nearestLabel: {
-      fontSize: TYPOGRAPHY.body,
+      fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.textSecondary,
       letterSpacing: 0.2,
+      textTransform: "uppercase",
+    },
+    seeAllButton: {
+      alignSelf: "flex-start",
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.sm,
+    },
+    seeAllText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.primary,
     },
   });
 }
