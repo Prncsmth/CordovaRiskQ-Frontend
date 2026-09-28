@@ -50,10 +50,17 @@ export default function AdvisoryBanner({
       </View>
       <View style={styles.textCol}>
         <View style={styles.metaRow}>
-          <Text style={[styles.meta, isUrgent && styles.metaUrgent]} numberOfLines={1}>
-            {isUrgent ? "Urgent announcement" : "Announcement"} · {time}
-          </Text>
-          <Ionicons name="chevron-forward" size={13} color={COLORS.textTertiary} />
+          <View style={[styles.badge, isUrgent && styles.badgeUrgent]}>
+            <Text style={[styles.badgeText, isUrgent && styles.badgeTextUrgent]}>
+              {isUrgent ? "Urgent" : "Announcement"}
+            </Text>
+          </View>
+          <View style={styles.metaRight}>
+            <Text style={styles.dateText} numberOfLines={1}>
+              {time}
+            </Text>
+            <Ionicons name="chevron-forward" size={13} color={COLORS.textTertiary} />
+          </View>
         </View>
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -103,21 +110,41 @@ function createStyles(COLORS: ColorPalette) {
       justifyContent: "space-between",
       gap: 4,
     },
-    meta: {
-      flex: 1,
-      fontSize: 11,
+    badge: {
+      alignSelf: "flex-start",
+      backgroundColor: COLORS.tideTint,
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 2,
+    },
+    badgeUrgent: {
+      backgroundColor: COLORS.primaryTint,
+    },
+    badgeText: {
+      fontSize: 10,
       fontWeight: "700",
       color: COLORS.tide,
       letterSpacing: 0.2,
     },
-    metaUrgent: {
+    badgeTextUrgent: {
       color: COLORS.primary,
+    },
+    metaRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      flexShrink: 1,
+      gap: 4,
+    },
+    dateText: {
+      flexShrink: 1,
+      fontSize: 11,
+      color: COLORS.textTertiary,
     },
     title: {
       fontFamily: FONT_FAMILY.displaySemibold,
       fontSize: TYPOGRAPHY.small,
       color: COLORS.text,
-      marginTop: 1,
+      marginTop: 3,
     },
     message: {
       fontSize: 11,

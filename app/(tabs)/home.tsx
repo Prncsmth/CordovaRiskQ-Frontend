@@ -33,7 +33,7 @@ import { getCurrentLocation, type Coordinates } from "@/services/location.servic
 import { getTideStatus, type TideStatus } from "@/services/tide.service";
 import { SPACING, useThemeColors, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
-import { formatTime } from "@/utils/formatter";
+import { formatShortDateTime, formatTime } from "@/utils/formatter";
 
 const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
 
@@ -241,7 +241,7 @@ export default function HomeScreen() {
         <AdvisoryBanner
           id={announcement.id}
           priority={announcement.priority}
-          time={formatTime(announcement.createdAt)}
+          time={formatShortDateTime(announcement.createdAt)}
           title={announcement.title}
           message={announcement.content}
         />
