@@ -239,6 +239,7 @@ export default function HomeScreen() {
 
       {announcement ? (
         <AdvisoryBanner
+          id={announcement.id}
           priority={announcement.priority}
           time={formatTime(announcement.createdAt)}
           title={announcement.title}

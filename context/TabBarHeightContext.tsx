@@ -1,6 +1,6 @@
 // context/TabBarHeightContext.tsx
 // Shared by both the citizen (components/tabs/TabBar.tsx) and responder
-// (components/responder/ResponderTabBar.tsx) floating tab bars. Since those
+// (responder/components/shared/ResponderTabBar.tsx) floating tab bars. Since those
 // bars are now `position: "absolute"` overlays (so the page's own
 // background/content extends the full screen height behind them, instead of
 // being squeezed into a separate reserved row), tab screens need to know how

@@ -27,7 +27,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/common/Avatar";
 import RippleRings from "@/components/common/RippleRings";
-import QueuedAlertBadge from "@/components/responder/QueuedAlertBadge";
+import QueuedAlertBadge from "@/responder/components/shared/QueuedAlertBadge";
 import { useAuth } from "@/context/AuthContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
@@ -336,11 +336,19 @@ export default function ResponderIncidentsScreen() {
         >
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <Avatar
-                name={user?.name ?? "Responder"}
-                photoUri={photoUri}
-                size={40}
-              />
+              <Pressable
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/user-profile");
+                }}
+                hitSlop={8}
+              >
+                <Avatar
+                  name={user?.name ?? "Responder"}
+                  photoUri={photoUri}
+                  size={40}
+                />
+              </Pressable>
               <View>
                 <Text style={styles.headerGreeting}>Hi, {firstName}</Text>
                 <Text style={styles.headerTitle}>Responder</Text>

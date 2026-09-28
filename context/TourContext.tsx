@@ -29,7 +29,7 @@ export type TourTargetId =
   | "report"
   | "history"
   | "profile"
-  // Responder-side tab bar anchors (components/responder/ResponderTabBar.tsx)
+  // Responder-side tab bar anchors (responder/components/shared/ResponderTabBar.tsx)
   // -- kept as distinct names from the citizen ids above even though only
   // one set is ever mounted at a time (role-based routing), so the target
   // registry never has to reason about which role a shared name belongs to.

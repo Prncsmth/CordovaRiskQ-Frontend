@@ -103,7 +103,6 @@ export default function ArrivedView({
 
       <RButton
         label="Mark Resolved"
-        icon="checkmark-done"
         variant="success"
         onPress={onCompleteIncident}
         style={styles.markResolvedButton}
