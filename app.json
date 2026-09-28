@@ -4,7 +4,7 @@
     "slug": "Cordova-RiskQ",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/riskq.png",
     "scheme": "cordovariskq",
     "userInterfaceStyle": "automatic",
     "ios": {

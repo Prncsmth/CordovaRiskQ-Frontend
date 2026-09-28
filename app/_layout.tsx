@@ -1,4 +1,4 @@
-import RingOverlay from "@/components/responder/RingOverlay";
+import RingOverlay from "@/responder/components/shared/RingOverlay";
 import SosOverlay from "@/components/sos/SosOverlay";
 import FirstTimeGuideOverlay from "@/components/tour/FirstTimeGuideOverlay";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
@@ -36,13 +36,25 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, LogBox, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+// Benign, dev-only noise from expo-router's own internal cold-start/reload
+// initial-URL resolution racing React's render lifecycle -- confirmed by
+// reading expo-router/build/fork/useLinking.native.js directly: the
+// warning fires from that file's own promise callback, with no frames from
+// this app's own code anywhere in its stack. React's warnAboutUpdate...
+// "InDEV" naming confirms it's dev-build-only and never reaches production.
+// Suppressed here (message text only, not a wildcard) so it doesn't hide
+// any other real warning.
+LogBox.ignoreLogs([
+  "Can't perform a React state update on a component that hasn't mounted yet.",
+]);
 
 // Watches auth state and redirects to the right screen group.
 // Runs after AuthContext has finished checking SecureStore on startup.

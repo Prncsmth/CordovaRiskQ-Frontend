@@ -6,6 +6,7 @@
 // working a specific incident, where a new one is queued (not popped up)
 // and only surfaces once they finish that incident or return to a free
 // screen, so a new alert never interrupts one already in progress.
+import * as Notifications from "expo-notifications";
 import { usePathname, useRouter } from "expo-router";
 import React, {
   createContext,
@@ -103,6 +104,33 @@ export function ResponderAlertProvider({ children }: { children: React.ReactNode
           );
           if (freshlyNew.length === 0) return;
           freshlyNew.forEach((incident) => seenIdsRef.current.add(incident.id));
+
+          // Audible alert the moment a new incident/SOS is actually
+          // detected -- matches the admin dashboard's own sound-on-new-alert
+          // behavior. A backgrounded push already has a system sound (see
+          // push.service.ts's notification handler), but that handler only
+          // fires for a real push; this poll can also be what first notices
+          // a new one while the responder already has the app open, which
+          // otherwise had no sound at all, just the silent RingOverlay
+          // modal. Scheduling a local notification (trigger: null = fires
+          // immediately) reuses the OS's own default notification sound
+          // instead of bundling a custom sound asset. Best-effort: a
+          // missing permission or Expo Go's push restrictions should never
+          // block the actual alert/queue logic above.
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title:
+                freshlyNew.length === 1
+                  ? `New ${freshlyNew[0].type}`
+                  : `${freshlyNew.length} New Incidents`,
+              body:
+                freshlyNew.length === 1
+                  ? freshlyNew[0].location
+                  : "Multiple new incidents need a response.",
+              sound: true,
+            },
+            trigger: null,
+          }).catch(() => {});
 
           const busy = isBusyWithIncident(pathnameRef.current ?? "");
           if (busy || pendingIncidentRef.current) {

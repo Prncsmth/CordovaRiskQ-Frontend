@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import React from "react";
 
-import ResponderTabBar from "@/components/responder/ResponderTabBar";
+import ResponderTabBar from "@/responder/components/shared/ResponderTabBar";
 import { TabBarHeightProvider } from "@/context/TabBarHeightContext";
 
 export default function ResponderTabLayout() {

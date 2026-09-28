@@ -176,6 +176,15 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
       if (isErrorWithCode!(err) && err.code === statusCodes!.SIGN_IN_CANCELLED) {
         return;
       }
+      // TODO(google-signin-debug): temporary -- logs the real native error
+      // (code + message) instead of only showing the generic alert, so a
+      // failure can actually be diagnosed. Remove once resolved.
+      console.log("[google-signin-debug] sign-in threw:", {
+        isErrorWithCode: isErrorWithCode!(err),
+        code: isErrorWithCode!(err) ? err.code : undefined,
+        message: err instanceof Error ? err.message : String(err),
+        raw: err,
+      });
       onError?.("Google sign-in failed. Please try again.");
     } finally {
       setLoading(false);

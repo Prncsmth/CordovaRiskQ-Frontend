@@ -3,7 +3,7 @@
 // Way -> Arrived. Each responder's own phase is derived from their own
 // IncidentResponder roster status (incident.myStatus), never stored
 // separately -- there's no local phase state to drift out of sync with the
-// server. Each phase's UI lives in components/responder/incident-detail/ --
+// server. Each phase's UI lives in responder/components/incident-detail/ --
 // this file only owns the derived phase and the backend calls that advance
 // it.
 import { Ionicons } from "@expo/vector-icons";
@@ -40,7 +40,7 @@ import {
   DialogMessage,
   DialogTitle,
 } from "@/components/common/Dialog";
-import QueuedAlertBadge from "@/components/responder/QueuedAlertBadge";
+import QueuedAlertBadge from "@/responder/components/shared/QueuedAlertBadge";
 import { useAuth } from "@/context/AuthContext";
 import { useLiveLocationUpload } from "@/hooks/useLiveLocationUpload";
 import ArrivedView from "@/responder/components/incident-detail/ArrivedView";
@@ -486,8 +486,7 @@ export default function IncidentDetailScreen() {
               style={styles.resolveConfirmButton}
               onPress={confirmCompleteIncident}
             >
-              <Ionicons name="checkmark-done" size={16} color={COLORS.white} />
-              <Text style={styles.resolveConfirmText}>Comfirm</Text>
+              <Text style={styles.resolveConfirmText}>Confirm</Text>
             </Pressable>
           </View>
         </Dialog>

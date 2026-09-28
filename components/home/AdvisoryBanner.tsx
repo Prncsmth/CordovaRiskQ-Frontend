@@ -1,11 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTour } from "@/context/TourContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 type AdvisoryBannerProps = {
+  id: string;
   priority: "Normal" | "Urgent";
   time: string;
   title: string;
@@ -13,15 +15,18 @@ type AdvisoryBannerProps = {
 };
 
 export default function AdvisoryBanner({
+  id,
   priority,
   time,
   title,
   message,
 }: AdvisoryBannerProps) {
+  const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
   const anchorRef = useRef<View>(null);
+  const isUrgent = priority === "Urgent";
 
   useEffect(() => {
     registerTarget("alerts", anchorRef);
@@ -29,24 +34,35 @@ export default function AdvisoryBanner({
   }, [registerTarget, unregisterTarget]);
 
   return (
-    <View
+    <Pressable
       style={styles.card}
       ref={anchorRef}
       collapsable={false}
       onLayout={() => notifyTargetLayout()}
+      onPress={() => router.push({ pathname: "/announcement-detail/[id]", params: { id } })}
     >
       <View style={styles.iconCircle}>
-        <Ionicons name="warning" size={16} color={COLORS.white} />
+        <Image
+          source={require("@/assets/images/riskq.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
       </View>
       <View style={styles.textCol}>
         <View style={styles.metaRow}>
-          <Text style={styles.meta}>ANNOUNCEMENT · {priority === "Urgent" ? "URGENT" : "NOTICE"}</Text>
-          <Text style={styles.time}>{time}</Text>
+          <Text style={[styles.meta, isUrgent && styles.metaUrgent]} numberOfLines={1}>
+            {isUrgent ? "Urgent announcement" : "Announcement"} · {time}
+          </Text>
+          <Ionicons name="chevron-forward" size={13} color={COLORS.textTertiary} />
         </View>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.message}>{message}</Text>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={styles.message} numberOfLines={1}>
+          {message}
+        </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -54,20 +70,29 @@ function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
     card: {
       flexDirection: "row",
-      gap: SPACING.sm + 2,
-      backgroundColor: COLORS.warningBg,
+      alignItems: "center",
+      gap: SPACING.sm,
+      backgroundColor: COLORS.surface,
       borderRadius: RADIUS.lg,
-      padding: SPACING.md,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.sm + 2,
       ...SHADOW,
     },
     iconCircle: {
-      width: 30,
-      height: 30,
+      width: 26,
+      height: 26,
       borderRadius: RADIUS.full,
-      backgroundColor: COLORS.warning,
+      backgroundColor: COLORS.primaryTint,
+      borderWidth: 1,
+      borderColor: COLORS.primaryLight,
       alignItems: "center",
       justifyContent: "center",
-      marginTop: 2,
+    },
+    logoImage: {
+      width: 14,
+      height: 14,
     },
     textCol: {
       flex: 1,
@@ -75,29 +100,29 @@ function createStyles(COLORS: ColorPalette) {
     metaRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      justifyContent: "space-between",
+      gap: 4,
     },
     meta: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "800",
-      color: COLORS.warning,
-      letterSpacing: 0.4,
+      flex: 1,
+      fontSize: 11,
+      fontWeight: "700",
+      color: COLORS.tide,
+      letterSpacing: 0.2,
     },
-    time: {
-      fontSize: TYPOGRAPHY.small,
-      color: COLORS.textTertiary,
+    metaUrgent: {
+      color: COLORS.primary,
     },
     title: {
       fontFamily: FONT_FAMILY.displaySemibold,
-      fontSize: TYPOGRAPHY.body,
+      fontSize: TYPOGRAPHY.small,
       color: COLORS.text,
-      marginTop: 2,
+      marginTop: 1,
     },
     message: {
-      fontSize: TYPOGRAPHY.small,
+      fontSize: 11,
       color: COLORS.textSecondary,
-      marginTop: 2,
-      lineHeight: 18,
+      marginTop: 1,
     },
   });
 }

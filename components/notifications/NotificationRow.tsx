@@ -1,14 +1,20 @@
 // components/notifications/NotificationRow.tsx
 // Tappable card used by the Notifications screen's Today/Earlier sections;
 // owns the per-type icon and the tap-through route for each notification.
-// Styled to match components/report-history/ReportHistoryCard.tsx: one
-// bordered/shadowed card per item instead of a shared card with dividers.
+// "announcement" is the one type with its own distinct "sender card" look
+// (RiskQ logo + "Cordova RISKQ" + time, matching the Home advisory banner
+// and the admin composer's own preview) -- it's the one notification type
+// that's actually a broadcast FROM Cordova RiskQ/the admin, so it's the
+// only one that gets that byline. Every other type (SOS, incident status,
+// roster updates, ...) keeps the original plain type-icon layout, just
+// system-generated updates about the citizen's/responder's own activity,
+// not a named sender.
 // Swipe-left-to-delete follows the same Gesture.Pan pattern as SOSButton.tsx.
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -164,22 +170,58 @@ export default function NotificationRow({
               scale.value = withTiming(1, { duration: 100 });
             }}
           >
-            <Ionicons name={icon} size={20} color={color} style={styles.icon} />
+            {item.type === "announcement" ? (
+              <>
+                <View style={styles.senderLogoCircle}>
+                  <Image
+                    source={require("@/assets/images/riskq.png")}
+                    style={styles.senderLogoImage}
+                    resizeMode="contain"
+                  />
+                </View>
+                <View style={styles.textCol}>
+                  <View style={styles.headerRow}>
+                    <Text style={styles.senderName} numberOfLines={1}>
+                      Cordova RISKQ
+                    </Text>
+                    <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
+                    {!item.read && (
+                      <View style={[styles.pill, { backgroundColor: bg }]}>
+                        <Text style={[styles.pillText, { color }]}>New</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.title} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.body} numberOfLines={2}>
+                    {item.body}
+                  </Text>
+                </View>
+                <View style={[styles.typeBadge, { backgroundColor: color }]}>
+                  <Ionicons name={icon} size={14} color={COLORS.white} />
+                </View>
+              </>
+            ) : (
+              <>
+                <Ionicons name={icon} size={20} color={color} style={styles.icon} />
 
-            <View style={styles.textCol}>
-              <Text style={styles.title} numberOfLines={1}>
-                {item.title}
-              </Text>
-              <Text style={styles.body} numberOfLines={2}>
-                {item.body}
-              </Text>
-              <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
-            </View>
+                <View style={styles.textCol}>
+                  <Text style={styles.title} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={styles.body} numberOfLines={2}>
+                    {item.body}
+                  </Text>
+                  <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
+                </View>
 
-            {!item.read && (
-              <View style={[styles.pill, { backgroundColor: bg }]}>
-                <Text style={[styles.pillText, { color }]}>New</Text>
-              </View>
+                {!item.read && (
+                  <View style={[styles.pill, { backgroundColor: bg }]}>
+                    <Text style={[styles.pillText, { color }]}>New</Text>
+                  </View>
+                )}
+              </>
             )}
           </Pressable>
         </Animated.View>
@@ -255,6 +297,40 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
       marginTop: 2,
+    },
+    senderLogoCircle: {
+      width: 30,
+      height: 30,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primaryTint,
+      borderWidth: 1,
+      borderColor: COLORS.primaryLight,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    senderLogoImage: {
+      width: 16,
+      height: 16,
+    },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    senderName: {
+      fontFamily: FONT_FAMILY.displaySemibold,
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.text,
+    },
+    // Background is always overridden inline with the type's own color
+    // (getNotificationReadDisplay) -- this is just a sane fallback.
+    typeBadge: {
+      width: 28,
+      height: 28,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.danger,
+      alignItems: "center",
+      justifyContent: "center",
     },
     pill: {
       borderRadius: RADIUS.full,
