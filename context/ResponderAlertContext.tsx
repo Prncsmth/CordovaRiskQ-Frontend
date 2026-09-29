@@ -6,7 +6,6 @@
 // working a specific incident, where a new one is queued (not popped up)
 // and only surfaces once they finish that incident or return to a free
 // screen, so a new alert never interrupts one already in progress.
-import * as Notifications from "expo-notifications";
 import { usePathname, useRouter } from "expo-router";
 import React, {
   createContext,
@@ -24,6 +23,7 @@ import {
   joinIncident,
 } from "@/responder/services/incident.service";
 import type { Incident } from "@/responder/types/responder";
+import { getNotifications, notificationsUnavailable } from "@/utils/safeNotifications";
 
 const POLL_INTERVAL_MS = 10_000;
 
@@ -117,20 +117,24 @@ export function ResponderAlertProvider({ children }: { children: React.ReactNode
           // instead of bundling a custom sound asset. Best-effort: a
           // missing permission or Expo Go's push restrictions should never
           // block the actual alert/queue logic above.
-          Notifications.scheduleNotificationAsync({
-            content: {
-              title:
-                freshlyNew.length === 1
-                  ? `New ${freshlyNew[0].type}`
-                  : `${freshlyNew.length} New Incidents`,
-              body:
-                freshlyNew.length === 1
-                  ? freshlyNew[0].location
-                  : "Multiple new incidents need a response.",
-              sound: true,
-            },
-            trigger: null,
-          }).catch(() => {});
+          if (!notificationsUnavailable) {
+            getNotifications()
+              ?.scheduleNotificationAsync({
+                content: {
+                  title:
+                    freshlyNew.length === 1
+                      ? `New ${freshlyNew[0].type}`
+                      : `${freshlyNew.length} New Incidents`,
+                  body:
+                    freshlyNew.length === 1
+                      ? freshlyNew[0].location
+                      : "Multiple new incidents need a response.",
+                  sound: true,
+                },
+                trigger: null,
+              })
+              .catch(() => {});
+          }
 
           const busy = isBusyWithIncident(pathnameRef.current ?? "");
           if (busy || pendingIncidentRef.current) {

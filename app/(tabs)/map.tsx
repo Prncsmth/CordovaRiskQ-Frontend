@@ -77,6 +77,7 @@ export default function MapScreen() {
   const [zoomLevel, setZoomLevel] = useState(14);
   const [pinMode, setPinMode] = useState(false);
   const [showNearestOnly, setShowNearestOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"open" | "full" | null>(null);
   const [pickedPoint, setPickedPoint] = useState<{
     latitude: number;
     longitude: number;
@@ -256,11 +257,25 @@ export default function MapScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowNearestOnly((prev) => {
       const next = !prev;
-      if (next && nearestCenter) {
-        mapRef.current?.flyTo(nearestCenter.latitude, nearestCenter.longitude, 16);
+      if (next) {
+        // Mutually exclusive with the legend's status filter -- both narrow
+        // down the same marker list, and combining them (e.g. "nearest
+        // full center") is ambiguous when the nearest center doesn't match
+        // the active status.
+        setStatusFilter(null);
+        if (nearestCenter) {
+          mapRef.current?.flyTo(nearestCenter.latitude, nearestCenter.longitude, 16);
+        }
       }
       return next;
     });
+  };
+
+  const handleToggleStatusFilter = (status: "open" | "full") => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setStatusFilter((prev) => (prev === status ? null : status));
+    // Mutually exclusive with "nearest" -- see handleToggleNearest.
+    setShowNearestOnly(false);
   };
 
   const handleZoomIn = () => {
@@ -396,7 +411,11 @@ export default function MapScreen() {
   };
 
   const visibleCenters =
-    showNearestOnly && nearestCenter ? [nearestCenter] : centers;
+    showNearestOnly && nearestCenter
+      ? [nearestCenter]
+      : statusFilter
+        ? centers.filter((center) => center.status === statusFilter)
+        : centers;
 
   const markers: MapMarker[] = [
     ...visibleCenters.map((center) => ({
@@ -546,7 +565,11 @@ export default function MapScreen() {
           style={{ bottom: tabBarHeight + SPACING.lg }}
         />
 
-        <MapLegend style={{ left: SPACING.md, bottom: tabBarHeight + SPACING.lg }} />
+        <MapLegend
+          activeStatus={statusFilter}
+          onSelectStatus={handleToggleStatusFilter}
+          style={{ left: SPACING.md, bottom: tabBarHeight + SPACING.lg }}
+        />
       </View>
 
       {showMapGuide ? (

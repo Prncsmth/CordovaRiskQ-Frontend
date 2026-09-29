@@ -13,7 +13,9 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
+import type { NotificationResponse } from "expo-notifications";
+
+import { getNotifications, notificationsUnavailable } from "@/utils/safeNotifications";
 
 type IncidentPushData = { type?: string; referenceId?: string };
 
@@ -36,8 +38,11 @@ export function useNotificationDeepLink(enabled: boolean): void {
     // aren't implemented on web (expo-notifications throws) -- deep-linking
     // from a push tap only makes sense on a native build anyway.
     if (Platform.OS === "web") return;
+    if (notificationsUnavailable) return;
+    const Notifications = getNotifications();
+    if (!Notifications) return;
 
-    function handleResponse(response: Notifications.NotificationResponse) {
+    function handleResponse(response: NotificationResponse) {
       const identifier = response.notification.request.identifier;
       if (handledIdRef.current === identifier) return;
       handledIdRef.current = identifier;
