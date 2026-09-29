@@ -21,6 +21,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import type { MapMarker } from "@/components/map/types";
 import { getCategoryVisual } from "@/components/report/categories";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
+import IncidentTypeLegend, {
+  toIncidentTypeKey,
+  type IncidentTypeKey,
+} from "@/responder/components/shared/IncidentTypeLegend";
 import { useAuth } from "@/context/AuthContext";
 import { getIncidents } from "@/responder/services/incident.service";
 import type { Incident } from "@/responder/types/responder";
@@ -42,6 +47,7 @@ const POLL_INTERVAL_MS = 12000;
 
 export default function LiveMapScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useTabBarHeight();
   const router = useRouter();
   const { token } = useAuth();
   const COLORS = useThemeColors();
@@ -58,6 +64,7 @@ export default function LiveMapScreen() {
   const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<IncidentTypeKey | null>(null);
 
   const loadIncidents = useCallback(
     async (coords?: Coordinates) => {
@@ -115,8 +122,15 @@ export default function LiveMapScreen() {
   // the same identity color used everywhere else a report's category shows
   // up (ReportHistoryCard, notifications), not by urgency. Lets a
   // responder tell what kind of incident a pin is from the map alone.
+  const typeCounts = incidents.reduce<Partial<Record<IncidentTypeKey, number>>>((acc, incident) => {
+    const key = toIncidentTypeKey(incident.categoryId);
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
   const incidentMarkers: MapMarker[] = incidents
     .filter((incident) => incident.incidentCoords)
+    .filter((incident) => !typeFilter || toIncidentTypeKey(incident.categoryId) === typeFilter)
     .map((incident) => ({
       id: incident.id,
       latitude: incident.incidentCoords!.latitude,
@@ -210,6 +224,7 @@ export default function LiveMapScreen() {
         // fires (which never happens with zero active incidents).
         zoom={15}
         showLayerSwitcher
+        layerSwitcherBottomInset={tabBarHeight + SPACING.lg}
         showUserLocationDot={false}
         topInset={insets.top}
         markers={markers}
@@ -242,14 +257,21 @@ export default function LiveMapScreen() {
         </View>
       </View>
 
+      <IncidentTypeLegend
+        activeType={typeFilter}
+        counts={typeCounts}
+        onSelectType={(type) => setTypeFilter((prev) => (prev === type ? null : type))}
+        style={{ left: SPACING.md, bottom: tabBarHeight + SPACING.lg }}
+      />
+
       <Pressable
         onPress={handleLocate}
         hitSlop={8}
-        style={[styles.locateButton, { top: insets.top + SPACING.sm + 62 }]}
+        style={[styles.locateButton, { bottom: tabBarHeight + SPACING.lg + 44 + SPACING.sm + 32 }]}
         accessibilityRole="button"
         accessibilityLabel="Center map on my location"
       >
-        <Ionicons name="locate" size={18} color={COLORS.primary} />
+        <Ionicons name="locate" size={20} color={COLORS.primary} />
       </Pressable>
 
       {!hasLoadedOnce && (
@@ -307,9 +329,10 @@ function createStyles(COLORS: ColorPalette) {
     },
     locateButton: {
       position: "absolute",
+      // Stacked directly above the map-layer button (same right edge).
       right: SPACING.md,
-      width: 36,
-      height: 36,
+      width: 44,
+      height: 44,
       borderRadius: RADIUS.full,
       backgroundColor: COLORS.background,
       borderWidth: 1,

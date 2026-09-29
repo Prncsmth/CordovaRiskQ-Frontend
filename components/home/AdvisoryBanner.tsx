@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTour } from "@/context/TourContext";
-import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, type ColorPalette } from "@/theme";
 
 type AdvisoryBannerProps = {
   id: string;
@@ -42,25 +42,21 @@ export default function AdvisoryBanner({
       onPress={() => router.push({ pathname: "/announcement-detail/[id]", params: { id } })}
     >
       <View style={styles.iconCircle}>
-        <Image
-          source={require("@/assets/images/riskq.png")}
-          style={styles.logoImage}
-          resizeMode="contain"
+        <Ionicons
+          name="megaphone-outline"
+          size={34}
+          color={isUrgent ? COLORS.primary : COLORS.tide}
         />
       </View>
       <View style={styles.textCol}>
         <View style={styles.metaRow}>
-          <View style={[styles.badge, isUrgent && styles.badgeUrgent]}>
-            <Text style={[styles.badgeText, isUrgent && styles.badgeTextUrgent]}>
-              {isUrgent ? "Urgent" : "Announcement"}
-            </Text>
-          </View>
-          <View style={styles.metaRight}>
-            <Text style={styles.dateText} numberOfLines={1}>
-              {time}
-            </Text>
-            <Ionicons name="chevron-forward" size={13} color={COLORS.textTertiary} />
-          </View>
+          <Text style={[styles.label, isUrgent && styles.labelUrgent]}>
+            {isUrgent ? "Urgent" : "Announcement"}
+          </Text>
+          <Text style={styles.separator}>•</Text>
+          <Text style={styles.dateText} numberOfLines={1}>
+            {time}
+          </Text>
         </View>
         <Text style={styles.title} numberOfLines={1}>
           {title}
@@ -69,6 +65,7 @@ export default function AdvisoryBanner({
           {message}
         </Text>
       </View>
+      <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
     </Pressable>
   );
 }
@@ -78,78 +75,61 @@ function createStyles(COLORS: ColorPalette) {
     card: {
       flexDirection: "row",
       alignItems: "center",
-      gap: SPACING.sm,
+      gap: SPACING.sm + 4,
       backgroundColor: COLORS.surface,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
       borderColor: COLORS.borderMuted,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.sm + 2,
+      paddingVertical: SPACING.sm + 4,
+      paddingLeft: SPACING.sm + 4,
+      paddingRight: SPACING.md,
       ...SHADOW,
     },
     iconCircle: {
-      width: 26,
-      height: 26,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primaryTint,
-      borderWidth: 1,
-      borderColor: COLORS.primaryLight,
+      width: 44,
+      height: 44,
       alignItems: "center",
       justifyContent: "center",
     },
-    logoImage: {
-      width: 14,
-      height: 14,
-    },
     textCol: {
       flex: 1,
+      gap: 2,
     },
     metaRow: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
-      gap: 4,
+      gap: 6,
     },
-    badge: {
-      alignSelf: "flex-start",
-      backgroundColor: COLORS.tideTint,
-      borderRadius: RADIUS.full,
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: 2,
-    },
-    badgeUrgent: {
-      backgroundColor: COLORS.primaryTint,
-    },
-    badgeText: {
-      fontSize: 10,
+    label: {
+      fontSize: 12,
+      lineHeight: 16,
       fontWeight: "700",
       color: COLORS.tide,
-      letterSpacing: 0.2,
     },
-    badgeTextUrgent: {
+    labelUrgent: {
       color: COLORS.primary,
     },
-    metaRight: {
-      flexDirection: "row",
-      alignItems: "center",
-      flexShrink: 1,
-      gap: 4,
+    separator: {
+      fontSize: 8,
+      lineHeight: 16,
+      color: COLORS.textTertiary,
     },
     dateText: {
       flexShrink: 1,
-      fontSize: 11,
+      fontSize: 12,
+      lineHeight: 16,
       color: COLORS.textTertiary,
     },
     title: {
       fontFamily: FONT_FAMILY.displaySemibold,
-      fontSize: TYPOGRAPHY.small,
+      fontSize: 15,
+      lineHeight: 20,
       color: COLORS.text,
-      marginTop: 3,
     },
     message: {
-      fontSize: 11,
+      fontSize: 13,
+      lineHeight: 18,
       color: COLORS.textSecondary,
-      marginTop: 1,
     },
   });
 }

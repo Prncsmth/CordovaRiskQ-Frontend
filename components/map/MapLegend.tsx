@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Image,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -136,11 +137,15 @@ export default function MapLegend({
         style={styles.button}
         accessibilityLabel={open ? "Hide map legend" : "Show map legend"}
       >
-        <Ionicons
-          name={open ? "close" : "information-outline"}
-          size={20}
-          color={COLORS.gray}
-        />
+        {open ? (
+          <Ionicons name="close" size={20} color={COLORS.gray} />
+        ) : (
+          <Image
+            source={require("@/assets/images/evacuation-legend.png")}
+            style={styles.buttonIcon}
+            resizeMode="contain"
+          />
+        )}
       </Pressable>
     </View>
   );
@@ -162,6 +167,10 @@ function createStyles(COLORS: ColorPalette) {
       borderWidth: 1,
       borderColor: COLORS.borderMuted,
       ...SHADOW_LG,
+    },
+    buttonIcon: {
+      width: 26,
+      height: 22,
     },
     card: {
       marginBottom: SPACING.sm,
