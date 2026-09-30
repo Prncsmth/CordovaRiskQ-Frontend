@@ -40,6 +40,9 @@ type NotificationContextValue = {
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
+// clearAll's per-batch concurrency cap -- see its own comment for why.
+const CLEAR_ALL_BATCH_SIZE = 10;
+
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { token } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -108,24 +111,27 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // No bulk "delete all" route exists (same unconfirmed-contract situation
   // as the single-delete request below) -- this fans out the same
-  // per-notification request instead of guessing at a second endpoint.
-  // Only the ones the backend actually confirmed come off the list, so a
-  // partial failure leaves the rest visible to retry individually rather
-  // than silently disappearing.
+  // per-notification request (reusing deleteNotification itself, rather than
+  // a second copy of its request-then-filter logic) instead of guessing at a
+  // second endpoint. Only the ones the backend actually confirmed come off
+  // the list, so a partial failure leaves the rest visible to retry
+  // individually rather than silently disappearing. Runs CLEAR_ALL_BATCH_SIZE
+  // at a time instead of firing every request at once -- a user with 100+
+  // accumulated notifications would otherwise open 100+ simultaneous DELETEs
+  // against the same endpoint in one burst.
   const clearAll = useCallback(async () => {
     if (!token) return;
     const ids = notifications.map((n) => n.id);
-    const results = await Promise.allSettled(
-      ids.map((id) => deleteNotificationRequest(token, id)),
-    );
-    const deletedIds = new Set(
-      ids.filter((_, index) => results[index].status === "fulfilled"),
-    );
-    setNotifications((prev) => prev.filter((n) => !deletedIds.has(n.id)));
-    if (deletedIds.size < ids.length) {
+    let failedCount = 0;
+    for (let i = 0; i < ids.length; i += CLEAR_ALL_BATCH_SIZE) {
+      const batch = ids.slice(i, i + CLEAR_ALL_BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map((id) => deleteNotification(id)));
+      failedCount += results.filter((r) => r.status === "rejected").length;
+    }
+    if (failedCount > 0) {
       throw new Error("Some notifications couldn't be deleted");
     }
-  }, [token, notifications]);
+  }, [token, notifications, deleteNotification]);
 
   const hasUnread = notifications.some((n) => !n.read);
 

@@ -24,13 +24,13 @@ export async function registerForPushNotifications(token: string): Promise<void>
   if (notificationsUnavailable || !Device.isDevice) return;
   const Notifications = getNotifications()!;
 
-  const { status } = await Notifications.requestPermissionsAsync();
+  const { status } = await Notifications!.requestPermissionsAsync();
   if (status !== "granted") return;
 
   const projectId = Constants.expoConfig?.extra?.eas?.projectId;
   if (!projectId) return;
 
-  const pushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  const pushToken = (await Notifications!.getExpoPushTokenAsync({ projectId })).data;
 
   // The backend already sends real Expo push notifications from here: this
   // PATCH stores the token on the user record, and notification.service.ts

@@ -47,19 +47,26 @@ export function useNotificationDeepLink(enabled: boolean): void {
       if (handledIdRef.current === identifier) return;
       handledIdRef.current = identifier;
 
-      const data = response.notification.request.content.data as IncidentPushData;
-      if (data.type === "new_incident" && data.referenceId) {
+      // Optional -- ResponderAlertContext's own locally-scheduled "new
+      // incident" sound alert has no data payload at all (just a
+      // title/body), and shares this same listener with real backend
+      // pushes. Tapping that local alert must fall through as a no-op
+      // instead of crashing on an assumed-present field.
+      const data = response.notification.request.content.data as
+        | IncidentPushData
+        | undefined;
+      if (data?.type === "new_incident" && data.referenceId) {
         router.push(`/responder/${data.referenceId}` as const);
-      } else if (data.type === "announcement" && data.referenceId) {
+      } else if (data?.type === "announcement" && data.referenceId) {
         router.push({ pathname: "/announcement-detail/[id]", params: { id: data.referenceId } });
       }
     }
 
-    Notifications.getLastNotificationResponseAsync().then((response) => {
+    Notifications!.getLastNotificationResponseAsync().then((response) => {
       if (response) handleResponse(response);
     });
 
-    const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    const subscription = Notifications!.addNotificationResponseReceivedListener(handleResponse);
     return () => subscription.remove();
   }, [router, enabled]);
 }

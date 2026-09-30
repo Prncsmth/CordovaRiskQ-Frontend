@@ -73,8 +73,12 @@ export default function NotificationsScreen({
   const tabBarHeight = useTabBarHeight();
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
-  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
-  const [isClearingAll, setIsClearingAll] = useState(false);
+  // One linear sequence (never both "confirming" and "clearing" at once) --
+  // a single enum instead of two independent booleans rules out the
+  // otherwise-possible states where a future edit leaves them out of sync.
+  const [clearAllStatus, setClearAllStatus] = useState<"idle" | "confirming" | "clearing">(
+    "idle",
+  );
 
   // Matches the previous per-load behavior: opening this screen marks
   // whatever's currently loaded as read. NotificationProvider already did
@@ -119,8 +123,7 @@ export default function NotificationsScreen({
   );
 
   const handleConfirmClearAll = useCallback(() => {
-    setShowClearAllConfirm(false);
-    setIsClearingAll(true);
+    setClearAllStatus("clearing");
     clearAll()
       .catch(() => {
         Alert.alert(
@@ -128,7 +131,7 @@ export default function NotificationsScreen({
           "Some notifications may not have been deleted. Please try again.",
         );
       })
-      .finally(() => setIsClearingAll(false));
+      .finally(() => setClearAllStatus("idle"));
   }, [clearAll]);
 
   const today = notifications.filter((n) => isToday(n.createdAt));
@@ -167,12 +170,12 @@ export default function NotificationsScreen({
         <Text style={styles.headerTitle}>Notifications</Text>
         {notifications.length > 0 ? (
           <Pressable
-            onPress={() => setShowClearAllConfirm(true)}
-            disabled={isClearingAll}
+            onPress={() => setClearAllStatus("confirming")}
+            disabled={clearAllStatus === "clearing"}
             hitSlop={8}
             style={styles.clearAllButton}
           >
-            {isClearingAll ? (
+            {clearAllStatus === "clearing" ? (
               <ActivityIndicator size="small" color={COLORS.primary} />
             ) : (
               <Text style={styles.clearAllText}>Clear All</Text>
@@ -238,9 +241,9 @@ export default function NotificationsScreen({
 
     <Modal
       transparent
-      visible={showClearAllConfirm}
+      visible={clearAllStatus === "confirming"}
       animationType="fade"
-      onRequestClose={() => setShowClearAllConfirm(false)}
+      onRequestClose={() => setClearAllStatus("idle")}
     >
       <Dialog>
         <DialogIcon name="trash-outline" color={COLORS.danger} />
@@ -252,7 +255,7 @@ export default function NotificationsScreen({
           <DialogButton
             label="Cancel"
             variant="secondary"
-            onPress={() => setShowClearAllConfirm(false)}
+            onPress={() => setClearAllStatus("idle")}
           />
           <DialogButton label="Clear All" variant="primary" onPress={handleConfirmClearAll} />
         </DialogActions>

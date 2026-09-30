@@ -15,25 +15,24 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
+import LocateButton from "@/components/map/LocateButton";
+import ZoomControls from "@/components/map/ZoomControls";
 import type { MapMarker } from "@/components/map/types";
-import { getCategoryVisual } from "@/components/report/categories";
-import { useTabBarHeight } from "@/context/TabBarHeightContext";
-import IncidentTypeLegend, {
-  toIncidentTypeKey,
-  type IncidentTypeKey,
-} from "@/responder/components/shared/IncidentTypeLegend";
+import { CATEGORY_LABELS, getCategoryVisual } from "@/components/report/categories";
 import { useAuth } from "@/context/AuthContext";
+import { useTabBarHeight } from "@/context/TabBarHeightContext";
+import IncidentMapLegend from "@/responder/components/shared/IncidentMapLegend";
+import NearestIncidentButton from "@/responder/components/shared/NearestIncidentButton";
 import { getIncidents } from "@/responder/services/incident.service";
 import type { Incident } from "@/responder/types/responder";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import {
   FONT_FAMILY,
   RADIUS,
-  SHADOW,
   SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
@@ -44,6 +43,10 @@ import {
 // Same 12s cadence DashboardScreen's own incident poll uses -- keeping the
 // two screens in sync rather than inventing a different refresh rate.
 const POLL_INTERVAL_MS = 12000;
+// Matches the citizen map screen's own zoom bounds (app/(tabs)/map.tsx) --
+// same "how close/far can you get" feel on both maps.
+const MIN_ZOOM = 12;
+const MAX_ZOOM = 18;
 
 export default function LiveMapScreen() {
   const insets = useSafeAreaInsets();
@@ -64,7 +67,9 @@ export default function LiveMapScreen() {
   const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<IncidentTypeKey | null>(null);
+  const [showNearestOnly, setShowNearestOnly] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(15);
 
   const loadIncidents = useCallback(
     async (coords?: Coordinates) => {
@@ -118,19 +123,33 @@ export default function LiveMapScreen() {
   // safe as a sentinel onMarkerPress checks for below.
   const SELF_MARKER_ID = "__responder_self__";
 
+  // The single closest incident/SOS to the responder's current position --
+  // powers NearestIncidentButton's "show only this one" toggle. Only
+  // incidents with both a coordinate and a computed distance (itself
+  // dependent on the responder's GPS fix having resolved) are eligible.
+  const nearestIncident = incidents
+    .filter(
+      (incident): incident is Incident & { distanceKm: number } =>
+        incident.incidentCoords != null && incident.distanceKm != null,
+    )
+    .sort((a, b) => a.distanceKm - b.distanceKm)[0];
+
   // Colored by category (flood/fire/medical/road-accident/other/sos) --
   // the same identity color used everywhere else a report's category shows
   // up (ReportHistoryCard, notifications), not by urgency. Lets a
   // responder tell what kind of incident a pin is from the map alone.
-  const typeCounts = incidents.reduce<Partial<Record<IncidentTypeKey, number>>>((acc, incident) => {
-    const key = toIncidentTypeKey(incident.categoryId);
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {});
+  // The nearest-only toggle and a legend category filter are mutually
+  // exclusive views over the same list -- selecting one clears the other
+  // (see handleToggleNearest/handleSelectCategory) -- so at most one of
+  // them narrows what's shown here.
+  const visibleIncidents = selectedCategory
+    ? incidents.filter((incident) => incident.categoryId === selectedCategory)
+    : showNearestOnly && nearestIncident
+      ? [nearestIncident]
+      : incidents;
 
-  const incidentMarkers: MapMarker[] = incidents
+  const incidentMarkers: MapMarker[] = visibleIncidents
     .filter((incident) => incident.incidentCoords)
-    .filter((incident) => !typeFilter || toIncidentTypeKey(incident.categoryId) === typeFilter)
     .map((incident) => ({
       id: incident.id,
       latitude: incident.incidentCoords!.latitude,
@@ -210,6 +229,51 @@ export default function LiveMapScreen() {
     mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 15);
   };
 
+  const handleZoomIn = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    mapRef.current?.zoomIn();
+    setZoomLevel((current) => Math.min(current + 1, MAX_ZOOM));
+  };
+
+  const handleZoomOut = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    mapRef.current?.zoomOut();
+    setZoomLevel((current) => Math.max(current - 1, MIN_ZOOM));
+  };
+
+  const handleToggleNearest = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSelectedCategory(null);
+    setShowNearestOnly((prev) => {
+      const next = !prev;
+      if (next && nearestIncident?.incidentCoords) {
+        mapRef.current?.flyTo(
+          nearestIncident.incidentCoords.latitude,
+          nearestIncident.incidentCoords.longitude,
+          15,
+        );
+      }
+      return next;
+    });
+  };
+
+  const handleSelectCategory = (category: string | null) => {
+    setShowNearestOnly(false);
+    setSelectedCategory(category);
+    if (!category) return;
+
+    const matches = incidents
+      .filter((incident) => incident.categoryId === category)
+      .map((incident) => incident.incidentCoords)
+      .filter((coords): coords is NonNullable<typeof coords> => coords != null);
+
+    if (matches.length === 1) {
+      mapRef.current?.flyTo(matches[0].latitude, matches[0].longitude, 15);
+    } else if (matches.length > 1) {
+      mapRef.current?.fitToPoints(matches, insets.top + 120);
+    }
+  };
+
   const defaultCenter = responderCoords ?? { latitude: 10.2531, longitude: 123.9494 };
 
   return (
@@ -223,6 +287,8 @@ export default function LiveMapScreen() {
         // instead of a wider default that only tightens once fitToPoints
         // fires (which never happens with zero active incidents).
         zoom={15}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
         showLayerSwitcher
         layerSwitcherBottomInset={tabBarHeight + SPACING.lg}
         showUserLocationDot={false}
@@ -232,6 +298,7 @@ export default function LiveMapScreen() {
           if (id === SELF_MARKER_ID) return;
           router.push(`/responder/${id}`);
         }}
+        onRegionChange={(region) => setZoomLevel(region.zoom)}
         onReady={() => setMapReady(true)}
       />
 
@@ -246,7 +313,11 @@ export default function LiveMapScreen() {
               ? "Loading incidents…"
               : loadError
                 ? "Couldn't refresh -- showing last known incidents"
-                : incidents.length === incidentMarkers.length
+                : selectedCategory
+                  ? `Showing: ${CATEGORY_LABELS[selectedCategory] ?? selectedCategory} (${incidentMarkers.length})`
+                  : showNearestOnly
+                  ? "Showing nearest only"
+                  : incidents.length === incidentMarkers.length
                   ? `${incidentMarkers.length} active incident${incidentMarkers.length === 1 ? "" : "s"}`
                   : // Some incidents came back with no latitude/longitude --
                     // toIncident() leaves incidentCoords undefined for those,
@@ -257,22 +328,37 @@ export default function LiveMapScreen() {
         </View>
       </View>
 
-      <IncidentTypeLegend
-        activeType={typeFilter}
-        counts={typeCounts}
-        onSelectType={(type) => setTypeFilter((prev) => (prev === type ? null : type))}
-        style={{ left: SPACING.md, bottom: tabBarHeight + SPACING.lg }}
+      <NearestIncidentButton
+        active={showNearestOnly}
+        disabled={!nearestIncident}
+        onPress={handleToggleNearest}
+        style={{
+          position: "absolute",
+          right: SPACING.md,
+          bottom: tabBarHeight + SPACING.lg + 44 + SPACING.sm + 88 + SPACING.sm,
+        }}
       />
 
-      <Pressable
+      <ZoomControls
+        zoomLevel={zoomLevel}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        style={{ bottom: tabBarHeight + SPACING.lg + 44 + SPACING.sm }}
+      />
+
+      <LocateButton
+        isLocating={false}
         onPress={handleLocate}
-        hitSlop={8}
-        style={[styles.locateButton, { bottom: tabBarHeight + SPACING.lg + 44 + SPACING.sm + 32 }]}
-        accessibilityRole="button"
-        accessibilityLabel="Center map on my location"
-      >
-        <Ionicons name="locate" size={20} color={COLORS.primary} />
-      </Pressable>
+        style={{ bottom: tabBarHeight + SPACING.lg }}
+      />
+
+      <IncidentMapLegend
+        selectedCategory={selectedCategory}
+        onSelectCategory={handleSelectCategory}
+        style={{ left: SPACING.md, bottom: tabBarHeight + SPACING.lg }}
+      />
 
       {!hasLoadedOnce && (
         <View style={styles.loadingOverlay} pointerEvents="none">
@@ -326,20 +412,6 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.caption,
       color: COLORS.textSecondary,
       marginTop: 1,
-    },
-    locateButton: {
-      position: "absolute",
-      // Stacked directly above the map-layer button (same right edge).
-      right: SPACING.md,
-      width: 44,
-      height: 44,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.background,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      alignItems: "center",
-      justifyContent: "center",
-      ...SHADOW,
     },
     loadingOverlay: {
       ...StyleSheet.absoluteFill,

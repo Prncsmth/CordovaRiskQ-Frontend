@@ -153,7 +153,7 @@ export const RESPONDER_TOUR_STEPS: TourStepConfig[] = [
   {
     id: "responder-live-map",
     title: "Live Map",
-    body: "See every active incident on a live map, along with your own current location.",
+    body: "See every active incident on a live map, along with your own current location. Use the nearest-incident/SOS button to instantly zoom to the closest one.",
     targetId: "responder-live-map",
   },
   {

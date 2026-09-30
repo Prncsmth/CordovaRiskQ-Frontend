@@ -39,6 +39,21 @@ export async function registerUser(
   });
 }
 
+export async function requestRegistrationOtp(
+  name: string,
+  email: string,
+  password: string,
+): Promise<void> {
+  await apiPost("/api/auth/register/request-otp", { name, email, password });
+}
+
+export async function verifyRegistrationOtp(
+  email: string,
+  code: string,
+): Promise<RegisterResponse> {
+  return apiPost<RegisterResponse>("/api/auth/register/verify-otp", { email, code });
+}
+
 export async function requestPasswordReset(
   email: string,
 ): Promise<{ success: boolean }> {

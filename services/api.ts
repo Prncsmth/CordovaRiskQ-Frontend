@@ -1,6 +1,14 @@
 import Constants from "expo-constants";
 
 function resolveApiBaseUrl(): string {
+  // A real deployed backend (set at build time, e.g. an EAS build profile's
+  // env, or a local .env.local for testing against a hosted API instead of
+  // a laptop) always wins -- this is the only way a standalone/preview build
+  // can reach anything once it's off the same LAN as the dev machine, since
+  // neither of the fallbacks below is reachable from outside that network.
+  const configuredUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (configuredUrl) return configuredUrl.replace(/\/+$/, "");
+
   // Expo Go / dev client exposes the packager's host (your PC's LAN IP) here.
   // This keeps working automatically even if your PC's IP changes, as long
   // as you're running via `expo start` and testing on the same network.
@@ -13,7 +21,10 @@ function resolveApiBaseUrl(): string {
     return `http://${host}:8000`;
   }
 
-  // Fallback for web builds or production, where this detection doesn't apply.
+  // Last-resort fallback for web builds or a standalone build with no
+  // EXPO_PUBLIC_API_BASE_URL configured -- "localhost" from a physical
+  // device/production build means the device itself, never a real backend,
+  // so this only ever works for local web development.
   return "http://localhost:8000";
 }
 

@@ -10,8 +10,7 @@ import AuthInput from "@/components/auth/AuthInput";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import KeyboardSafeView from "@/components/common/KeyboardSafeView";
-import { useAuth } from "@/context/AuthContext";
-import { registerUser } from "@/services/auth.service";
+import { requestRegistrationOtp } from "@/services/auth.service";
 import {
     RADIUS,
     SPACING,
@@ -23,7 +22,6 @@ import {
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { login } = useAuth();
   const insets = useSafeAreaInsets();
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
@@ -50,8 +48,12 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const response = await registerUser(name, email, password);
-      await login(response.token, response.user, true);
+      const trimmedEmail = email.trim();
+      await requestRegistrationOtp(name, trimmedEmail, password);
+      router.push({
+        pathname: "/verify-email",
+        params: { email: trimmedEmail, name, password },
+      });
     } catch (err) {
       const message =
         err instanceof Error
