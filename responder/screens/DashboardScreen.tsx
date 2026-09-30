@@ -33,6 +33,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
+import BarangayChipSelector from "@/responder/components/dashboard/BarangayChipSelector";
 import BarangaySectionHeader from "@/responder/components/dashboard/BarangaySectionHeader";
 import {
   filterIncidents,
@@ -46,6 +47,7 @@ import {
 } from "@/responder/components/dashboard/groupIncidentsByBarangay";
 import IncidentCard from "@/responder/components/dashboard/IncidentCard";
 import IncidentFilterBar from "@/responder/components/dashboard/IncidentFilterBar";
+import SeeAllToggle from "@/responder/components/dashboard/SeeAllToggle";
 import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
 import RButton from "@/responder/components/shared/RButton";
 import { getIncidents } from "@/responder/services/incident.service";
@@ -66,7 +68,7 @@ import {
 import { formatRelativeTime } from "@/utils/formatter";
 
 const POLL_INTERVAL_MS = 12000;
-// How long a just-arrived incident keeps its "NEW" badge after this
+// How long a just-arrived incident keeps its "NEW" freshness dot after this
 // dashboard first notices it.
 const NEW_BADGE_DURATION_MS = 60000;
 const NEAREST_INCIDENTS_COUNT = 3;
@@ -266,18 +268,40 @@ export default function ResponderIncidentsScreen() {
     [incidents],
   );
 
+  // Counts come from the incidents this screen already has loaded (the same
+  // authorized getIncidents() result the rest of the screen reads) -- never
+  // a separate per-barangay request, and never affected by the barangay
+  // filter itself, so a chip's count stays stable as you switch between
+  // barangays.
   const availableBarangays = useMemo(() => {
-    const byId = new Map<string, string>();
+    const byId = new Map<string, { name: string; count: number }>();
     for (const incident of incidents) {
       const barangay = incidentBarangay(incident);
-      byId.set(barangay.id, barangay.name);
+      const existing = byId.get(barangay.id);
+      if (existing) existing.count += 1;
+      else byId.set(barangay.id, { name: barangay.name, count: 1 });
     }
-    return Array.from(byId, ([id, name]) => ({ id, name })).sort((a, b) => {
-      if (a.id === UNKNOWN_LOCATION_ID) return 1;
-      if (b.id === UNKNOWN_LOCATION_ID) return -1;
-      return a.name.localeCompare(b.name);
-    });
+    return Array.from(byId, ([id, { name, count }]) => ({ id, name, count })).sort(
+      (a, b) => {
+        if (a.id === UNKNOWN_LOCATION_ID) return 1;
+        if (b.id === UNKNOWN_LOCATION_ID) return -1;
+        return a.name.localeCompare(b.name);
+      },
+    );
   }, [incidents]);
+
+  // At most one id -- BarangayChipSelector is single-select, the only thing
+  // that ever writes into filters.barangayIds.
+  const selectedBarangayId =
+    filters.barangayIds.size === 1 ? [...filters.barangayIds][0] : null;
+
+  const handleSelectBarangay = (id: string | null) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFilters((prev) => ({
+      ...prev,
+      barangayIds: id ? new Set([id]) : new Set(),
+    }));
+  };
 
   const filteredIncidents = useMemo(
     () => filterIncidents(incidents, filters),
@@ -285,28 +309,32 @@ export default function ResponderIncidentsScreen() {
   );
 
   const nearestAll = useMemo(
-    () => selectNearestIncidents(filteredIncidents, filteredIncidents.length),
+    () => selectNearestIncidents(filteredIncidents),
     [filteredIncidents],
   );
   const nearestIncidents = nearestExpanded
     ? nearestAll
     : nearestAll.slice(0, NEAREST_INCIDENTS_COUNT);
 
-  const sections = useMemo(
-    () =>
-      groupIncidentsByBarangay(filteredIncidents, firstSeenSnapshot).map(
-        (group) => ({
-          title: group,
-          data: expandedBarangayIds.has(group.id)
-            ? group.incidents
-            : group.incidents.slice(0, BARANGAY_PREVIEW_COUNT),
-        }),
-      ),
-    [filteredIncidents, firstSeenSnapshot, expandedBarangayIds],
-  );
+  // Nothing selected -> no barangay section renders at all, only "Nearest to
+  // You" above. Stacking every barangay's section by default was the
+  // overwhelming wall of scrolling BarangayChipSelector was built to replace;
+  // picking one is now the only way a section appears, instead of a section
+  // per barangay always being there to scroll past.
+  const sections = useMemo(() => {
+    if (!selectedBarangayId) return [];
+    return groupIncidentsByBarangay(filteredIncidents, firstSeenSnapshot).map(
+      (group) => ({
+        title: group,
+        data: expandedBarangayIds.has(group.id)
+          ? group.incidents
+          : group.incidents.slice(0, BARANGAY_PREVIEW_COUNT),
+      }),
+    );
+  }, [filteredIncidents, firstSeenSnapshot, expandedBarangayIds, selectedBarangayId]);
 
+  // Haptics fire from SeeAllToggle itself (its own onPress wrapper), not here.
   const handleToggleBarangayExpanded = (id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setExpandedBarangayIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -497,8 +525,16 @@ export default function ResponderIncidentsScreen() {
             filters={filters}
             onFiltersChange={setFilters}
             availableTypes={availableTypes}
-            availableBarangays={availableBarangays}
           />
+
+          {availableBarangays.length > 0 && (
+            <BarangayChipSelector
+              barangays={availableBarangays}
+              totalCount={incidents.length}
+              selectedBarangayId={selectedBarangayId}
+              onSelect={handleSelectBarangay}
+            />
+          )}
 
           {!hasLoadedOnce ? (
             <View style={styles.noResultsState}>
@@ -573,19 +609,16 @@ export default function ResponderIncidentsScreen() {
                           />
                         ))}
                         {nearestAll.length > NEAREST_INCIDENTS_COUNT && (
-                          <Pressable
-                            style={styles.seeAllButton}
-                            onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                              setNearestExpanded((prev) => !prev);
-                            }}
-                          >
-                            <Text style={styles.seeAllText}>
-                              {nearestExpanded
-                                ? "Show Less"
-                                : `See All (${nearestAll.length - NEAREST_INCIDENTS_COUNT} more)`}
-                            </Text>
-                          </Pressable>
+                          <SeeAllToggle
+                            expanded={nearestExpanded}
+                            remainingCount={nearestAll.length - NEAREST_INCIDENTS_COUNT}
+                            onPress={() => setNearestExpanded((prev) => !prev)}
+                          />
+                        )}
+                        {!selectedBarangayId && availableBarangays.length > 0 && (
+                          <Text style={styles.pickBarangayHint}>
+                            Tap a barangay above to see its incidents.
+                          </Text>
                         )}
                       </View>
                     )
@@ -611,16 +644,11 @@ export default function ResponderIncidentsScreen() {
                 if (total <= BARANGAY_PREVIEW_COUNT) return null;
                 const isExpanded = expandedBarangayIds.has(section.title.id);
                 return (
-                  <Pressable
-                    style={styles.seeAllButton}
+                  <SeeAllToggle
+                    expanded={isExpanded}
+                    remainingCount={total - section.data.length}
                     onPress={() => handleToggleBarangayExpanded(section.title.id)}
-                  >
-                    <Text style={styles.seeAllText}>
-                      {isExpanded
-                        ? "Show Less"
-                        : `See All (${total - section.data.length} more)`}
-                    </Text>
-                  </Pressable>
+                  />
                 );
               }}
             />
@@ -828,15 +856,11 @@ function createStyles(COLORS: ColorPalette) {
       letterSpacing: 0.2,
       textTransform: "uppercase",
     },
-    seeAllButton: {
-      alignSelf: "flex-start",
-      paddingVertical: SPACING.xs,
-      paddingHorizontal: SPACING.sm,
-    },
-    seeAllText: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "700",
-      color: COLORS.primary,
+    pickBarangayHint: {
+      marginTop: SPACING.xs,
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textTertiary,
+      textAlign: "center",
     },
   });
 }

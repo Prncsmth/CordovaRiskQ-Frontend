@@ -13,7 +13,18 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { Platform } from "react-native";
-import * as Notifications from "expo-notifications";
+// Type-only -- safe to import unconditionally, unlike the runtime module
+// below (see services/push.service.ts's remotePushUnsupported comment for
+// why a static `import *` of expo-notifications crashes on Android Expo Go).
+import type * as NotificationsType from "expo-notifications";
+
+import { remotePushUnsupported } from "@/services/push.service";
+
+let Notifications: typeof NotificationsType | undefined;
+if (!remotePushUnsupported) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Notifications = require("expo-notifications");
+}
 
 type IncidentPushData = { type?: string; referenceId?: string };
 
@@ -36,25 +47,35 @@ export function useNotificationDeepLink(enabled: boolean): void {
     // aren't implemented on web (expo-notifications throws) -- deep-linking
     // from a push tap only makes sense on a native build anyway.
     if (Platform.OS === "web") return;
+    // Android Expo Go: Notifications is undefined (see the require() guard
+    // above) -- nothing to deep-link from without the real native module.
+    if (remotePushUnsupported) return;
 
-    function handleResponse(response: Notifications.NotificationResponse) {
+    function handleResponse(response: NotificationsType.NotificationResponse) {
       const identifier = response.notification.request.identifier;
       if (handledIdRef.current === identifier) return;
       handledIdRef.current = identifier;
 
-      const data = response.notification.request.content.data as IncidentPushData;
-      if (data.type === "new_incident" && data.referenceId) {
+      // Optional -- ResponderAlertContext's own locally-scheduled "new
+      // incident" sound alert has no data payload at all (just a
+      // title/body), and shares this same listener with real backend
+      // pushes. Tapping that local alert must fall through as a no-op
+      // instead of crashing on an assumed-present field.
+      const data = response.notification.request.content.data as
+        | IncidentPushData
+        | undefined;
+      if (data?.type === "new_incident" && data.referenceId) {
         router.push(`/responder/${data.referenceId}` as const);
-      } else if (data.type === "announcement" && data.referenceId) {
+      } else if (data?.type === "announcement" && data.referenceId) {
         router.push({ pathname: "/announcement-detail/[id]", params: { id: data.referenceId } });
       }
     }
 
-    Notifications.getLastNotificationResponseAsync().then((response) => {
+    Notifications!.getLastNotificationResponseAsync().then((response) => {
       if (response) handleResponse(response);
     });
 
-    const subscription = Notifications.addNotificationResponseReceivedListener(handleResponse);
+    const subscription = Notifications!.addNotificationResponseReceivedListener(handleResponse);
     return () => subscription.remove();
   }, [router, enabled]);
 }

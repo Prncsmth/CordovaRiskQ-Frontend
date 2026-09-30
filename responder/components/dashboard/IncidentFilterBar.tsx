@@ -1,9 +1,13 @@
 // components/responder/IncidentFilterBar.tsx
 // Search input + horizontal chip row for the responder Dashboard: fixed
-// Urgency chips plus Type/Barangay chips derived from whichever incidents
-// are currently on screen (passed in by the caller). Selections within a
+// Urgency chips plus Type chips derived from whichever incidents are
+// currently on screen (passed in by the caller). Selections within a
 // category OR together; categories AND against each other -- the actual
 // narrowing happens in filterIncidents, this component only edits filters.
+// Barangay selection lives in its own dedicated, more prominent row now
+// (BarangayChipSelector, rendered by DashboardScreen) instead of being
+// buried in this mixed chip row -- both still edit the same
+// filters.barangayIds field, so filterIncidents didn't need to change.
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import {
@@ -48,14 +52,12 @@ export type IncidentFilterBarProps = {
   filters: IncidentFilters;
   onFiltersChange: (filters: IncidentFilters) => void;
   availableTypes: string[];
-  availableBarangays: { id: string; name: string }[];
 };
 
 export default function IncidentFilterBar({
   filters,
   onFiltersChange,
   availableTypes,
-  availableBarangays,
 }: IncidentFilterBarProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -133,27 +135,6 @@ export default function IncidentFilterBar({
             >
               <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
                 {type}
-              </Text>
-            </Pressable>
-          );
-        })}
-
-        {availableBarangays.map((barangay) => {
-          const selected = filters.barangayIds.has(barangay.id);
-          return (
-            <Pressable
-              key={barangay.id}
-              hitSlop={4}
-              onPress={() =>
-                onFiltersChange({
-                  ...filters,
-                  barangayIds: toggled(filters.barangayIds, barangay.id),
-                })
-              }
-              style={[styles.chip, selected && styles.chipSelected]}
-            >
-              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                {barangay.name}
               </Text>
             </Pressable>
           );

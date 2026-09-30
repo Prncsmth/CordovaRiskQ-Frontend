@@ -19,9 +19,9 @@ function getUrgencyStyles(
   };
 }
 
-// Flat solid fill, no gradient/shadow -- a card already carries urgency via
-// its own left-border color (see IncidentCard.tsx), so this badge is just
-// the text label, not a second competing "look at me" affordance.
+// Flat solid fill, no gradient/shadow -- this label is the card's only
+// urgency signal (see IncidentCard.tsx's own header comment), not one of
+// several competing "look at me" affordances.
 export default function UrgencyBadge({ urgency }: { urgency: Urgency }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);

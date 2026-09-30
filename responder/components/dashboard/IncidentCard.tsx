@@ -19,8 +19,8 @@ import { formatRelativeTime } from "@/utils/formatter";
 
 // Only these three roster statuses get a "my status" chip on the card --
 // "pending" (never joined) shows no chip at all, so it doesn't compete
-// with the unrelated freshness "NEW" pill above; "declined"/"left" never
-// reach this list in the first place (see services/incident.service.ts).
+// with the unrelated freshness dot next to the title; "declined"/"left"
+// never reach this list in the first place (see services/incident.service.ts).
 const MY_STATUS_LABELS: Record<ResponderStatus, string> = {
   joined: "Joined",
   on_the_way: "On the Way",
