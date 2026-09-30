@@ -6,7 +6,6 @@ import {
   Alert,
   Image,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -19,6 +18,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import SupportRequestSent from "@/components/support/SupportRequestSent";
+import { useAuth } from "@/context/AuthContext";
+import { sendSupportRequest } from "@/services/support.service";
 import {
   useThemeColors,
   FONT_FAMILY,
@@ -34,14 +36,18 @@ const TOPICS = ["App issue", "Report help", "Account", "Other"] as const;
 export default function ContactSupportScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { token } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [topic, setTopic] = useState<(typeof TOPICS)[number]>("App issue");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const [sent, setSent] = useState<{ topic: string; subject: string; sentAt: Date } | null>(null);
   const [focusedField, setFocusedField] = useState<"subject" | "message" | null>(null);
 
-  const sendEmail = () => {
+  const sendRequest = async () => {
+    if (isSending) return;
     if (!message.trim()) {
       Alert.alert(
         "Add a message",
@@ -49,12 +55,47 @@ export default function ContactSupportScreen() {
       );
       return;
     }
+    if (!token) {
+      Alert.alert("Sign in required", "Please sign in to contact support.");
+      return;
+    }
 
-    const email = `mailto:support@riskq.ph?subject=${encodeURIComponent(
-      subject.trim() || `${topic} support request`,
-    )}&body=${encodeURIComponent(message.trim())}`;
-    void Linking.openURL(email);
+    setIsSending(true);
+    try {
+      await sendSupportRequest(token, {
+        topic,
+        subject: subject.trim() || undefined,
+        message: message.trim(),
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setSent({
+        topic,
+        subject: subject.trim() || `${topic} support request`,
+        sentAt: new Date(),
+      });
+      setSubject("");
+      setMessage("");
+    } catch (err) {
+      Alert.alert(
+        "Couldn't send your request",
+        err instanceof Error ? err.message : "Check your connection and try again.",
+      );
+    } finally {
+      setIsSending(false);
+    }
   };
+
+  if (sent) {
+    return (
+      <SupportRequestSent
+        topic={sent.topic}
+        subject={sent.subject}
+        sentAt={sent.sentAt}
+        onDone={() => router.back()}
+        onSendAnother={() => setSent(null)}
+      />
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -165,7 +206,8 @@ export default function ContactSupportScreen() {
 
         <PrimaryButton
           title="SEND TO SUPPORT"
-          onPress={sendEmail}
+          onPress={sendRequest}
+          loading={isSending}
           colors={[COLORS.tide, COLORS.tide]}
         />
         <Text style={styles.disclaimer}>
