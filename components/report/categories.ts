@@ -29,6 +29,13 @@ export const DETAIL_SUGGESTIONS: Record<CategoryId, string[]> = {
   other: ["Emergency situation", "Need immediate assistance", "Area is unsafe"],
 };
 
+// Fire and medical reports are already high urgency server-side, so "Mark as
+// urgent" (which only raises urgency one level, capped at high) would do
+// nothing for them -- the toggle is hidden instead of shown as a no-op.
+export function canMarkUrgent(category: CategoryId | null): boolean {
+  return category !== null && category !== "fire" && category !== "medical";
+}
+
 export function getCategory(id: CategoryId): Category {
   const category = CATEGORIES.find((c) => c.id === id);
   if (!category) {

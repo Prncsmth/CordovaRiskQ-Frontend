@@ -36,6 +36,7 @@ export default function BarangayChipSelector({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={styles.scroll}
       contentContainerStyle={styles.row}
     >
       <Pressable
@@ -87,6 +88,14 @@ export default function BarangayChipSelector({
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
+    // A ScrollView defaults to flexShrink: 1, and this one sits directly in
+    // the screen's flex column beside the SectionList -- once a barangay is
+    // selected and the list grows, the row got squeezed below its content
+    // height and the chips rendered clipped.
+    scroll: {
+      flexGrow: 0,
+      flexShrink: 0,
+    },
     row: {
       flexDirection: "row",
       alignItems: "center",

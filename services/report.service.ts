@@ -77,6 +77,7 @@ export async function createReport(
     reporterLatitude: number;
     reporterLongitude: number;
     photoUrl?: string;
+    markedUrgent?: boolean;
   },
 ) {
   const response = await apiPost<{ success: true; incident: IncidentApiRow }>(

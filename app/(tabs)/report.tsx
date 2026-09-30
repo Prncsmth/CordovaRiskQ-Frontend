@@ -12,11 +12,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import GeofenceBlockedModal from "@/components/common/GeofenceBlockedModal";
-import type { CategoryId } from "@/components/report/categories";
+import { canMarkUrgent, type CategoryId } from "@/components/report/categories";
 import CategoryGrid from "@/components/report/CategoryGrid";
 import DetailsInput from "@/components/report/DetailsInput";
 import PhotoPicker, { type SelectedPhoto } from "@/components/report/PhotoPicker";
 import PinnedLocationCard from "@/components/report/PinnedLocationCard";
+import UrgentToggle from "@/components/report/UrgentToggle";
 import ReportFirstTimeGuide from "@/components/tour/ReportFirstTimeGuide";
 import {
     CORDOVA_BARANGAYS,
@@ -54,6 +55,7 @@ export default function ReportScreen() {
   const [category, setCategory] = useState<CategoryId | null>(null);
   const [details, setDetails] = useState("");
   const [photo, setPhoto] = useState<SelectedPhoto | null>(null);
+  const [markedUrgent, setMarkedUrgent] = useState(false);
   const { location: pinnedLocation } = useReportLocation();
   const [gpsLocation, setGpsLocation] = useState(FALLBACK_LOCATION);
   const [showReportGuide, setShowReportGuide] = useState(false);
@@ -123,6 +125,14 @@ export default function ReportScreen() {
 
   const activeLocation = pinnedLocation ?? gpsLocation;
   const canSubmit = category !== null && details.trim().length > 0;
+  const showUrgentToggle = canMarkUrgent(category);
+
+  // Switching to fire/medical hides the toggle -- clear it so a stale "on"
+  // isn't sent for a category where it's meaningless.
+  const handleSelectCategory = (next: CategoryId) => {
+    setCategory(next);
+    if (!canMarkUrgent(next)) setMarkedUrgent(false);
+  };
 
   const handleSubmit = async () => {
     if (submitInFlightRef.current) return;
@@ -178,6 +188,7 @@ export default function ReportScreen() {
           reporterLatitude: result.coords.latitude,
           reporterLongitude: result.coords.longitude,
           photoUrl,
+          markedUrgent: showUrgentToggle && markedUrgent,
         });
         router.replace({
           pathname: "/report-confirmation",
@@ -219,7 +230,7 @@ export default function ReportScreen() {
           style={styles.section}
         >
           <Text style={styles.sectionHeading}>Category</Text>
-          <CategoryGrid selected={category} onSelect={setCategory} />
+          <CategoryGrid selected={category} onSelect={handleSelectCategory} />
         </View>
         <View
           ref={locationTargetRef}
@@ -237,6 +248,9 @@ export default function ReportScreen() {
           <Text style={styles.sectionHeading}>Details</Text>
           <DetailsInput value={details} onChangeText={setDetails} category={category} />
         </View>
+        {showUrgentToggle ? (
+          <UrgentToggle value={markedUrgent} onValueChange={setMarkedUrgent} />
+        ) : null}
         <View style={styles.section}>
           <View style={styles.sectionHeadingRow}>
             <Text style={styles.sectionHeading}>Photo</Text>
