@@ -10,8 +10,16 @@ import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import { useAuth } from "@/context/AuthContext";
-import type { ApiError } from "@/services/api";
-import { requestRegistrationOtp, verifyRegistrationOtp } from "@/services/auth.service";
+import { resendRegistrationOtp, verifyRegistrationOtp } from "@/services/auth.service";
+import {
+    OTP_LENGTH,
+    RESEND_COOLDOWN_SECONDS,
+    describeRegistrationError,
+    resendVerificationCode,
+    sanitizeOtpInput,
+    shouldAllowImmediateResend,
+    submitVerificationCode,
+} from "@/services/registrationFlow";
 import {
     RADIUS,
     SPACING,
@@ -21,7 +29,15 @@ import {
     type ColorPalette,
 } from "@/theme";
 
-const RESEND_COOLDOWN_SECONDS = 60;
+// 6-digit CORDOVA RISKQ code entry. The backend emailed the code (never the
+// app), checks it, and on success creates the account and returns our JWT.
+// Only the email arrives here -- resending needs nothing else, because the
+// backend already stored the hashed password (see
+// services/registrationFlow.ts).
+function initialCooldown(cooldownParam: string | undefined): number {
+  const fromServer = Number(cooldownParam);
+  return Number.isInteger(fromServer) && fromServer > 0 ? fromServer : RESEND_COOLDOWN_SECONDS;
+}
 
 export default function VerifyEmailScreen() {
   const router = useRouter();
@@ -30,17 +46,18 @@ export default function VerifyEmailScreen() {
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
   const styles = useMemo(() => createStyles(COLORS, isDark), [COLORS, isDark]);
-  const { email, name, password } = useLocalSearchParams<{
+  const { email, cooldown: cooldownParam } = useLocalSearchParams<{
     email: string;
-    name: string;
-    password: string;
+    cooldown?: string;
   }>();
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cooldown, setCooldown] = useState(RESEND_COOLDOWN_SECONDS);
+  const [notice, setNotice] = useState<string | null>(null);
+  // register.tsx just sent the first code, so start counting down.
+  const [cooldown, setCooldown] = useState(() => initialCooldown(cooldownParam));
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -53,27 +70,21 @@ export default function VerifyEmailScreen() {
   }, []);
 
   async function handleVerify() {
-    if (code.trim().length !== 6) {
-      setError("Enter the 6-digit code.");
-      return;
-    }
-
     setError(null);
+    setNotice(null);
     setLoading(true);
     try {
-      const result = await verifyRegistrationOtp(email, code.trim());
-      await login(result.token, result.user, true);
-    } catch (err) {
-      const apiErr = err as ApiError;
-      if (apiErr.status === 410 || apiErr.status === 429) {
-        // Expired or too-many-attempts -- both mean "this code is dead,"
-        // so let the user resend immediately instead of waiting out
-        // whatever's left of the (now-moot) countdown.
-        setCooldown(0);
+      const result = await submitVerificationCode(email, code, { verifyRegistrationOtp, login });
+      if (result.status === "invalid-input") {
+        setError(result.message);
       }
-      setError(
-        err instanceof Error ? err.message : "Verification failed. Please try again.",
-      );
+      // "signed-in": login() flips isAuthenticated and app/_layout.tsx moves
+      // on to the phone-number/Terms onboarding.
+    } catch (err) {
+      // Expired or too many attempts: this code is dead, so let the user get
+      // a new one right away instead of waiting out the countdown.
+      if (shouldAllowImmediateResend(err)) setCooldown(0);
+      setError(describeRegistrationError(err));
     } finally {
       setLoading(false);
     }
@@ -81,16 +92,22 @@ export default function VerifyEmailScreen() {
 
   async function handleResend() {
     if (cooldown > 0 || resending) return;
-
     setError(null);
+    setNotice(null);
     setResending(true);
     try {
-      await requestRegistrationOtp(name, email, password);
-      setCooldown(RESEND_COOLDOWN_SECONDS);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Couldn't resend the code. Please try again.",
+      const newCooldown = await resendVerificationCode(
+        email,
+        { cooldownRemaining: cooldown, inFlight: resending },
+        { resendRegistrationOtp },
       );
+      if (newCooldown !== null) {
+        setCode("");
+        setCooldown(newCooldown || RESEND_COOLDOWN_SECONDS);
+        setNotice(`We sent a new code to ${email}. Your previous code no longer works.`);
+      }
+    } catch (err) {
+      setError(describeRegistrationError(err));
     } finally {
       setResending(false);
     }
@@ -119,16 +136,20 @@ export default function VerifyEmailScreen() {
 
           <AuthHeader
             title="Verify Your Email"
-            subtitle={`Enter the 6-digit code we sent to ${email}`}
+            subtitle={`Enter the 6-digit verification code we sent to ${email}`}
           />
+
+          <Text style={styles.hint}>
+            Can&apos;t find it? Check your Spam or Promotions folder.
+          </Text>
 
           <AuthInput
             label="Verification Code"
             placeholder="123456"
             keyboardType="number-pad"
-            maxLength={6}
+            maxLength={OTP_LENGTH}
             value={code}
-            onChangeText={setCode}
+            onChangeText={(value) => setCode(sanitizeOtpInput(value))}
             rightLabel={
               resending
                 ? "Sending…"
@@ -145,7 +166,9 @@ export default function VerifyEmailScreen() {
             </View>
           ) : null}
 
-          <PrimaryButton title="Verify" loading={loading} onPress={handleVerify} />
+          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+
+          <PrimaryButton title="Verify Code" loading={loading} onPress={handleVerify} />
         </ScrollView>
       </KeyboardSafeView>
     </View>
@@ -172,6 +195,19 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
 
     back: {
       marginBottom: SPACING.lg,
+    },
+
+    hint: {
+      color: COLORS.textSecondary,
+      fontSize: TYPOGRAPHY.caption,
+      marginBottom: SPACING.md,
+    },
+
+    notice: {
+      color: COLORS.textSecondary,
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "600",
+      marginBottom: SPACING.sm,
     },
 
     errorBanner: {
