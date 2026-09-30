@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
@@ -11,7 +11,6 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 
-import PrimaryButton from "@/components/auth/PrimaryButton";
 import { useAuth } from "@/context/AuthContext";
 import {
     FONT_FAMILY,
@@ -36,7 +35,6 @@ export default function RegistrationCompleteScreen() {
   const iconScale = useSharedValue(0.7);
   const contentOpacity = useSharedValue(0);
   const contentTranslateY = useSharedValue(16);
-  const actionOpacity = useSharedValue(0);
 
   React.useEffect(() => {
     iconOpacity.value = withTiming(1, { duration: 350 });
@@ -46,14 +44,17 @@ export default function RegistrationCompleteScreen() {
       180,
       withSpring(0, { damping: 14, stiffness: 120 }),
     );
-    actionOpacity.value = withDelay(360, withTiming(1, { duration: 400 }));
-  }, [
-    actionOpacity,
-    contentOpacity,
-    contentTranslateY,
-    iconOpacity,
-    iconScale,
-  ]);
+  }, [contentOpacity, contentTranslateY, iconOpacity, iconScale]);
+
+  // Auto-advance instead of waiting on a tap -- this screen is just a
+  // confirmation, not a decision point, so it pops up and moves on by
+  // itself once there's been enough time to read it.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      router.replace("/(auth)/login");
+    }, 2200);
+    return () => clearTimeout(timeout);
+  }, [router]);
 
   const iconAnimation = useAnimatedStyle(() => ({
     opacity: iconOpacity.value,
@@ -62,9 +63,6 @@ export default function RegistrationCompleteScreen() {
   const contentAnimation = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
     transform: [{ translateY: contentTranslateY.value }],
-  }));
-  const actionAnimation = useAnimatedStyle(() => ({
-    opacity: actionOpacity.value,
   }));
 
   return (
@@ -83,12 +81,6 @@ export default function RegistrationCompleteScreen() {
           </Text>
         </Animated.View>
       </View>
-      <Animated.View style={[styles.actionArea, actionAnimation]}>
-        <PrimaryButton
-          title="Go to Login"
-          onPress={() => router.replace("/(auth)/login")}
-        />
-      </Animated.View>
     </View>
   );
 }
@@ -142,9 +134,6 @@ function createStyles(COLORS: ColorPalette) {
       textAlign: "center",
       marginTop: SPACING.md,
       maxWidth: 330,
-    },
-    actionArea: {
-      marginBottom: SPACING.xl,
     },
   });
 }

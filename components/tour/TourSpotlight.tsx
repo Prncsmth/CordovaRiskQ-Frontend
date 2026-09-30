@@ -4,6 +4,18 @@
 // dimmed View (no cutout) when there is no target -- step 0 ("Welcome")
 // and the fallback for a target that failed to measure.
 //
+// The cutout is 4 plain Views tiled around the target (top/bottom span the
+// full width, left/right fill the remaining band beside the hole) instead
+// of an SVG <Mask> -- a full-screen SVG mask forces a GPU compositing pass
+// every frame it's recomposited, which is a well-known Android perf cost
+// in react-native-svg; four opaque Views with Reanimated-driven layout
+// props are far cheaper and still animate on the UI thread. The left/right
+// pieces share the hole's exact top/height, so rounding their *inner*
+// corners (the corners that touch the hole) lands exactly on all 4 of the
+// hole's corners -- top/bottom need no rounding at all. A 5th, transparent
+// bordered View traces the same rect for the white outline the old stroked
+// SvgRect drew.
+//
 // Fixed ~50% black regardless of theme (not COLORS.scrim, which is
 // lighter and theme-adaptive) -- same reasoning as TourTooltip's fixed
 // white card: a short-lived onboarding overlay, consistent every time
@@ -11,15 +23,12 @@
 import React, { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import Animated, {
-  useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Defs, Mask, Rect as SvgRect } from "react-native-svg";
 import type { Rect } from "./types";
 
-const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
 const SPOTLIGHT_PADDING = 6;
 const SPOTLIGHT_RADIUS = 14;
 const SCRIM_COLOR = "rgba(0, 0, 0, 0.5)";
@@ -30,10 +39,13 @@ type TourSpotlightProps = {
   screenHeight: number;
 };
 
+// screenWidth/screenHeight are accepted for interface stability with the
+// caller (FirstTimeGuideOverlay et al. already have them from
+// useWindowDimensions) but are no longer needed here -- every rect below is
+// positioned with edge anchors (left/right/top/bottom) instead of computed
+// pixel widths, so it tracks the real screen size natively.
 export default function TourSpotlight({
   targetRect,
-  screenWidth,
-  screenHeight,
 }: TourSpotlightProps) {
   const initialHole = targetRect
     ? {
@@ -77,9 +89,57 @@ export default function TourSpotlight({
     });
   }, [targetRect, holeX, holeY, holeW, holeH]);
 
-  const animatedProps = useAnimatedProps(() => ({
-    x: holeX.value,
-    y: holeY.value,
+  // Spans the full width above the hole -- needs no rounding itself; the
+  // left/right pieces below supply all 4 rounded corners.
+  const topStyle = useAnimatedStyle(() => ({
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: holeY.value,
+    backgroundColor: SCRIM_COLOR,
+  }));
+  // Anchored by top+bottom instead of a computed height, so it always
+  // reaches the screen's actual bottom edge regardless of rotation/resize.
+  const bottomStyle = useAnimatedStyle(() => ({
+    position: "absolute",
+    top: holeY.value + holeH.value,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: SCRIM_COLOR,
+  }));
+  // Shares the hole's exact top/height, so its inner (right) corners land
+  // exactly on the hole's top-left/bottom-left corners.
+  const leftStyle = useAnimatedStyle(() => ({
+    position: "absolute",
+    top: holeY.value,
+    left: 0,
+    width: holeX.value,
+    height: holeH.value,
+    backgroundColor: SCRIM_COLOR,
+    borderTopRightRadius: SPOTLIGHT_RADIUS,
+    borderBottomRightRadius: SPOTLIGHT_RADIUS,
+  }));
+  // Anchored by left+right instead of a computed width, for the same
+  // rotation/resize reason as bottomStyle; its inner (left) corners land on
+  // the hole's top-right/bottom-right corners.
+  const rightStyle = useAnimatedStyle(() => ({
+    position: "absolute",
+    top: holeY.value,
+    left: holeX.value + holeW.value,
+    right: 0,
+    height: holeH.value,
+    backgroundColor: SCRIM_COLOR,
+    borderTopLeftRadius: SPOTLIGHT_RADIUS,
+    borderBottomLeftRadius: SPOTLIGHT_RADIUS,
+  }));
+  // Transparent, bordered -- traces the hole itself for the same white
+  // outline the old stroked SvgRect drew.
+  const outlineStyle = useAnimatedStyle(() => ({
+    position: "absolute",
+    top: holeY.value,
+    left: holeX.value,
     width: holeW.value,
     height: holeH.value,
   }));
@@ -102,41 +162,20 @@ export default function TourSpotlight({
       pointerEvents="none"
       style={[StyleSheet.absoluteFill, overlayAnimatedStyle]}
     >
-      <Svg width={screenWidth} height={screenHeight}>
-        <Defs>
-          <Mask id="tour-spotlight-mask">
-            <SvgRect
-              x={0}
-              y={0}
-              width={screenWidth}
-              height={screenHeight}
-              fill="white"
-            />
-            <AnimatedRect
-              animatedProps={animatedProps}
-              rx={SPOTLIGHT_RADIUS}
-              ry={SPOTLIGHT_RADIUS}
-              fill="black"
-            />
-          </Mask>
-        </Defs>
-        <SvgRect
-          x={0}
-          y={0}
-          width={screenWidth}
-          height={screenHeight}
-          fill={SCRIM_COLOR}
-          mask="url(#tour-spotlight-mask)"
-        />
-        <AnimatedRect
-          animatedProps={animatedProps}
-          rx={SPOTLIGHT_RADIUS}
-          ry={SPOTLIGHT_RADIUS}
-          fill="none"
-          stroke="#FFFFFF"
-          strokeWidth={2}
-        />
-      </Svg>
+      <Animated.View style={topStyle} />
+      <Animated.View style={bottomStyle} />
+      <Animated.View style={leftStyle} />
+      <Animated.View style={rightStyle} />
+      <Animated.View style={[styles.outline, outlineStyle]} />
     </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  outline: {
+    borderRadius: SPOTLIGHT_RADIUS,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    backgroundColor: "transparent",
+  },
+});

@@ -12,6 +12,11 @@ import BackButton from "@/components/common/BackButton";
 import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import { requestRegistrationOtp } from "@/services/auth.service";
 import {
+    describeRegistrationError,
+    requestRegistration,
+    validateRegistration,
+} from "@/services/registrationFlow";
+import {
     RADIUS,
     SPACING,
     TYPOGRAPHY,
@@ -30,17 +35,18 @@ export default function RegisterScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The backend hashes the password and emails a 6-digit CORDOVA RISKQ
+  // code. No account exists until verify-email.tsx submits the correct code
+  // (see services/registrationFlow.ts).
   async function handleRegister() {
-    if (!name || !email || !password) {
-      setError("Please fill in all fields.");
-      return;
-    }
-
-    if (!email.trim().toLowerCase().endsWith("@gmail.com")) {
-      setError("Only Gmail addresses (@gmail.com) are allowed.");
+    const input = { name, email, password, confirmPassword };
+    const validationError = validateRegistration(input);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -48,18 +54,17 @@ export default function RegisterScreen() {
     setLoading(true);
 
     try {
-      const trimmedEmail = email.trim();
-      await requestRegistrationOtp(name, trimmedEmail, password);
+      const result = await requestRegistration(input, { requestRegistrationOtp });
+      // Only what the next screen displays -- never the password or the code.
       router.push({
         pathname: "/verify-email",
-        params: { email: trimmedEmail, name, password },
+        params: {
+          email: result.email,
+          cooldown: String(result.resendCooldownSeconds),
+        },
       });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Registration failed. Please try again.";
-      setError(message);
+      setError(describeRegistrationError(err));
     } finally {
       setLoading(false);
     }
@@ -117,6 +122,15 @@ export default function RegisterScreen() {
             secureToggle
             value={password}
             onChangeText={setPassword}
+          />
+
+          <AuthInput
+            label="Confirm Password"
+            placeholder="Re-enter your password"
+            secureTextEntry
+            secureToggle
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
 
           {error ? (

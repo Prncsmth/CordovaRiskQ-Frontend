@@ -41,6 +41,11 @@ type EvacuationCenterApiRow = {
 const PHOTO_BY_ID: Record<string, ImageSourcePropType> = {
   "cordova-sports-complex": require("@/assets/images/complex.png"),
   "buagsong-elementary": require("@/assets/images/buagsong.png"),
+  "bangbang-elementary": require("@/assets/images/bangbang.png"),
+  "catarman-elementary": require("@/assets/images/catarman.png"),
+  "cordova-central-elementary": require("@/assets/images/central.png"),
+  "cordova-national-high-school": require("@/assets/images/cnhs.png"),
+  "pilipog-elementary": require("@/assets/images/pilipog.png"),
 };
 
 function toEvacuationCenter(row: EvacuationCenterApiRow): EvacuationCenter {
