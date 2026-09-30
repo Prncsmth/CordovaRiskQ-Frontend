@@ -54,6 +54,7 @@ function buildHtml(options: {
   maxZoom: number;
   interactive: boolean;
   showLayerSwitcher: boolean;
+  layerSwitcherBottomInset: number | null;
   showCordovaBoundary: boolean;
   boundaryColor: string;
   userDotColor: string;
@@ -66,6 +67,7 @@ function buildHtml(options: {
     maxZoom,
     interactive,
     showLayerSwitcher,
+    layerSwitcherBottomInset,
     showCordovaBoundary,
     boundaryColor,
     userDotColor,
@@ -145,8 +147,13 @@ function buildHtml(options: {
     L.control.layers(
       { 'Streets': streets, 'Satellite': satellite, 'Terrain': terrain },
       {},
-      { position: 'topright', collapsed: true }
+      { position: '${layerSwitcherBottomInset !== null ? 'bottomright' : 'topright'}', collapsed: true }
     ).addTo(map);
+    if (${layerSwitcherBottomInset !== null}) {
+      // Lift the bottom-right control above the host screen's tab bar.
+      var bottomRight = document.querySelector('.leaflet-bottom.leaflet-right');
+      if (bottomRight) bottomRight.style.paddingBottom = '${layerSwitcherBottomInset ?? 0}px';
+    }
   }
 
   var markersLayer = L.layerGroup().addTo(map);
@@ -312,6 +319,7 @@ const LeafletMap = forwardRef<MapHandle, MapEngineProps>(function LeafletMap(
     userLocation = null,
     interactive = true,
     showLayerSwitcher = true,
+    layerSwitcherBottomInset,
     showCordovaBoundary = false,
     onMarkerPress,
     onMapPress,
@@ -338,6 +346,7 @@ const LeafletMap = forwardRef<MapHandle, MapEngineProps>(function LeafletMap(
         maxZoom,
         interactive,
         showLayerSwitcher,
+        layerSwitcherBottomInset: layerSwitcherBottomInset ?? null,
         showCordovaBoundary,
         boundaryColor: COLORS.tide,
         userDotColor: USER_LOCATION_BLUE,

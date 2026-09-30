@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Image,
   Pressable,
   StyleProp,
   StyleSheet,
@@ -34,16 +35,27 @@ type LegendItem = {
   // live-location indicator uses.
   kind: "pin" | "dot";
   color: string;
+  // Only the two status rows double as a map filter -- "Your location"
+  // isn't a center status, so it stays a plain color key.
+  status?: "open" | "full";
 };
 
-export default function MapLegend({ style }: { style?: StyleProp<ViewStyle> }) {
+export default function MapLegend({
+  activeStatus,
+  onSelectStatus,
+  style,
+}: {
+  activeStatus?: "open" | "full" | null;
+  onSelectStatus?: (status: "open" | "full") => void;
+  style?: StyleProp<ViewStyle>;
+}) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [open, setOpen] = useState(false);
 
   const items: LegendItem[] = [
-    { key: "open", label: "Open evacuation center", kind: "pin", color: COLORS.success },
-    { key: "full", label: "Full evacuation center", kind: "pin", color: COLORS.danger },
+    { key: "open", label: "Open evacuation center", kind: "pin", color: COLORS.success, status: "open" },
+    { key: "full", label: "Full evacuation center", kind: "pin", color: COLORS.danger, status: "full" },
     { key: "you", label: "Your location", kind: "dot", color: USER_LOCATION_BLUE },
   ];
 
@@ -70,26 +82,51 @@ export default function MapLegend({ style }: { style?: StyleProp<ViewStyle> }) {
       {open && (
         <Animated.View style={[styles.card, cardAnimatedStyle]}>
           <Text style={styles.title}>Map Legend</Text>
-          {items.map((item, index) => (
-            <View
-              key={item.key}
-              style={[
-                styles.row,
-                index < items.length - 1 && styles.rowDivider,
-              ]}
-            >
-              <View style={styles.swatch}>
-                {item.kind === "pin" ? (
-                  <Ionicons name="location" size={20} color={item.color} />
-                ) : (
-                  <View style={styles.dotOuter}>
-                    <View style={[styles.dot, { backgroundColor: item.color }]} />
-                  </View>
+          {items.map((item, index) => {
+            const isActive = item.status !== undefined && item.status === activeStatus;
+            const row = (
+              <View
+                style={[
+                  styles.row,
+                  index < items.length - 1 && styles.rowDivider,
+                  isActive && styles.rowActive,
+                ]}
+              >
+                <View style={styles.swatch}>
+                  {item.kind === "pin" ? (
+                    <Ionicons name="location" size={20} color={item.color} />
+                  ) : (
+                    <View style={styles.dotOuter}>
+                      <View style={[styles.dot, { backgroundColor: item.color }]} />
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.label}>{item.label}</Text>
+                {isActive && (
+                  <Ionicons name="checkmark-circle" size={18} color={item.color} />
                 )}
               </View>
-              <Text style={styles.label}>{item.label}</Text>
-            </View>
-          ))}
+            );
+
+            if (!item.status) {
+              return <View key={item.key}>{row}</View>;
+            }
+
+            const status = item.status;
+            return (
+              <Pressable
+                key={item.key}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onSelectStatus?.(status);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`${isActive ? "Clear filter" : "Show only"} ${item.label.toLowerCase()}`}
+              >
+                {row}
+              </Pressable>
+            );
+          })}
         </Animated.View>
       )}
       <Pressable
@@ -100,11 +137,15 @@ export default function MapLegend({ style }: { style?: StyleProp<ViewStyle> }) {
         style={styles.button}
         accessibilityLabel={open ? "Hide map legend" : "Show map legend"}
       >
-        <Ionicons
-          name={open ? "close" : "information-outline"}
-          size={20}
-          color={COLORS.gray}
-        />
+        {open ? (
+          <Ionicons name="close" size={20} color={COLORS.gray} />
+        ) : (
+          <Image
+            source={require("@/assets/images/evacuation-legend.png")}
+            style={styles.buttonIcon}
+            resizeMode="contain"
+          />
+        )}
       </Pressable>
     </View>
   );
@@ -126,6 +167,10 @@ function createStyles(COLORS: ColorPalette) {
       borderWidth: 1,
       borderColor: COLORS.borderMuted,
       ...SHADOW_LG,
+    },
+    buttonIcon: {
+      width: 26,
+      height: 22,
     },
     card: {
       marginBottom: SPACING.sm,
@@ -156,6 +201,12 @@ function createStyles(COLORS: ColorPalette) {
     rowDivider: {
       borderBottomWidth: 1,
       borderBottomColor: COLORS.borderMuted,
+    },
+    rowActive: {
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      marginHorizontal: -SPACING.xs,
+      paddingHorizontal: SPACING.xs,
     },
     swatch: {
       width: 24,

@@ -70,6 +70,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
     showLayerSwitcher = false,
     showCordovaBoundary = false,
     topInset = 0,
+    layerSwitcherBottomInset,
     onMarkerPress,
     onMapPress,
     onRegionChange,
@@ -383,7 +384,14 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
       </MapView>
 
       {showLayerSwitcher && (
-        <View style={[styles.layerSwitcher, { top: SPACING.md + topInset }]}>
+        <View
+          style={[
+            styles.layerSwitcher,
+            layerSwitcherBottomInset !== undefined
+              ? { top: undefined, bottom: layerSwitcherBottomInset, flexDirection: "row-reverse", alignItems: "flex-end" }
+              : { top: SPACING.md + topInset },
+          ]}
+        >
           <Pressable
             onPress={() => setLayerMenuOpen((open) => !open)}
             style={styles.layerButton}
@@ -393,7 +401,12 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           </Pressable>
 
           {layerMenuOpen && (
-            <View style={styles.layerMenu}>
+            <View
+              style={[
+                styles.layerMenu,
+                layerSwitcherBottomInset !== undefined && styles.layerMenuUp,
+              ]}
+            >
               {(Object.keys(STYLE_URLS) as StyleKey[]).map((key) => (
                 <Pressable
                   key={key}
@@ -526,6 +539,12 @@ function createStyles(COLORS: ColorPalette) {
       padding: 4,
       gap: 4,
       ...SHADOW,
+    },
+    // Opens to the left of the button, not upward, so it never sits under
+    // a control stacked above the button (e.g. the Live Map locate button).
+    layerMenuUp: {
+      marginTop: 0,
+      marginRight: SPACING.xs,
     },
     layerOption: {
       paddingHorizontal: 12,

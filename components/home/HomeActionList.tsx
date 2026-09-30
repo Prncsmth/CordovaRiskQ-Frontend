@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useMemo, useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, type ImageSourcePropType, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { type EvacuationCenter } from "@/services/evacuation.service";
 import { useTour } from "@/context/TourContext";
@@ -63,8 +63,8 @@ export default function HomeActionList({
       <Row
         COLORS={COLORS}
         styles={styles}
-        icon="warning"
-        iconColor={COLORS.primary}
+        image={require("@/assets/images/report-incident.png")}
+        imageRadius={7}
         title="Report an Incident"
         subtitle="Flood, blocked road, power"
         onPress={onPressReport}
@@ -73,8 +73,7 @@ export default function HomeActionList({
       <Row
         COLORS={COLORS}
         styles={styles}
-        icon="call"
-        iconColor={COLORS.tide}
+        image={require("@/assets/images/emergency-call.png")}
         title="Emergency Hotlines"
         subtitle="MDRRMO, BFP, PNP"
         onPress={onPressHotlines}
@@ -90,6 +89,8 @@ function Row({
   eyebrow,
   icon,
   iconColor,
+  image,
+  imageRadius,
   title,
   subtitle,
   badge,
@@ -101,8 +102,10 @@ function Row({
   COLORS: ColorPalette;
   styles: ReturnType<typeof createStyles>;
   eyebrow?: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+  image?: ImageSourcePropType;
+  imageRadius?: number;
   title: string;
   subtitle: string;
   badge?: string;
@@ -121,7 +124,12 @@ function Row({
           onPress();
         }}
       >
-        <Ionicons name={icon} size={22} color={iconColor} style={styles.icon} />
+        {image ? (
+          <Image source={image} style={[styles.iconImage, imageRadius ? { borderRadius: imageRadius } : null]}
+            resizeMode="contain" />
+        ) : icon ? (
+          <Ionicons name={icon} size={22} color={iconColor} style={styles.icon} />
+        ) : null}
         <View style={styles.textCol}>
           <Text style={styles.title} numberOfLines={1}>
             {title}
@@ -175,6 +183,10 @@ function createStyles(COLORS: ColorPalette) {
     icon: {
       width: 26,
       textAlign: "center",
+    },
+    iconImage: {
+      width: 26,
+      height: 26,
     },
     textCol: {
       flex: 1,

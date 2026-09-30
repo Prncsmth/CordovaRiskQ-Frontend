@@ -13,18 +13,9 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import { Platform } from "react-native";
-// Type-only -- safe to import unconditionally, unlike the runtime module
-// below (see services/push.service.ts's remotePushUnsupported comment for
-// why a static `import *` of expo-notifications crashes on Android Expo Go).
-import type * as NotificationsType from "expo-notifications";
+import type { NotificationResponse } from "expo-notifications";
 
-import { remotePushUnsupported } from "@/services/push.service";
-
-let Notifications: typeof NotificationsType | undefined;
-if (!remotePushUnsupported) {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  Notifications = require("expo-notifications");
-}
+import { getNotifications, notificationsUnavailable } from "@/utils/safeNotifications";
 
 type IncidentPushData = { type?: string; referenceId?: string };
 
@@ -47,11 +38,11 @@ export function useNotificationDeepLink(enabled: boolean): void {
     // aren't implemented on web (expo-notifications throws) -- deep-linking
     // from a push tap only makes sense on a native build anyway.
     if (Platform.OS === "web") return;
-    // Android Expo Go: Notifications is undefined (see the require() guard
-    // above) -- nothing to deep-link from without the real native module.
-    if (remotePushUnsupported) return;
+    if (notificationsUnavailable) return;
+    const Notifications = getNotifications();
+    if (!Notifications) return;
 
-    function handleResponse(response: NotificationsType.NotificationResponse) {
+    function handleResponse(response: NotificationResponse) {
       const identifier = response.notification.request.identifier;
       if (handledIdRef.current === identifier) return;
       handledIdRef.current = identifier;

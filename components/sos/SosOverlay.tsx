@@ -5,8 +5,8 @@
 // hide behavior in components/tabs/TabBar.tsx.
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo } from "react";
+import { ActivityIndicator, BackHandler, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Dialog, DialogTitle } from "@/components/common/Dialog";
@@ -42,6 +42,17 @@ export default function SosOverlay() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const insets = useSafeAreaInsets();
 
+  const showFullScreen = stage !== "idle" && !(stage === "active" && isMinimized);
+
+  // Focus lock: while the full-screen SOS UI is up, the user can only act on
+  // it. The absolute container already swallows touches; this also swallows
+  // the Android hardware back button so it can't pop the screen underneath.
+  useEffect(() => {
+    if (!showFullScreen) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => true);
+    return () => subscription.remove();
+  }, [showFullScreen]);
+
   // Belt-and-suspenders: SosContext already wipes its own state on logout,
   // but this guarantees nothing SOS-related ever renders while logged out,
   // even for a stray frame -- an emergency status is for the signed-in
@@ -55,8 +66,6 @@ export default function SosOverlay() {
       : blockedReason === "unavailable"
         ? "sos-unavailable"
         : null;
-
-  const showFullScreen = stage !== "idle" && !(stage === "active" && isMinimized);
 
   return (
     <>
@@ -208,9 +217,11 @@ function ConfirmView({
   const styles = useMemo(() => createConfirmStyles(COLORS), [COLORS]);
   return (
     <Dialog>
-      <View style={styles.iconBadge}>
-        <Ionicons name="warning" size={30} color={COLORS.white} />
-      </View>
+      <Image
+        source={require("@/assets/images/report-incident.png")}
+        style={styles.iconImage}
+        resizeMode="contain"
+      />
       <DialogTitle>Send Emergency SOS?</DialogTitle>
       <Text style={styles.message}>
         Emergency responders will be notified immediately, along with your
@@ -237,13 +248,10 @@ function ConfirmView({
 
 function createConfirmStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-    iconBadge: {
-      width: 64,
-      height: 64,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.primary,
-      alignItems: "center",
-      justifyContent: "center",
+    iconImage: {
+      width: 72,
+      height: 72,
+      borderRadius: 18,
       marginBottom: SPACING.sm,
       shadowColor: COLORS.primary,
       shadowOpacity: 0.3,

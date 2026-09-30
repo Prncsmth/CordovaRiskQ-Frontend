@@ -136,13 +136,41 @@ export default function AnnouncementDetailScreen() {
       ) : null}
 
       <View style={styles.metaRow}>
-        <Text style={[styles.meta, isUrgent && { color: COLORS.warning }]}>
-          ANNOUNCEMENT · {isUrgent ? "URGENT" : "NOTICE"}
-        </Text>
+        <View style={[styles.badge, isUrgent && styles.badgeUrgent]}>
+          <Ionicons
+            name={isUrgent ? "alert-circle" : "megaphone-outline"}
+            size={13}
+            color={isUrgent ? COLORS.primary : COLORS.tide}
+          />
+          <Text style={[styles.badgeText, isUrgent && styles.badgeTextUrgent]}>
+            {isUrgent ? "Urgent" : "Announcement"}
+          </Text>
+        </View>
       </View>
 
       <Text style={styles.title}>{announcement.title}</Text>
-      <Text style={styles.body}>{announcement.content}</Text>
+
+      <View style={styles.byline}>
+        <View style={styles.avatar}>
+          <Ionicons
+            name="megaphone-outline"
+            size={30}
+            color={isUrgent ? COLORS.primary : COLORS.tide}
+          />
+        </View>
+        <View style={styles.bylineText}>
+          <Text style={styles.author} numberOfLines={1}>
+            {announcement.author || "Cordova RiskQ"}
+          </Text>
+          <Text style={styles.timestamp} numberOfLines={1}>
+            {formatDate(announcement.createdAt)} · {formatTime(announcement.createdAt)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.bodyCard}>
+        <Text style={styles.body}>{announcement.content}</Text>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Details</Text>
@@ -225,28 +253,75 @@ function createStyles(COLORS: ColorPalette) {
     metaRow: {
       flexDirection: "row",
       alignItems: "center",
+      marginTop: SPACING.xs,
     },
-    meta: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "800",
-      color: COLORS.textTertiary,
-      letterSpacing: 0.4,
+    badge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      backgroundColor: COLORS.tideTint,
+      borderRadius: RADIUS.full,
+      paddingHorizontal: SPACING.sm + 2,
+      paddingVertical: 4,
+    },
+    badgeUrgent: {
+      backgroundColor: COLORS.primaryTint,
+    },
+    badgeText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: COLORS.tide,
+    },
+    badgeTextUrgent: {
+      color: COLORS.primary,
     },
     title: {
       fontFamily: FONT_FAMILY.display,
       fontSize: TYPOGRAPHY.heading,
+      lineHeight: 30,
       color: COLORS.text,
-      marginTop: SPACING.xs,
+      marginTop: SPACING.sm,
+    },
+    byline: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.md,
+    },
+    avatar: {
+      width: 38,
+      height: 38,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    bylineText: {
+      flex: 1,
+      gap: 1,
+    },
+    author: {
+      fontFamily: FONT_FAMILY.displaySemibold,
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.text,
+    },
+    timestamp: {
+      fontSize: 12,
+      color: COLORS.textTertiary,
+    },
+    bodyCard: {
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      padding: SPACING.md,
     },
     body: {
       fontSize: TYPOGRAPHY.body,
-      color: COLORS.textSecondary,
-      lineHeight: 22,
-      marginTop: SPACING.xs,
-      marginBottom: SPACING.md,
+      lineHeight: 24,
+      color: COLORS.text,
     },
     section: {
-      marginTop: SPACING.sm,
+      marginTop: SPACING.md,
     },
     sectionLabel: {
       fontFamily: FONT_FAMILY.displaySemibold,

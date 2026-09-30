@@ -78,6 +78,10 @@ export type MapEngineProps = {
   // where the map runs full-bleed under the status bar/notch instead of
   // starting below a header that already accounted for that inset.
   topInset?: number;
+  // When set, the layer-switcher button sits at the bottom-right instead of
+  // the top-right, this many px above the bottom edge (so a screen can clear
+  // its own tab bar), and its menu opens upward.
+  layerSwitcherBottomInset?: number;
   onMarkerPress?: (id: string) => void;
   onMapPress?: (coords: MapLatLng) => void;
   onRegionChange?: (region: { latitude: number; longitude: number; zoom: number }) => void;

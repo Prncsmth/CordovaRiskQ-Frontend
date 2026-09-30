@@ -74,7 +74,7 @@ export default function OnTheWayView({
   // sides, which forced the view more zoomed-out than the route needed.
   const mapFitPadding = {
     top: insets.top + 70,
-    bottom: insets.bottom + 280,
+    bottom: insets.bottom + 300,
     left: SPACING.lg,
     right: SPACING.lg,
   };
@@ -107,9 +107,22 @@ export default function OnTheWayView({
       />
 
       <Pressable
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.dismissTo("/responder");
+        }}
+        hitSlop={8}
+        style={[styles.mapButton, styles.backButton, { top: insets.top + SPACING.sm }]}
+        accessibilityRole="button"
+        accessibilityLabel="Back"
+      >
+        <Ionicons name="arrow-back" size={20} color={COLORS.textSecondary} />
+      </Pressable>
+
+      <Pressable
         onPress={handleLocate}
         hitSlop={8}
-        style={[styles.locateButton, { top: insets.top + SPACING.sm }]}
+        style={[styles.mapButton, styles.locateButton, { top: insets.top + SPACING.sm }]}
         accessibilityRole="button"
         accessibilityLabel="Center map on my location"
       >
@@ -137,16 +150,6 @@ export default function OnTheWayView({
           </View>
 
           <View style={styles.sheetTextCol}>
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.dismissTo("/responder");
-              }}
-              style={styles.backChip}
-            >
-              <Ionicons name="arrow-back" size={14} color={COLORS.textSecondary} />
-              <Text style={styles.backChipText}>Back</Text>
-            </Pressable>
             <Text style={[styles.categoryLabel, { color: visual.color }]}>
               INCIDENT · {incident.urgency.toUpperCase()}
             </Text>
@@ -207,8 +210,13 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textTertiary,
     },
     locateButton: {
-      position: "absolute",
       right: SPACING.md,
+    },
+    backButton: {
+      left: SPACING.md,
+    },
+    mapButton: {
+      position: "absolute",
       width: 44,
       height: 44,
       borderRadius: RADIUS.md,
@@ -235,15 +243,16 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: RADIUS.full,
       backgroundColor: COLORS.border,
       alignSelf: "center",
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.lg,
     },
     sheetContentRow: {
       flexDirection: "row",
+      alignItems: "stretch",
       gap: SPACING.md,
     },
     thumbnailTile: {
       width: 112,
-      height: 132,
+      height: 120,
       borderRadius: RADIUS.md,
       overflow: "hidden",
     },
@@ -273,22 +282,7 @@ function createStyles(COLORS: ColorPalette) {
     sheetTextCol: {
       flex: 1,
       minWidth: 0,
-    },
-    backChip: {
-      flexDirection: "row",
-      alignItems: "center",
-      alignSelf: "flex-start",
-      gap: 4,
-      backgroundColor: COLORS.surface,
-      borderRadius: RADIUS.full,
-      paddingHorizontal: SPACING.sm,
-      paddingVertical: 5,
-      marginBottom: SPACING.sm,
-    },
-    backChipText: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "700",
-      color: COLORS.textSecondary,
+      justifyContent: "center",
     },
     categoryLabel: {
       fontSize: 11,
@@ -299,20 +293,22 @@ function createStyles(COLORS: ColorPalette) {
       fontFamily: FONT_FAMILY.display,
       fontSize: TYPOGRAPHY.subtitle,
       color: COLORS.text,
-      marginTop: 2,
+      marginTop: 4,
     },
     sheetDescription: {
       fontSize: TYPOGRAPHY.caption,
       color: COLORS.textSecondary,
-      marginTop: 4,
+      marginTop: 6,
     },
     navigateButton: {
-      marginTop: SPACING.md,
+      marginTop: SPACING.lg,
       marginBottom: 0,
     },
     leaveLink: {
       alignSelf: "center",
+      marginTop: SPACING.xs,
       paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.lg,
     },
     leaveLinkText: {
       fontSize: TYPOGRAPHY.caption,

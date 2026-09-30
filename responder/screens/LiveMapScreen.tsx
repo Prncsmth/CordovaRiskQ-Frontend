@@ -50,11 +50,11 @@ const MAX_ZOOM = 18;
 
 export default function LiveMapScreen() {
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useTabBarHeight();
   const router = useRouter();
   const { token } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const tabBarHeight = useTabBarHeight();
   const mapRef = useRef<MapHandle>(null);
   // Tracks the marker count the camera was last fitted to, not just
   // whether it's ever been fitted -- so a brand-new incident (a fresh SOS,
@@ -290,6 +290,7 @@ export default function LiveMapScreen() {
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         showLayerSwitcher
+        layerSwitcherBottomInset={tabBarHeight + SPACING.lg}
         showUserLocationDot={false}
         topInset={insets.top}
         markers={markers}
