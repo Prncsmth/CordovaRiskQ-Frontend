@@ -3,12 +3,7 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { useThemeColors, TYPOGRAPHY, type ColorPalette } from "@/theme";
-
-type Requirement = {
-  key: string;
-  label: string;
-  met: boolean;
-};
+import { getPasswordRequirements } from "@/utils/passwordPolicy";
 
 export default function PasswordRequirements({ password }: { password: string }) {
   const COLORS = useThemeColors();
@@ -16,20 +11,7 @@ export default function PasswordRequirements({ password }: { password: string })
 
   if (!password) return null;
 
-  const requirements: Requirement[] = [
-    { key: "length", label: "At least 8 characters", met: password.length >= 8 },
-    {
-      key: "case",
-      label: "Upper & lowercase letters",
-      met: /[a-z]/.test(password) && /[A-Z]/.test(password),
-    },
-    { key: "number", label: "At least one number", met: /\d/.test(password) },
-    {
-      key: "symbol",
-      label: "A symbol (recommended)",
-      met: /[^A-Za-z0-9]/.test(password),
-    },
-  ];
+  const requirements = getPasswordRequirements(password);
 
   return (
     <View style={styles.wrapper}>

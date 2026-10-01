@@ -10,6 +10,8 @@ import AuthInput from "@/components/auth/AuthInput";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import KeyboardSafeView from "@/components/common/KeyboardSafeView";
+import PasswordRequirements from "@/components/change-password/PasswordRequirements";
+import PasswordStrengthMeter from "@/components/change-password/PasswordStrengthMeter";
 import { requestRegistrationOtp } from "@/services/auth.service";
 import {
     describeRegistrationError,
@@ -123,6 +125,13 @@ export default function RegisterScreen() {
             value={password}
             onChangeText={setPassword}
           />
+          {password ? (
+            <View style={styles.strengthCard}>
+              <PasswordStrengthMeter password={password} />
+              <View style={styles.strengthDivider} />
+              <PasswordRequirements password={password} />
+            </View>
+          ) : null}
 
           <AuthInput
             label="Confirm Password"
@@ -176,6 +185,19 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
 
     back: {
       marginBottom: SPACING.lg,
+    },
+
+    strengthCard: {
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      padding: SPACING.sm + 2,
+      gap: SPACING.xs,
+      marginBottom: SPACING.sm,
+    },
+
+    strengthDivider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: COLORS.borderMuted,
     },
 
     errorBanner: {

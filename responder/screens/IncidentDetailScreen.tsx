@@ -180,12 +180,16 @@ export default function IncidentDetailScreen() {
   const myPhase = incident ? phaseForMyStatus(incident.myStatus) : undefined;
   const isRejoin = incident?.myStatus === "left";
 
-  // Live GPS upload for the citizen's Track Responder screen -- only while
-  // actually en route on a still-open incident. incident.status is kept
-  // live by the socket effect above, so this reacts immediately once the
-  // incident resolves/cancels, without its own polling.
+  // Live GPS upload for the citizen's Track Responder screen -- starts the
+  // moment the responder joins (phase "lobby", i.e. myStatus "joined"), not
+  // only once they mark "on the way": the citizen's Track Responder button
+  // already becomes tappable as soon as a responder accepts, so location
+  // needs to be available by then too, or the screen opens with nothing to
+  // show. Continues through "on_the_way" and stops once the incident closes.
+  // incident.status is kept live by the socket effect above, so this reacts
+  // immediately once the incident resolves/cancels, without its own polling.
   const isSendingLiveLocation =
-    myPhase === "on_the_way" &&
+    (myPhase === "lobby" || myPhase === "on_the_way") &&
     incident?.status !== "completed" &&
     incident?.status !== "cancelled";
   useLiveLocationUpload(token, isSendingLiveLocation);

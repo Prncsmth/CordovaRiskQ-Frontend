@@ -11,6 +11,7 @@ import {
   type ResendDeps,
   type VerificationDeps,
 } from "./registrationFlow";
+import { PASSWORD_REQUIREMENTS_MESSAGE } from "@/utils/passwordPolicy";
 
 function apiError(message: string, status: number) {
   return Object.assign(new Error(message), { status });
@@ -19,8 +20,8 @@ function apiError(message: string, status: number) {
 const validInput = {
   name: "Juana Dela Cruz",
   email: "juana@yahoo.com",
-  password: "secret123",
-  confirmPassword: "secret123",
+  password: "Secret123!",
+  confirmPassword: "Secret123!",
 };
 
 const backendResponse = {
@@ -85,10 +86,60 @@ describe("validateRegistration", () => {
     );
   });
 
-  it("requires at least 6 password characters", () => {
+  it("accepts the shortest valid password (8 chars, all required types)", () => {
     expect(
-      validateRegistration({ ...validInput, password: "12345", confirmPassword: "12345" }),
-    ).toBe("Password must be at least 6 characters.");
+      validateRegistration({ ...validInput, password: "Abcde1!g", confirmPassword: "Abcde1!g" }),
+    ).toBeNull();
+  });
+
+  it("accepts the longest valid password (12 chars, all required types)", () => {
+    expect(
+      validateRegistration({
+        ...validInput,
+        password: "Abcdefghij1!",
+        confirmPassword: "Abcdefghij1!",
+      }),
+    ).toBeNull();
+  });
+
+  it("rejects 7 characters (one below the minimum)", () => {
+    expect(
+      validateRegistration({ ...validInput, password: "Abcde1!", confirmPassword: "Abcde1!" }),
+    ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
+  });
+
+  it("rejects 13 characters (one above the maximum)", () => {
+    expect(
+      validateRegistration({
+        ...validInput,
+        password: "Abcdefghijk1!",
+        confirmPassword: "Abcdefghijk1!",
+      }),
+    ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
+  });
+
+  it("rejects a password missing an uppercase letter", () => {
+    expect(
+      validateRegistration({ ...validInput, password: "abcdefg1!", confirmPassword: "abcdefg1!" }),
+    ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
+  });
+
+  it("rejects a password missing a lowercase letter", () => {
+    expect(
+      validateRegistration({ ...validInput, password: "ABCDEFG1!", confirmPassword: "ABCDEFG1!" }),
+    ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
+  });
+
+  it("rejects a password missing a number", () => {
+    expect(
+      validateRegistration({ ...validInput, password: "Abcdefgh!", confirmPassword: "Abcdefgh!" }),
+    ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
+  });
+
+  it("rejects a password missing a symbol", () => {
+    expect(
+      validateRegistration({ ...validInput, password: "Abcdefg12", confirmPassword: "Abcdefg12" }),
+    ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
   });
 
   it("requires the confirmation to match", () => {
@@ -110,7 +161,7 @@ describe("requestRegistration", () => {
     expect(deps.requestRegistrationOtp).toHaveBeenCalledWith(
       "Juana Dela Cruz",
       "juana@yahoo.com",
-      "secret123",
+      "Secret123!",
     );
   });
 

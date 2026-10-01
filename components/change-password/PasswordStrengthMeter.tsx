@@ -2,21 +2,20 @@ import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
 import { useThemeColors, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { getPasswordRequirements } from "@/utils/passwordPolicy";
 
 const SEGMENTS = 3;
 
+// Sourced from the same requirement list the checklist below shows, so the
+// two never disagree about what's actually been met.
 function getStrength(
   password: string,
   COLORS: ColorPalette,
 ): { score: number; label: string; color: string } {
-  let score = 0;
-  if (password.length >= 8) score++;
-  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-  if (/\d/.test(password)) score++;
-  if (/[^A-Za-z0-9]/.test(password)) score++;
+  const score = getPasswordRequirements(password).filter((requirement) => requirement.met).length;
 
-  if (score <= 1) return { score: 1, label: "Weak", color: COLORS.danger };
-  if (score <= 2) return { score: 2, label: "Fair", color: COLORS.warning };
+  if (score <= 2) return { score: 1, label: "Weak", color: COLORS.danger };
+  if (score <= 4) return { score: 2, label: "Fair", color: COLORS.warning };
   return { score: 3, label: "Strong", color: COLORS.success };
 }
 
