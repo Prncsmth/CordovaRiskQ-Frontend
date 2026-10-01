@@ -3,6 +3,7 @@ import AuthHeader from "@/components/auth/AuthHeader";
 import AuthInput from "@/components/auth/AuthInput";
 import GoogleButton from "@/components/auth/GoogleButton";
 import PrimaryButton from "@/components/auth/PrimaryButton";
+import BrandLockup from "@/components/common/BrandLockup";
 import KeyboardSafeView from "@/components/common/KeyboardSafeView";
 import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/services/auth.service";
@@ -18,9 +19,11 @@ import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { login } = useAuth();
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
@@ -62,11 +65,13 @@ export default function LoginScreen() {
       />
       <KeyboardSafeView style={styles.transparentFlex}>
         <ScrollView
-          contentContainerStyle={styles.container}
+          contentContainerStyle={[styles.container, { paddingTop: insets.top + SPACING.lg }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
+          <BrandLockup style={styles.brand} />
+
           <AuthHeader
             title={"Sign in to your\nAccount"}
             subtitle="Enter your email and password to log in"
@@ -98,25 +103,27 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
-          <PrimaryButton
-            title="Log In"
-            loading={loading}
-            onPress={handleLogin}
-          />
+          <View style={styles.actions}>
+            <PrimaryButton
+              title="Log In"
+              loading={loading}
+              onPress={handleLogin}
+            />
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            <GoogleButton onError={setError} />
+
+            <AuthFooter
+              promptText="Don't have an account?"
+              actionText="Register"
+              onPress={() => router.push("/register")}
+            />
           </View>
-
-          <GoogleButton onError={setError} />
-
-          <AuthFooter
-            promptText="Don't have an account?"
-            actionText="Register"
-            onPress={() => router.push("/register")}
-          />
         </ScrollView>
       </KeyboardSafeView>
     </View>
@@ -132,11 +139,20 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
     transparentFlex: {
       flex: 1,
     },
+    brand: {
+      marginBottom: SPACING.lg,
+    },
+    // Sits right under the form (not pinned to the bottom like the other
+    // auth screens), so Log In and the options below it stay close to the
+    // inputs.
+    actions: {},
+
     container: {
+      // Top-aligned (not vertically centered) so the logo sits right under
+      // the status bar instead of floating below a tall empty gap.
       flexGrow: 1,
-      justifyContent: "center",
       paddingHorizontal: SPACING.lg,
-      paddingVertical: SPACING.xl,
+      paddingBottom: SPACING.xl,
     },
     dividerRow: {
       flexDirection: "row",

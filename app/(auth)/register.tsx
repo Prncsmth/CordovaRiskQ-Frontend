@@ -148,17 +148,19 @@ export default function RegisterScreen() {
             </View>
           ) : null}
 
-          <PrimaryButton
-            title="Register"
-            loading={loading}
-            onPress={handleRegister}
-          />
+          <View style={styles.actions}>
+            <PrimaryButton
+              title="Register"
+              loading={loading}
+              onPress={handleRegister}
+            />
 
-          <AuthFooter
-            promptText="Already have an account?"
-            actionText="Login"
-            onPress={() => router.push("/login")}
-          />
+            <AuthFooter
+              promptText="Already have an account?"
+              actionText="Login"
+              onPress={() => router.push("/login")}
+            />
+          </View>
         </ScrollView>
       </KeyboardSafeView>
     </View>
@@ -174,6 +176,16 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
 
     transparentFlex: {
       flex: 1,
+    },
+
+    // Pinned to the bottom of the screen on every auth screen (pushed down by
+    // the auto margin), so the primary button and footer link sit in the same
+    // place whether the form above is short or long. On a small phone or with
+    // the keyboard open there is no spare height, and it simply follows the
+    // form as before.
+    actions: {
+      marginTop: "auto",
+      paddingTop: SPACING.lg,
     },
 
     container: {

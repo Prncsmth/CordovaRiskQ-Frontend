@@ -128,17 +128,19 @@ export default function ForgotPasswordScreen() {
           </View>
         ) : null}
 
-        <PrimaryButton
-          title="Send Reset Link"
-          loading={loading}
-          onPress={handleSendLink}
-        />
+        <View style={styles.actions}>
+          <PrimaryButton
+            title="Send Reset Link"
+            loading={loading}
+            onPress={handleSendLink}
+          />
 
-        <AuthFooter
-          promptText="Remember your password?"
-          actionText="Login"
-          onPress={() => router.push("/login")}
-        />
+          <AuthFooter
+            promptText="Remember your password?"
+            actionText="Login"
+            onPress={() => router.push("/login")}
+          />
+        </View>
       </ScrollView>
     </KeyboardSafeView>
   );
@@ -149,6 +151,16 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
     flex: {
       flex: 1,
       backgroundColor: COLORS.background,
+    },
+
+    // Pinned to the bottom of the screen on every auth screen (pushed down by
+    // the auto margin), so the primary button and footer link sit in the same
+    // place whether the form above is short or long. On a small phone or with
+    // the keyboard open there is no spare height, and it simply follows the
+    // form as before.
+    actions: {
+      marginTop: "auto",
+      paddingTop: SPACING.lg,
     },
 
     container: {

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useMemo, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
     useAnimatedStyle,
@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
+import BrandLockup from "@/components/common/BrandLockup";
 import FeaturePreview, { type FeaturePreviewType } from "@/components/onboarding/FeaturePreview";
 import {
     FONT_FAMILY,
@@ -152,38 +153,30 @@ export default function AppIntroScreen() {
         <StatusBar style="dark" />
 
         <View style={styles.topRow}>
-          {!isFirst ? (
-            <Pressable onPress={handleBack} hitSlop={12} style={styles.sideButton}>
-              <Text style={styles.sideButtonText}>Back</Text>
+          <BrandLockup />
+          <View style={styles.topActions}>
+            {!isFirst ? (
+              <Pressable onPress={handleBack} hitSlop={12}>
+                <Text style={styles.sideButtonText}>Back</Text>
+              </Pressable>
+            ) : null}
+            <Pressable onPress={goToLogin} hitSlop={12}>
+              <Text style={styles.sideButtonText}>Skip</Text>
             </Pressable>
-          ) : (
-            <View style={styles.sideButton} />
-          )}
-          <Pressable onPress={goToLogin} hitSlop={12} style={styles.sideButton}>
-            <Text style={styles.sideButtonText}>Skip</Text>
-          </Pressable>
+          </View>
         </View>
 
         <View style={styles.hero}>
           <Animated.View style={visualAnimation}>
             {slide.preview ? (
               <FeaturePreview type={slide.preview} />
-            ) : slide.isLogo ? (
-              <View style={styles.introVisual}>
-                <Image
-                  source={require("@/assets/images/riskq.png")}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : (
+            ) : slide.isLogo ? null : (
               <View style={styles.introVisual}>
                 <Ionicons name={slide.icon} size={34} color={COLORS.primary} />
               </View>
             )}
           </Animated.View>
           <Animated.View style={contentAnimation}>
-            <Text style={styles.eyebrow}>CORDOVA RISKQ</Text>
             <Text style={styles.title}>{slide.title}</Text>
             <Text style={styles.subtitle}>{slide.text}</Text>
           </Animated.View>
@@ -228,10 +221,10 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "space-between",
     },
-    // Fixed width so Skip stays anchored in the same spot whether or not
-    // Back is showing next to it (first slide has no Back).
-    sideButton: {
-      minWidth: 40,
+    topActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.md,
     },
     sideButtonText: {
       fontSize: TYPOGRAPHY.caption,
@@ -254,17 +247,6 @@ function createStyles(COLORS: ColorPalette) {
       justifyContent: "center",
       alignSelf: "center",
       marginBottom: SPACING.md,
-    },
-    logoImage: {
-      width: 40,
-      height: 40,
-    },
-    eyebrow: {
-      color: COLORS.primary,
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "800",
-      letterSpacing: 1.2,
-      textAlign: "center",
     },
     title: {
       color: COLORS.text,

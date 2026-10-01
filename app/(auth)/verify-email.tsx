@@ -168,7 +168,9 @@ export default function VerifyEmailScreen() {
 
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-          <PrimaryButton title="Verify Code" loading={loading} onPress={handleVerify} />
+          <View style={styles.actions}>
+            <PrimaryButton title="Verify Code" loading={loading} onPress={handleVerify} />
+          </View>
         </ScrollView>
       </KeyboardSafeView>
     </View>
@@ -184,6 +186,16 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
 
     transparentFlex: {
       flex: 1,
+    },
+
+    // Pinned to the bottom of the screen on every auth screen (pushed down by
+    // the auto margin), so the primary button and footer link sit in the same
+    // place whether the form above is short or long. On a small phone or with
+    // the keyboard open there is no spare height, and it simply follows the
+    // form as before.
+    actions: {
+      marginTop: "auto",
+      paddingTop: SPACING.lg,
     },
 
     container: {
