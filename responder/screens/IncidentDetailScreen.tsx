@@ -6,7 +6,6 @@
 // server. Each phase's UI lives in responder/components/incident-detail/ --
 // this file only owns the derived phase and the backend calls that advance
 // it.
-import { Ionicons } from "@expo/vector-icons";
 import {
   Stack,
   useFocusEffect,
@@ -24,7 +23,6 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -68,7 +66,6 @@ import {
 } from "@/services/location.service";
 import {
   FONT_FAMILY,
-  RADIUS,
   SPACING,
   TYPOGRAPHY,
   useThemeColors,
@@ -90,7 +87,6 @@ export default function IncidentDetailScreen() {
   const [tab, setTab] = useState<LobbyTab>("lobby");
   const isClosingRef = useRef(false);
   const hasFocusedOnceRef = useRef(false);
-  const [showResolveConfirm, setShowResolveConfirm] = useState(false);
   const [closedNotice, setClosedNotice] = useState<
     "completed" | "cancelled" | null
   >(null);
@@ -380,12 +376,10 @@ export default function IncidentDetailScreen() {
     );
   };
 
-  const handleCompleteIncident = () => {
-    setShowResolveConfirm(true);
-  };
-
-  const confirmCompleteIncident = async () => {
-    setShowResolveConfirm(false);
+  // The slide gesture on ArrivedView's SlideToResolve is itself the
+  // deliberate confirmation -- no second "Are you sure?" dialog after it,
+  // same reasoning as SOS's slide-to-send.
+  const handleCompleteIncident = async () => {
     if (token) {
       await updateIncidentStatus(token, incident.id, "completed").catch(
         () => {},
@@ -466,38 +460,6 @@ export default function IncidentDetailScreen() {
 
       <Modal
         transparent
-        visible={showResolveConfirm}
-        animationType="fade"
-        onRequestClose={() => setShowResolveConfirm(false)}
-      >
-        <Dialog>
-          <View style={styles.resolveIconBadge}>
-            <Ionicons name="checkmark-done" size={28} color={COLORS.white} />
-          </View>
-          <DialogTitle>Mark Incident Resolved?</DialogTitle>
-          <Text style={styles.resolveMessage}>
-            This confirms the incident has been handled and closes it for
-            everyone involved.
-          </Text>
-          <View style={styles.resolveActions}>
-            <Pressable
-              style={styles.resolveCancelButton}
-              onPress={() => setShowResolveConfirm(false)}
-            >
-              <Text style={styles.resolveCancelText}>Cancel</Text>
-            </Pressable>
-            <Pressable
-              style={styles.resolveConfirmButton}
-              onPress={confirmCompleteIncident}
-            >
-              <Text style={styles.resolveConfirmText}>Confirm</Text>
-            </Pressable>
-          </View>
-        </Dialog>
-      </Modal>
-
-      <Modal
-        transparent
         visible={closedNotice !== null}
         animationType="fade"
         onRequestClose={dismissClosedNotice}
@@ -570,68 +532,6 @@ function createStyles(COLORS: ColorPalette) {
     },
     loading: {
       marginTop: SPACING.xl,
-    },
-    resolveIconBadge: {
-      width: 60,
-      height: 60,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.success,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: SPACING.sm,
-      shadowColor: COLORS.success,
-      shadowOpacity: 0.3,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 5 },
-      elevation: 4,
-    },
-    resolveMessage: {
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
-      textAlign: "center",
-      marginTop: SPACING.xs,
-      lineHeight: 20,
-    },
-    resolveActions: {
-      flexDirection: "row",
-      gap: SPACING.sm,
-      marginTop: SPACING.lg,
-      width: "100%",
-    },
-    resolveCancelButton: {
-      flex: 1,
-      height: 52,
-      borderRadius: RADIUS.md,
-      backgroundColor: COLORS.surface,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    resolveCancelText: {
-      color: COLORS.text,
-      fontWeight: "700",
-      fontSize: TYPOGRAPHY.body,
-    },
-    resolveConfirmButton: {
-      flex: 1,
-      height: 52,
-      borderRadius: RADIUS.md,
-      backgroundColor: COLORS.success,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 6,
-      shadowColor: COLORS.success,
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 3,
-    },
-    resolveConfirmText: {
-      color: COLORS.white,
-      fontWeight: "800",
-      fontSize: TYPOGRAPHY.body,
     },
   });
 }

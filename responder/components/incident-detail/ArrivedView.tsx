@@ -8,8 +8,8 @@ import React, { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import RippleRings from "@/components/common/RippleRings";
+import SlideToResolve from "@/responder/components/incident-detail/SlideToResolve";
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
-import RButton from "@/responder/components/shared/RButton";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -101,12 +101,9 @@ export default function ArrivedView({
         </View>
       </ScrollView>
 
-      <RButton
-        label="Mark Resolved"
-        variant="success"
-        onPress={onCompleteIncident}
-        style={styles.markResolvedButton}
-      />
+      <View style={styles.markResolvedButton}>
+        <SlideToResolve onComplete={onCompleteIncident} />
+      </View>
     </View>
   );
 }
