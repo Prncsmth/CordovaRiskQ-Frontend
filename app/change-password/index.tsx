@@ -18,6 +18,7 @@ import PasswordStrengthMeter from "@/components/change-password/PasswordStrength
 import { useAuth } from "@/context/AuthContext";
 import { changePassword } from "@/services/user.service";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import { isPasswordValid } from "@/utils/passwordPolicy";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function ChangePasswordScreen() {
 
   const canSave =
     oldPassword.length > 0 &&
-    newPassword.length >= 8 &&
+    isPasswordValid(newPassword) &&
     passwordsMatch &&
     !isSaving;
 

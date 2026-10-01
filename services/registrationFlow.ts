@@ -11,6 +11,7 @@
 // the email. The password never leaves register.tsx except in that one
 // request -- it is never put in route params or kept for resending.
 import type { RegisterResponse } from "./auth.service";
+import { isPasswordValid, PASSWORD_REQUIREMENTS_MESSAGE } from "@/utils/passwordPolicy";
 
 export const RESEND_COOLDOWN_SECONDS = 60;
 export const OTP_LENGTH = 6;
@@ -36,8 +37,8 @@ export function validateRegistration(input: RegistrationInput): string | null {
   if (!EMAIL_PATTERN.test(input.email.trim())) {
     return "Please enter a valid email address.";
   }
-  if (input.password.length < 6) {
-    return "Password must be at least 6 characters.";
+  if (!isPasswordValid(input.password)) {
+    return PASSWORD_REQUIREMENTS_MESSAGE;
   }
   if (input.password !== input.confirmPassword) {
     return "Passwords do not match.";
