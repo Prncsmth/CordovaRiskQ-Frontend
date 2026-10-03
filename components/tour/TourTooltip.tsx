@@ -40,8 +40,8 @@ const SECONDARY_GRAY = "#6B7280";
 const HANDLE_GRAY = "#E5E7EB";
 const NOTCH_SIZE = 20;
 const CARD_SIDE_MARGIN = 16;
-const CARD_PADDING_H = 22;
-const TARGET_GAP = 16;
+const CARD_PADDING_H = 18;
+const TARGET_GAP = 20;
 // Keeps the notch from sitting right in a rounded corner when the target
 // is near a screen edge.
 const NOTCH_EDGE_PADDING = 20;
@@ -49,8 +49,11 @@ const NOTCH_EDGE_PADDING = 20;
 // top-anchored card from being clamped so low it would overflow the
 // bottom edge. Approximate on purpose -- measuring the card's real height
 // would need its own onLayout + a second render pass, not worth it for a
-// safety clamp.
-const ESTIMATED_CARD_HEIGHT = 230;
+// safety clamp. Kept in sync with the compact sizing below (was 230
+// before the card was shrunk -- a stale, larger estimate here would let
+// the clamp allow the card to sit closer to the target than TARGET_GAP
+// actually leaves room for).
+const ESTIMATED_CARD_HEIGHT = 190;
 
 type TourTooltipProps = {
   step: TourStepConfig;
@@ -200,10 +203,10 @@ const styles = StyleSheet.create({
     left: CARD_SIDE_MARGIN,
     right: CARD_SIDE_MARGIN,
     backgroundColor: CARD_WHITE,
-    borderRadius: 24,
+    borderRadius: 22,
     paddingHorizontal: CARD_PADDING_H,
-    paddingTop: 14,
-    paddingBottom: 22,
+    paddingTop: 10,
+    paddingBottom: 16,
     // Subtle elevation only -- no heavy shadow, no gradient, no glass.
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -231,7 +234,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: HANDLE_GRAY,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   headerRow: {
     flexDirection: "row",
@@ -244,27 +247,27 @@ const styles = StyleSheet.create({
     color: SECONDARY_GRAY,
   },
   title: {
-    fontSize: 19,
+    fontSize: 17,
     fontWeight: "600",
     color: TITLE_COLOR,
-    marginTop: 10,
+    marginTop: 6,
   },
   body: {
-    fontSize: 14.5,
+    fontSize: 13.5,
     fontWeight: "400",
     color: BODY_COLOR,
-    lineHeight: 21,
-    marginTop: 6,
+    lineHeight: 19,
+    marginTop: 4,
     letterSpacing: 0.1,
   },
   actionsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    marginTop: 22,
+    marginTop: 14,
   },
   backButton: {
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 16,
   },
   backButtonText: {
@@ -277,8 +280,8 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    height: 50,
-    borderRadius: 14,
+    height: 44,
+    borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: PRIMARY_RED,
