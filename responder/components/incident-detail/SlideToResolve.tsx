@@ -79,8 +79,8 @@ export default function SlideToResolve({ onComplete }: { onComplete: () => void 
         style={styles.track}
         onLayout={handleTrackLayout}
         accessibilityRole="button"
-        accessibilityLabel="Mark incident resolved"
-        accessibilityHint="Slide the handle to the right to mark this incident resolved."
+        accessibilityLabel="Resolve incident"
+        accessibilityHint="Slide the handle to the right to resolve this incident."
         // Lets a screen reader's own "activate" gesture (e.g. VoiceOver/
         // TalkBack double-tap on a focused element) trigger the same
         // completion a physical slide does, without adding a plain-tap
@@ -94,7 +94,7 @@ export default function SlideToResolve({ onComplete }: { onComplete: () => void 
         <Animated.View style={[styles.fill, fillStyle]} />
 
         <Animated.Text style={[styles.label, labelStyle]}>
-          Slide to Mark Resolved
+          Slide to Resolve
         </Animated.Text>
 
         <GestureDetector gesture={pan}>

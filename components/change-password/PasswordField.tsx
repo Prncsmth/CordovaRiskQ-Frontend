@@ -19,6 +19,11 @@ type PasswordFieldProps = {
   placeholder?: string;
   hint?: string;
   hintTone?: "neutral" | "success" | "error";
+  // Lets a parent (e.g. a field near the bottom of a scrollable sheet)
+  // scroll this field into view the moment it gains focus, since the
+  // keyboard opening can otherwise cover it -- see PasswordSheet's own
+  // forwarded scrollToEnd.
+  onFocus?: () => void;
 } & Pick<TextInputProps, "returnKeyType" | "onSubmitEditing" | "autoFocus">;
 
 export default function PasswordField({
@@ -31,6 +36,7 @@ export default function PasswordField({
   returnKeyType,
   onSubmitEditing,
   autoFocus,
+  onFocus,
 }: PasswordFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -66,7 +72,10 @@ export default function PasswordField({
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           autoFocus={autoFocus}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            onFocus?.();
+          }}
           onBlur={() => setIsFocused(false)}
         />
         <Pressable

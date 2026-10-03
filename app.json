@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Cordova-RiskQ",
-    "slug": "Cordova-RiskQ",
+    "name": "Cordova RiskQ",
+    "slug": "cordova-riskq",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/riskq.png",
@@ -54,7 +54,6 @@
       ],
       "@rnmapbox/maps",
       "expo-font",
-      "expo-image",
       [
         "@react-native-google-signin/google-signin",
         {

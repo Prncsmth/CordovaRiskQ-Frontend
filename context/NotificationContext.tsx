@@ -17,11 +17,15 @@ import { useAuth } from "@/context/AuthContext";
 import { connectToNotificationSocket } from "@/services/notificationSocket.service";
 import {
   deleteNotification as deleteNotificationRequest,
-  getNotifications,
+  getNotifications as getNotificationsRequest,
   markAllNotificationsRead,
   type AppNotification,
 } from "@/services/notification.service";
 import { addIncomingNotification } from "@/utils/notifications";
+import {
+  getNotifications as getNotificationsModule,
+  notificationsUnavailable,
+} from "@/utils/safeNotifications";
 
 type NotificationContextValue = {
   notifications: AppNotification[];
@@ -56,7 +60,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!token) return;
     setLoadFailed(false);
     try {
-      const result = await getNotifications(token);
+      const result = await getNotificationsRequest(token);
       setNotifications(result);
     } catch {
       setLoadFailed(true);
@@ -84,6 +88,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setNotifications((prev) => addIncomingNotification(prev, incoming));
         if (incoming.type === "announcement") {
           setLatestAnnouncementEvent(incoming);
+        }
+        // Same treatment as ResponderAlertContext's new-incident alert: a
+        // teammate calling for backup deserves an attention-grabbing local
+        // sound, not just a silent entry in the notification list --
+        // especially since the app's own foregrounded push handler
+        // (push.service.ts) only plays a sound for a real remote push, and
+        // this socket event can arrive instead of/before one.
+        if (incoming.type === "team_ring" && !notificationsUnavailable) {
+          getNotificationsModule()
+            ?.scheduleNotificationAsync({
+              content: {
+                title: incoming.title,
+                body: incoming.body,
+                sound: true,
+              },
+              trigger: null,
+            })
+            ?.catch(() => {});
         }
       },
       // Reconnecting means the socket was down for some stretch of time --

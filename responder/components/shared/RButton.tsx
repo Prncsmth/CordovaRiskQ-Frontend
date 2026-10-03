@@ -113,15 +113,7 @@ export default function RButton({
   const { colors, shadowColor } = getGradientVariants(COLORS)[variant];
 
   return (
-    <Animated.View
-      style={[
-        styles.wrap,
-        { shadowColor },
-        disabled && styles.disabledShadow,
-        animatedStyle,
-        style,
-      ]}
-    >
+    <Animated.View style={[styles.wrap, animatedStyle, style]}>
       <Pressable
         onPress={handlePress}
         onPressIn={handlePressIn}
@@ -132,7 +124,11 @@ export default function RButton({
           colors={colors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.button, disabled && styles.disabled]}
+          style={[
+            styles.button,
+            { shadowColor },
+            disabled ? [styles.disabled, styles.disabledShadow] : null,
+          ]}
         >
           <LinearGradient
             colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
@@ -162,13 +158,16 @@ export default function RButton({
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
   wrap: {
-    borderRadius: RADIUS.md,
     marginBottom: 12,
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
   },
+  // Shadow lives here, on the actual rounded, colored gradient view, not on
+  // the invisible `wrap` above it -- on Android, an elevation-based shadow
+  // doesn't reliably follow borderRadius when cast by a fully transparent
+  // parent with no background establishing that rounded outline, which
+  // rendered as a flat rectangular shadow sticking out past the button's
+  // curve instead of a soft shadow matching its shape. overflow:"hidden"
+  // here only clips this view's CHILDREN (the sheen below) -- a view's own
+  // cast shadow is never clipped by its own overflow setting.
   button: {
     flexDirection: "row",
     paddingVertical: 14,
@@ -176,6 +175,10 @@ function createStyles(COLORS: ColorPalette) {
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   sheen: {
     position: "absolute",
@@ -183,6 +186,13 @@ function createStyles(COLORS: ColorPalette) {
     left: 0,
     right: 0,
     height: "55%",
+    // Matches `button`'s own radius -- on Android, a nested LinearGradient
+    // clipped only by the parent's overflow:"hidden" doesn't always get
+    // clipped precisely at rounded corners, letting this rectangle's sharp
+    // top corners poke out past the button's curve. Rounding the sheen
+    // itself means it tapers correctly even if that clip doesn't apply.
+    borderTopLeftRadius: RADIUS.md,
+    borderTopRightRadius: RADIUS.md,
   },
   contentRow: {
     flexDirection: "row",

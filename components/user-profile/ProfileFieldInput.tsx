@@ -40,16 +40,15 @@ export default function ProfileFieldInput({
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {label ? <Text style={styles.label}>{label}:</Text> : null}
+      {label ? (
+        <View style={styles.labelRow}>
+          {icon ? (
+            <Ionicons name={icon} size={14} color={COLORS.textSecondary} />
+          ) : null}
+          <Text style={styles.label}>{label}</Text>
+        </View>
+      ) : null}
       <View style={[styles.field, isFocused && styles.fieldFocused]}>
-        {icon ? (
-          <Ionicons
-            name={icon}
-            size={17}
-            color={isFocused ? COLORS.primary : COLORS.textTertiary}
-            style={styles.leadingIcon}
-          />
-        ) : null}
         <TextInput
           style={styles.input}
           value={value}
@@ -73,11 +72,16 @@ function createStyles(COLORS: ColorPalette) {
       gap: SPACING.xs,
       flex: 1,
     },
+    labelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      marginLeft: SPACING.xs,
+    },
     label: {
       fontSize: TYPOGRAPHY.small,
       fontWeight: "700",
       color: COLORS.textSecondary,
-      marginLeft: SPACING.xs,
     },
     field: {
       flexDirection: "row",
@@ -93,9 +97,6 @@ function createStyles(COLORS: ColorPalette) {
     fieldFocused: {
       borderColor: COLORS.primary,
       backgroundColor: COLORS.background,
-    },
-    leadingIcon: {
-      width: 18,
     },
     input: {
       flex: 1,

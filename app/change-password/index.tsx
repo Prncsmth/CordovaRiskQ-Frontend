@@ -1,10 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -25,6 +27,19 @@ export default function ChangePasswordScreen() {
   const { token } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const sheetScrollRef = useRef<ScrollView>(null);
+
+  // Scrolling immediately on focus races the keyboard's own show animation
+  // -- see the identical helper in app/(auth)/register.tsx for why this
+  // waits for the OS's "keyboard is now fully shown" event instead of
+  // scrolling synchronously in onFocus.
+  function scrollToEndOnceKeyboardShown() {
+    const subscription = Keyboard.addListener("keyboardDidShow", () => {
+      sheetScrollRef.current?.scrollToEnd({ animated: true });
+      subscription.remove();
+    });
+  }
+
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -65,7 +80,7 @@ export default function ChangePasswordScreen() {
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <PasswordSheet onClose={handleClose}>
+      <PasswordSheet ref={sheetScrollRef} onClose={handleClose}>
         <Text style={styles.title}>Change Password</Text>
         <Text style={styles.subtitle}>
           Enter your current password, then choose a new one to keep your
@@ -104,6 +119,7 @@ export default function ChangePasswordScreen() {
           placeholder="Re-enter new password"
           returnKeyType="done"
           onSubmitEditing={handleSave}
+          onFocus={scrollToEndOnceKeyboardShown}
           hint={
             passwordsMismatch
               ? "Passwords don't match"
