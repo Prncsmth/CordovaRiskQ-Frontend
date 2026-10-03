@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo } from "react";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -23,10 +23,15 @@ type PasswordSheetProps = {
   onClose: () => void;
 };
 
-export default function PasswordSheet({
-  children,
-  onClose,
-}: PasswordSheetProps) {
+// Forwards a ref to the internal ScrollView -- so a field near the bottom
+// (Confirm New Password) can call scrollToEnd() on its own focus and
+// guarantee it's visible above the keyboard, rather than relying on
+// whether the platform happens to auto-scroll a nested TextInput into view
+// (unreliable once it's wrapped in custom components like PasswordField).
+const PasswordSheet = React.forwardRef<ScrollView, PasswordSheetProps>(function PasswordSheet(
+  { children, onClose },
+  scrollRef,
+) {
   const insets = useSafeAreaInsets();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -66,38 +71,49 @@ export default function PasswordSheet({
         onPress={onClose}
       />
       <GestureDetector gesture={pan}>
-        <Animated.View
-          style={[
-            styles.sheet,
-            { paddingBottom: insets.bottom + SPACING.md },
-            animatedStyle,
-          ]}
-        >
-          <View style={styles.handle} />
+        <Animated.View style={[styles.sheet, animatedStyle]}>
+          {/* A plain View here had no way to reveal content the keyboard
+              covers (the Confirm Password field + Save button sit below
+              the password strength card) -- this sheet has no other
+              scrollable container, so without this the bottom of the form
+              was simply unreachable while the keyboard was up. */}
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={[
+              styles.sheetContent,
+              { paddingBottom: insets.bottom + SPACING.md },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.handle} />
 
-          <View style={styles.iconBadgeWrap}>
-            <LinearGradient
-              colors={[COLORS.primary, COLORS.primaryDark]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconBadge}
-            >
+            <View style={styles.iconBadgeWrap}>
               <LinearGradient
-                colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 0.8 }}
-                style={styles.sheen}
-              />
-              <Ionicons name="lock-closed" size={24} color={COLORS.white} />
-            </LinearGradient>
-          </View>
+                colors={[COLORS.primary, COLORS.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconBadge}
+              >
+                <LinearGradient
+                  colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 0.8 }}
+                  style={styles.sheen}
+                />
+                <Ionicons name="lock-closed" size={24} color={COLORS.white} />
+              </LinearGradient>
+            </View>
 
-          {children}
+            {children}
+          </ScrollView>
         </Animated.View>
       </GestureDetector>
     </View>
   );
-}
+});
+
+export default PasswordSheet;
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
@@ -113,10 +129,13 @@ function createStyles(COLORS: ColorPalette) {
       backgroundColor: COLORS.background,
       borderTopLeftRadius: RADIUS.xl + 4,
       borderTopRightRadius: RADIUS.xl + 4,
+      maxHeight: "90%",
+      ...SHADOW_LG,
+    },
+    sheetContent: {
       paddingTop: SPACING.sm + 2,
       paddingHorizontal: SPACING.md,
       gap: SPACING.md,
-      ...SHADOW_LG,
     },
     handle: {
       alignSelf: "center",

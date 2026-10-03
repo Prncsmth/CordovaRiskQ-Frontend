@@ -5,17 +5,15 @@
 // tap silently locking in wherever they happened to land.
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   Dialog,
-  DialogActions,
-  DialogButton,
   DialogIcon,
   DialogMessage,
   DialogTitle,
 } from "@/components/common/Dialog";
-import { SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import { RADIUS, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 export default function ConfirmLocationDialog({
   address,
@@ -39,10 +37,19 @@ export default function ConfirmLocationDialog({
           <Text style={styles.address}>{address}</Text>
         </View>
         <DialogMessage>Responders will be sent to this exact spot.</DialogMessage>
-        <DialogActions>
-          <DialogButton label="Choose Again" variant="secondary" onPress={onChooseAgain} />
-          <DialogButton label="Confirm Location" variant="primary" onPress={onConfirm} />
-        </DialogActions>
+        {/* Compact, locally-styled actions instead of the shared
+            DialogButton/DialogActions -- those are fixed at 48px tall for
+            every dialog in the app; this one specifically needed a smaller,
+            tighter footprint, so it's scoped here rather than shrinking
+            every other confirmation dialog that wasn't asked for. */}
+        <View style={styles.actions}>
+          <Pressable style={styles.secondaryButton} onPress={onChooseAgain}>
+            <Text style={styles.secondaryButtonText}>Choose Again</Text>
+          </Pressable>
+          <Pressable style={styles.primaryButton} onPress={onConfirm}>
+            <Text style={styles.primaryButtonText}>Confirm</Text>
+          </Pressable>
+        </View>
       </Dialog>
     </View>
   );
@@ -68,6 +75,40 @@ function createStyles(COLORS: ColorPalette) {
       fontWeight: "700",
       color: COLORS.text,
       textAlign: "center",
+    },
+    actions: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginTop: SPACING.md,
+      width: "100%",
+    },
+    secondaryButton: {
+      flex: 1,
+      height: 40,
+      borderRadius: RADIUS.md,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+    },
+    secondaryButtonText: {
+      color: COLORS.text,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.caption,
+    },
+    primaryButton: {
+      flex: 1,
+      height: 40,
+      borderRadius: RADIUS.md,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: COLORS.primary,
+    },
+    primaryButtonText: {
+      color: COLORS.white,
+      fontWeight: "700",
+      fontSize: TYPOGRAPHY.caption,
     },
   });
 }

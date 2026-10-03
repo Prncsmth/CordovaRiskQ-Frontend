@@ -1,7 +1,7 @@
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useMemo, useRef, useState } from "react";
+import { Keyboard, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AuthFooter from "@/components/auth/AuthFooter";
@@ -33,6 +33,21 @@ export default function RegisterScreen() {
   const COLORS = useThemeColors();
   const isDark = useIsDarkTheme();
   const styles = useMemo(() => createStyles(COLORS, isDark), [COLORS, isDark]);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // Scrolling immediately on focus races the keyboard's own show animation
+  // -- the ScrollView's visible area hasn't actually shrunk yet, so
+  // scrollToEnd() lands short, and the keyboard finishes rising afterward
+  // and covers the field anyway. Waiting for the OS's own "keyboard is now
+  // fully shown" event (fired once, then removed) guarantees the scroll
+  // happens against the final, keyboard-adjusted layout.
+  function scrollToEndOnceKeyboardShown() {
+    const subscription = Keyboard.addListener("keyboardDidShow", () => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+      subscription.remove();
+    });
+  }
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -83,6 +98,7 @@ export default function RegisterScreen() {
       />
       <KeyboardSafeView style={styles.transparentFlex}>
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={[
             styles.container,
             { paddingTop: insets.top + SPACING.md },
@@ -140,6 +156,7 @@ export default function RegisterScreen() {
             secureToggle
             value={confirmPassword}
             onChangeText={setConfirmPassword}
+            onFocus={scrollToEndOnceKeyboardShown}
           />
 
           {error ? (

@@ -176,7 +176,7 @@ export default function UserProfileScreen() {
                   />
                 </View>
                 <ProfileFieldInput
-                  label="E-Mail"
+                  label="Email"
                   icon="mail-outline"
                   value={email}
                   onChangeText={setEmail}

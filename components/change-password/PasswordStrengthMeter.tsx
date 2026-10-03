@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -11,12 +12,12 @@ const SEGMENTS = 3;
 function getStrength(
   password: string,
   COLORS: ColorPalette,
-): { score: number; label: string; color: string } {
+): { score: number; label: string; color: string; icon: keyof typeof Ionicons.glyphMap } {
   const score = getPasswordRequirements(password).filter((requirement) => requirement.met).length;
 
-  if (score <= 2) return { score: 1, label: "Weak", color: COLORS.danger };
-  if (score <= 4) return { score: 2, label: "Fair", color: COLORS.warning };
-  return { score: 3, label: "Strong", color: COLORS.success };
+  if (score <= 2) return { score: 1, label: "Weak", color: COLORS.danger, icon: "shield-outline" };
+  if (score <= 4) return { score: 2, label: "Fair", color: COLORS.warning, icon: "shield-half-outline" };
+  return { score: 3, label: "Strong", color: COLORS.success, icon: "shield-checkmark" };
 }
 
 export default function PasswordStrengthMeter({ password }: { password: string }) {
@@ -25,10 +26,11 @@ export default function PasswordStrengthMeter({ password }: { password: string }
 
   if (!password) return null;
 
-  const { score, label, color } = getStrength(password, COLORS);
+  const { score, label, color, icon } = getStrength(password, COLORS);
 
   return (
     <View style={styles.wrapper}>
+      <Ionicons name={icon} size={15} color={color} />
       <View style={styles.track}>
         {Array.from({ length: SEGMENTS }, (_, i) => (
           <View
@@ -59,7 +61,7 @@ function createStyles(COLORS: ColorPalette) {
     },
     segment: {
       flex: 1,
-      height: 4,
+      height: 5,
       borderRadius: RADIUS.full,
     },
     label: {

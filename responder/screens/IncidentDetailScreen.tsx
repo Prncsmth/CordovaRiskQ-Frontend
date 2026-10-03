@@ -90,6 +90,11 @@ export default function IncidentDetailScreen() {
   const [closedNotice, setClosedNotice] = useState<
     "completed" | "cancelled" | null
   >(null);
+  // Separate from closedNotice (shown when ANOTHER responder/admin closes
+  // the incident) -- this is the acting responder's own success
+  // confirmation after sliding to resolve, worded in the first person
+  // rather than closedNotice's bystander-neutral copy.
+  const [showResolvedSuccess, setShowResolvedSuccess] = useState(false);
   // Fetched once and reused for the rest of this screen's lifetime, matching
   // the merge logic below that already carries distanceKm forward unchanged
   // across refreshes -- null means "not yet attempted", undefined means
@@ -377,8 +382,11 @@ export default function IncidentDetailScreen() {
   };
 
   // The slide gesture on ArrivedView's SlideToResolve is itself the
-  // deliberate confirmation -- no second "Are you sure?" dialog after it,
-  // same reasoning as SOS's slide-to-send.
+  // deliberate confirmation -- no second "Are you sure?" dialog before it,
+  // same reasoning as SOS's slide-to-send. navigation is deferred to the
+  // success dialog's own "Done" button instead of firing immediately, so
+  // the responder gets a clear confirmation the action actually went
+  // through before the screen disappears.
   const handleCompleteIncident = async () => {
     if (token) {
       await updateIncidentStatus(token, incident.id, "completed").catch(
@@ -386,8 +394,13 @@ export default function IncidentDetailScreen() {
       );
     }
     isClosingRef.current = true;
-    router.back();
+    setShowResolvedSuccess(true);
   };
+
+  function dismissResolvedSuccess() {
+    setShowResolvedSuccess(false);
+    router.back();
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + SPACING.sm }]}>
@@ -491,6 +504,29 @@ export default function IncidentDetailScreen() {
               variant="primary"
               color={closedNotice === "completed" ? COLORS.success : undefined}
               onPress={dismissClosedNotice}
+            />
+          </DialogActions>
+        </Dialog>
+      </Modal>
+
+      <Modal
+        transparent
+        visible={showResolvedSuccess}
+        animationType="fade"
+        onRequestClose={dismissResolvedSuccess}
+      >
+        <Dialog>
+          <DialogIcon name="checkmark-done-outline" color={COLORS.success} />
+          <DialogTitle>Resolved!</DialogTitle>
+          <DialogMessage>
+            You&apos;ve successfully resolved this incident.
+          </DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="Done"
+              variant="primary"
+              color={COLORS.success}
+              onPress={dismissResolvedSuccess}
             />
           </DialogActions>
         </Dialog>

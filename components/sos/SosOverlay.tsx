@@ -291,7 +291,7 @@ function createConfirmStyles(COLORS: ColorPalette) {
     },
     cancelButton: {
       flex: 1,
-      height: 52,
+      height: 40,
       borderRadius: RADIUS.md,
       backgroundColor: COLORS.surface,
       borderWidth: 1,
@@ -302,11 +302,11 @@ function createConfirmStyles(COLORS: ColorPalette) {
     cancelText: {
       color: COLORS.text,
       fontWeight: "700",
-      fontSize: TYPOGRAPHY.body,
+      fontSize: TYPOGRAPHY.caption,
     },
     confirmButton: {
       flex: 1,
-      height: 52,
+      height: 40,
       borderRadius: RADIUS.md,
       backgroundColor: COLORS.primary,
       flexDirection: "row",
@@ -322,7 +322,7 @@ function createConfirmStyles(COLORS: ColorPalette) {
     confirmText: {
       color: COLORS.white,
       fontWeight: "800",
-      fontSize: TYPOGRAPHY.body,
+      fontSize: TYPOGRAPHY.caption,
     },
   });
 }
