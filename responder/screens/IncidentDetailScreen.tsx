@@ -49,6 +49,7 @@ import { mergeIncidentUpdate } from "@/responder/components/incident-detail/merg
 import OnTheWayView from "@/responder/components/incident-detail/OnTheWayView";
 import PendingView from "@/responder/components/incident-detail/PendingView";
 import { phaseForMyStatus } from "@/responder/components/incident-detail/phaseForMyStatus";
+import { resolveIncident } from "@/responder/components/incident-detail/resolveIncident";
 import RButton from "@/responder/components/shared/RButton";
 import {
   declineIncident,
@@ -95,6 +96,11 @@ export default function IncidentDetailScreen() {
   // confirmation after sliding to resolve, worded in the first person
   // rather than closedNotice's bystander-neutral copy.
   const [showResolvedSuccess, setShowResolvedSuccess] = useState(false);
+  // The failure counterpart: the backend didn't accept the resolve, so the
+  // incident is unchanged and the dialog offers Try Again.
+  const [showResolveFailed, setShowResolveFailed] = useState(false);
+  // Ignores a second slide while the first resolve request is still running.
+  const isResolvingRef = useRef(false);
   // Fetched once and reused for the rest of this screen's lifetime, matching
   // the merge logic below that already carries distanceKm forward unchanged
   // across refreshes -- null means "not yet attempted", undefined means
@@ -386,20 +392,48 @@ export default function IncidentDetailScreen() {
   // same reasoning as SOS's slide-to-send. navigation is deferred to the
   // success dialog's own "Done" button instead of firing immediately, so
   // the responder gets a clear confirmation the action actually went
-  // through before the screen disappears.
+  // through before the screen disappears. The success dialog only shows once
+  // the backend has actually accepted the update -- on failure the incident
+  // stays as it is, the slider springs back, and the failure dialog's Try
+  // Again runs this same handler again.
   const handleCompleteIncident = async () => {
-    if (token) {
-      await updateIncidentStatus(token, incident.id, "completed").catch(
-        () => {},
-      );
-    }
+    if (!token || isResolvingRef.current) return;
+    isResolvingRef.current = true;
+    // Set before the request so this responder's own "completed" socket
+    // broadcast, which can arrive before the response, doesn't also pop the
+    // bystander "Incident resolved" notice.
     isClosingRef.current = true;
-    setShowResolvedSuccess(true);
+
+    const result = await resolveIncident(token, incident.id, {
+      updateIncidentStatus,
+    });
+    isResolvingRef.current = false;
+
+    if (result.status === "resolved") {
+      setShowResolvedSuccess(true);
+      return;
+    }
+
+    isClosingRef.current = false;
+    setShowResolveFailed(true);
+    // A timeout can fail here even though the server did complete it (or
+    // someone else closed it meanwhile) -- resync quietly so the closed
+    // notice above shows in that case instead of a stale Arrived screen.
+    loadIncident({ silent: true });
   };
 
   function dismissResolvedSuccess() {
     setShowResolvedSuccess(false);
     router.back();
+  }
+
+  function dismissResolveFailed() {
+    setShowResolveFailed(false);
+  }
+
+  function retryResolve() {
+    setShowResolveFailed(false);
+    handleCompleteIncident();
   }
 
   return (
@@ -527,6 +561,39 @@ export default function IncidentDetailScreen() {
               variant="primary"
               color={COLORS.success}
               onPress={dismissResolvedSuccess}
+            />
+          </DialogActions>
+        </Dialog>
+      </Modal>
+
+      {/* Hidden if the resync shows the incident was closed after all --
+          the closed notice above explains that case instead. */}
+      <Modal
+        transparent
+        visible={showResolveFailed && closedNotice === null}
+        animationType="fade"
+        onRequestClose={dismissResolveFailed}
+      >
+        <Dialog>
+          <DialogIcon name="alert-circle" color={COLORS.danger} />
+          <DialogTitle>Couldn&apos;t resolve incident</DialogTitle>
+          <DialogMessage>
+            This incident wasn&apos;t updated. Check your connection, then try
+            again.
+          </DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="Cancel"
+              variant="secondary"
+              onPress={dismissResolveFailed}
+            />
+            {/* Green like the slider and "Resolved!" -- retrying is the
+                resolve action itself, not a destructive one. */}
+            <DialogButton
+              label="Try Again"
+              variant="primary"
+              color={COLORS.success}
+              onPress={retryResolve}
             />
           </DialogActions>
         </Dialog>
