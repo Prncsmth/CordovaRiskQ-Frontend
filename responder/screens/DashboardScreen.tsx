@@ -51,6 +51,11 @@ import SeeAllToggle from "@/responder/components/dashboard/SeeAllToggle";
 import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
 import RButton from "@/responder/components/shared/RButton";
 import { getIncidents } from "@/responder/services/incident.service";
+import AdvisoryBanner from "@/components/home/AdvisoryBanner";
+import {
+  getActiveResponderAnnouncement,
+  type Announcement,
+} from "@/services/advisory.service";
 import type { Incident } from "@/responder/types/responder";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
@@ -65,7 +70,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
-import { formatRelativeTime } from "@/utils/formatter";
+import { formatRelativeTime, formatShortDateTime } from "@/utils/formatter";
 
 const POLL_INTERVAL_MS = 12000;
 // How long a just-arrived incident keeps its "NEW" freshness dot after this
@@ -128,7 +133,27 @@ export default function ResponderIncidentsScreen() {
   // Same live, socket-backed source as the citizen Home bell (HomeHeader)
   // -- not a per-screen poll -- so the dot updates the instant a
   // notification arrives or is read, identically for both roles.
-  const { hasUnread } = useNotifications();
+  const { hasUnread, latestAnnouncementEvent } = useNotifications();
+  // Same Announcement Card as the citizen Home, fed by the responder endpoint
+  // (All Users + Responders Only). Kept on screen while offline too --
+  // announcements aren't tied to duty status.
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+
+  const loadAnnouncement = useCallback(() => {
+    if (!token) return;
+    getActiveResponderAnnouncement(token)
+      .then(setAnnouncement)
+      // Best-effort, like the citizen Home: keep the current card on failure.
+      .catch(() => {});
+  }, [token]);
+
+  useFocusEffect(loadAnnouncement);
+
+  // Re-query the instant an admin publishes one (live socket event via
+  // NotificationContext), same as the citizen Home.
+  useEffect(() => {
+    if (latestAnnouncementEvent) loadAnnouncement();
+  }, [latestAnnouncementEvent, loadAnnouncement]);
   // Which barangay sections/the Nearest to You header are currently showing
   // every incident instead of just the collapsed preview -- toggled per
   // section by its own "See All" button, independent of the others.
@@ -245,6 +270,7 @@ export default function ResponderIncidentsScreen() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    loadAnnouncement();
     try {
       const responderLocation = await getCurrentLocation().catch(
         () => undefined,
@@ -494,6 +520,18 @@ export default function ResponderIncidentsScreen() {
               </View>
             </Pressable>
           </View>
+
+          {announcement ? (
+            <View style={styles.announcement}>
+              <AdvisoryBanner
+                id={announcement.id}
+                priority={announcement.priority}
+                time={formatShortDateTime(announcement.createdAt)}
+                title={announcement.title}
+                message={announcement.content}
+              />
+            </View>
+          ) : null}
         </LinearGradient>
       </View>
 
@@ -768,6 +806,10 @@ function createStyles(COLORS: ColorPalette) {
       flexDirection: "row",
       gap: SPACING.sm,
       paddingHorizontal: SPACING.md,
+    },
+    announcement: {
+      paddingHorizontal: SPACING.md,
+      marginTop: SPACING.sm,
     },
     statCard: {
       flex: 1,

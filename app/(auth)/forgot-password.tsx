@@ -1,4 +1,3 @@
-import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -10,12 +9,14 @@ import AuthInput from "@/components/auth/AuthInput";
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
 import KeyboardSafeView from "@/components/common/KeyboardSafeView";
-import RippleRings from "@/components/common/RippleRings";
 import { requestPasswordReset } from "@/services/auth.service";
 import {
-  FONT_FAMILY,
+  describePasswordResetError,
+  requestResetCode,
+  validateForgotPasswordEmail,
+} from "@/services/passwordResetFlow";
+import {
   RADIUS,
-  SHADOW_LG,
   SPACING,
   TYPOGRAPHY,
   useIsDarkTheme,
@@ -23,6 +24,9 @@ import {
   type ColorPalette,
 } from "@/theme";
 
+// Step 1 of password reset: ask the backend to email a 6-digit code. Its
+// answer is the same whether or not the email has an account, so the app
+// always continues to reset-password.tsx (see services/passwordResetFlow.ts).
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -33,66 +37,28 @@ export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sent, setSent] = useState(false);
 
-  async function handleSendLink() {
-    if (!email.trim()) {
-      setError("Please enter your email address.");
+  async function handleSendCode() {
+    const validationError = validateForgotPasswordEmail(email);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setError(null);
     setLoading(true);
     try {
-      await requestPasswordReset(email.trim());
-      setSent(true);
+      const result = await requestResetCode(email, { requestPasswordReset });
+      // Only what the next screen displays -- never a code or password.
+      router.push({
+        pathname: "/reset-password",
+        params: { email: result.email, cooldown: String(result.resendCooldownSeconds) },
+      });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Couldn't send reset link. Please try again.";
-      setError(message);
+      setError(describePasswordResetError(err));
     } finally {
       setLoading(false);
     }
-  }
-
-  if (sent) {
-    return (
-      <View style={[styles.flex, { paddingTop: insets.top + SPACING.md }]}>
-        <BackButton onPress={() => router.push("/login")} style={styles.backSuccess} />
-
-        <View style={styles.successBody}>
-          <RippleRings
-            size={200}
-            ringCount={3}
-            color={`${COLORS.success}14`}
-            style={styles.watermark}
-          />
-          <View style={styles.checkCircle}>
-            <Ionicons name="mail" size={40} color={COLORS.white} />
-          </View>
-          <Text style={styles.successTitle}>Check Your Email</Text>
-          <Text style={styles.successSubtitle}>
-            We&apos;ve sent a password reset link to{"\n"}
-            <Text style={styles.successEmail}>{email.trim()}</Text>
-          </Text>
-
-          <PrimaryButton
-            title="Back to Login"
-            onPress={() => router.replace("/login")}
-            style={styles.successButton}
-          />
-
-          <Text style={styles.resendPrompt}>
-            Didn&apos;t get it?{" "}
-            <Text style={styles.resendAction} onPress={handleSendLink}>
-              Resend link
-            </Text>
-          </Text>
-        </View>
-      </View>
-    );
   }
 
   return (
@@ -110,7 +76,7 @@ export default function ForgotPasswordScreen() {
 
         <AuthHeader
           title="Forgot Password?"
-          subtitle="Enter your email and we'll send you a link to reset your password."
+          subtitle="Enter your email and we'll send you a 6-digit code to reset your password."
         />
 
         <AuthInput
@@ -129,11 +95,7 @@ export default function ForgotPasswordScreen() {
         ) : null}
 
         <View style={styles.actions}>
-          <PrimaryButton
-            title="Send Reset Link"
-            loading={loading}
-            onPress={handleSendLink}
-          />
+          <PrimaryButton title="Send Code" loading={loading} onPress={handleSendCode} />
 
           <AuthFooter
             promptText="Remember your password?"
@@ -174,11 +136,6 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
       marginBottom: SPACING.lg,
     },
 
-    backSuccess: {
-      marginBottom: SPACING.lg,
-      marginLeft: SPACING.lg,
-    },
-
     errorBanner: {
       backgroundColor: `${COLORS.danger}${isDark ? "26" : "14"}`,
       borderRadius: RADIUS.md,
@@ -191,65 +148,6 @@ function createStyles(COLORS: ColorPalette, isDark: boolean) {
       color: COLORS.danger,
       fontSize: TYPOGRAPHY.caption,
       fontWeight: "600",
-    },
-
-    successBody: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: SPACING.lg,
-    },
-
-    watermark: {
-      position: "absolute",
-    },
-
-    checkCircle: {
-      width: 96,
-      height: 96,
-      borderRadius: RADIUS.full,
-      backgroundColor: COLORS.success,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: SPACING.lg,
-      ...SHADOW_LG,
-    },
-
-    successTitle: {
-      fontFamily: FONT_FAMILY.display,
-      fontSize: TYPOGRAPHY.title,
-      color: COLORS.text,
-      textAlign: "center",
-    },
-
-    successSubtitle: {
-      fontSize: TYPOGRAPHY.body,
-      color: COLORS.textSecondary,
-      textAlign: "center",
-      marginTop: SPACING.md,
-      lineHeight: 22,
-    },
-
-    successEmail: {
-      fontWeight: "700",
-      color: COLORS.text,
-    },
-
-    successButton: {
-      width: "100%",
-      marginTop: SPACING.xl,
-    },
-
-    resendPrompt: {
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textSecondary,
-      marginTop: SPACING.lg,
-      textAlign: "center",
-    },
-
-    resendAction: {
-      color: COLORS.primary,
-      fontWeight: "700",
     },
   });
 }

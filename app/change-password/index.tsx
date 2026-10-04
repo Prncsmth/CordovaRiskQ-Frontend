@@ -24,7 +24,7 @@ import { isPasswordValid } from "@/utils/passwordPolicy";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, replaceToken } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const sheetScrollRef = useRef<ScrollView>(null);
@@ -63,7 +63,10 @@ export default function ChangePasswordScreen() {
 
     setIsSaving(true);
     try {
-      await changePassword(token, { oldPassword, newPassword });
+      const result = await changePassword(token, { oldPassword, newPassword });
+      // Every other device is now logged out; keep this one signed in with
+      // the fresh token instead of the one that was just revoked.
+      if (result.token) await replaceToken(result.token);
       router.back();
     } catch (err) {
       Alert.alert(

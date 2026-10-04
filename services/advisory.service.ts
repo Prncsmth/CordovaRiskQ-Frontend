@@ -23,13 +23,30 @@ export async function getActiveAnnouncement(barangayName?: string): Promise<Anno
   return response.announcement;
 }
 
+// The responder dashboard's card: newest of "All Users" and "Responders
+// Only". Needs the responder's token -- the backend keeps Responders Only
+// announcements off the public /active endpoint above.
+export async function getActiveResponderAnnouncement(token: string): Promise<Announcement | null> {
+  const response = await apiGet<{ success: true; announcement: Announcement | null }>(
+    "/api/announcements/active/responder",
+    token,
+  );
+  return response.announcement;
+}
+
 // Backs the Announcement Details screen (app/announcement-detail/[id].tsx),
-// reached from a tapped "announcement" notification's referenceId -- same
-// public, no-token pattern as getActiveAnnouncement above.
-export async function getAnnouncementById(id: string): Promise<Announcement | undefined> {
+// reached from a tapped "announcement" notification's referenceId or the
+// home/dashboard card. Public for most audiences; the token is sent when
+// signed in because the backend only shows a Responders Only announcement to
+// a signed-in responder (anyone else gets the same 404 as a missing one).
+export async function getAnnouncementById(
+  id: string,
+  token?: string | null,
+): Promise<Announcement | undefined> {
   try {
     const response = await apiGet<{ success: true; announcement: Announcement }>(
       `/api/announcements/${id}`,
+      token ?? undefined,
     );
     return response.announcement;
   } catch (err) {

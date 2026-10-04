@@ -27,15 +27,20 @@ export async function updateProfile(
   return response.user;
 }
 
+// Changing the password logs out every session for this account, including
+// this one -- the backend returns a fresh token for this device. Optional
+// because a backend from before session revocation doesn't send one (its
+// old token is then still valid).
 export async function changePassword(
   token: string,
   payload: { oldPassword: string; newPassword: string },
-): Promise<void> {
-  await apiPost<{ success: true }>(
+): Promise<{ token?: string }> {
+  const result = await apiPost<{ success: true; token?: string }>(
     "/api/users/change-password",
     payload,
     token,
   );
+  return { token: result.token };
 }
 
 export async function updateDutyStatus(

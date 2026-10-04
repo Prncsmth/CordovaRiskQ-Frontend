@@ -90,6 +90,9 @@ type AuthContextValue = {
     needsOnboardingFlag?: boolean,
   ) => Promise<void>;
   logout: () => Promise<void>;
+  // Swaps in a new token for the same signed-in user (e.g. the one
+  // change-password returns), leaving the user and onboarding state as is.
+  replaceToken: (newToken: string) => Promise<void>;
   updateUser: (
     user: Omit<AuthUser, "role" | "isOnDuty"> & {
       role?: AuthUser["role"];
@@ -215,6 +218,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       },
       logout: clearSession,
+      replaceToken: async (newToken: string) => {
+        await authStorage.setItem(TOKEN_KEY, newToken);
+        setAuthState((prev) => ({ ...prev, token: newToken }));
+      },
       finishRegistration: async (userId: string, name: string) => {
         await authStorage.deleteItem(TOKEN_KEY);
         await authStorage.deleteItem(USER_KEY);

@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
 import InfoRow from "@/components/report-detail/InfoRow";
+import { useAuth } from "@/context/AuthContext";
 import { getAnnouncementById, type Announcement } from "@/services/advisory.service";
 import { formatDate, formatTime } from "@/utils/formatter";
 import {
@@ -40,6 +41,8 @@ export default function AnnouncementDetailScreen() {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { id } = useLocalSearchParams<{ id: string }>();
+  // Sent so a responder can open a Responders Only announcement.
+  const { token } = useAuth();
 
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,11 +56,11 @@ export default function AnnouncementDetailScreen() {
     }
     setIsLoading(true);
     setLoadFailed(false);
-    getAnnouncementById(id)
+    getAnnouncementById(id, token)
       .then((result) => setAnnouncement(result ?? null))
       .catch(() => setLoadFailed(true))
       .finally(() => setIsLoading(false));
-  }, [id]);
+  }, [id, token]);
 
   useEffect(() => {
     load();
@@ -68,11 +71,11 @@ export default function AnnouncementDetailScreen() {
   const handleRefresh = useCallback(() => {
     if (!id) return;
     setRefreshing(true);
-    getAnnouncementById(id)
+    getAnnouncementById(id, token)
       .then((result) => setAnnouncement(result ?? null))
       .catch(() => {})
       .finally(() => setRefreshing(false));
-  }, [id]);
+  }, [id, token]);
 
   if (isLoading) {
     return (

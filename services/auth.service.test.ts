@@ -5,8 +5,10 @@ jest.mock("./api", () => ({
 import { apiPost } from "./api";
 import {
   loginUser,
+  requestPasswordReset,
   requestRegistrationOtp,
   resendRegistrationOtp,
+  resetPassword,
   verifyRegistrationOtp,
 } from "./auth.service";
 
@@ -95,6 +97,48 @@ describe("loginUser", () => {
     expect(mockApiPost).toHaveBeenCalledWith("/api/auth/login", {
       email: "juana@example.com",
       password: "secret123",
+    });
+  });
+});
+
+describe("requestPasswordReset", () => {
+  it("posts only the email to forgot-password and returns the generic message and cooldown", async () => {
+    mockApiPost.mockResolvedValue({
+      success: true,
+      message: "If an account exists, a password reset code has been sent to your email.",
+      resendCooldownSeconds: 60,
+    });
+
+    const result = await requestPasswordReset("juana@example.com");
+
+    expect(mockApiPost).toHaveBeenCalledWith("/api/auth/forgot-password", { email: "juana@example.com" });
+    expect(result).toEqual({
+      message: "If an account exists, a password reset code has been sent to your email.",
+      resendCooldownSeconds: 60,
+    });
+  });
+});
+
+describe("resetPassword", () => {
+  it("posts email, code and newPassword to reset-password", async () => {
+    mockApiPost.mockResolvedValue({ success: true, message: "Your password has been reset. You can now log in." });
+
+    const result = await resetPassword("juana@example.com", "048213", "NewPass1!");
+
+    expect(mockApiPost).toHaveBeenCalledWith("/api/auth/reset-password", {
+      email: "juana@example.com",
+      code: "048213",
+      newPassword: "NewPass1!",
+    });
+    expect(result).toEqual({ message: "Your password has been reset. You can now log in." });
+  });
+
+  it("propagates the generic invalid-code error", async () => {
+    mockApiPost.mockRejectedValue(
+      Object.assign(new Error("Invalid or expired code. Request a new one."), { status: 400 }),
+    );
+    await expect(resetPassword("juana@example.com", "000000", "NewPass1!")).rejects.toMatchObject({
+      status: 400,
     });
   });
 });
