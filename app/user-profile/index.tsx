@@ -82,10 +82,6 @@ export default function UserProfileScreen() {
   async function handleSave() {
     if (!token) return;
 
-    if (!email.trim().toLowerCase().endsWith("@gmail.com")) {
-      Alert.alert("Invalid email", "Only Gmail addresses (@gmail.com) are allowed.");
-      return;
-    }
     const trimmedMobile = mobile.trim();
     if (trimmedMobile && !PH_MOBILE_REGEX.test(trimmedMobile.replace(/[\s-]/g, ""))) {
       Alert.alert(
@@ -98,7 +94,8 @@ export default function UserProfileScreen() {
     setIsSaving(true);
     try {
       const name = `${firstName} ${lastName}`.trim();
-      const profile = await updateProfile(token, { name, email, mobile });
+      // No email -- it isn't editable (see the read-only field below).
+      const profile = await updateProfile(token, { name, mobile });
       await updateUser({
         id: profile.id,
         name: profile.name ?? "",
@@ -175,13 +172,15 @@ export default function UserProfileScreen() {
                     containerStyle={styles.nameField}
                   />
                 </View>
+                {/* Read-only: the email is the account's verified login
+                    identity, so it can't be changed here (the backend
+                    rejects a change too). */}
                 <ProfileFieldInput
                   label="Email"
                   icon="mail-outline"
                   value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
+                  onChangeText={() => {}}
+                  readOnly
                 />
                 <ProfileFieldInput
                   label="Mobile"

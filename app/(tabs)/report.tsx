@@ -29,6 +29,7 @@ import { useReportLocation } from "@/context/ReportLocationContext";
 import { reverseGeocode } from "@/services/geocoding.service";
 import { getCurrentLocation, getVerifiedLocation } from "@/services/location.service";
 import { createReport, photoFileExists, uploadReportPhoto } from "@/services/report.service";
+import { resolveReportPhoto } from "@/services/reportPhoto";
 import {
     FONT_FAMILY,
     SPACING,
@@ -37,6 +38,22 @@ import {
     type ColorPalette,
 } from "@/theme";
 import { isInsideCordova } from "@/utils/geofence";
+
+// Asked when the photo couldn't be attached. Says plainly that the report
+// would go without it -- nothing claims the photo was uploaded.
+function confirmSubmitWithoutPhoto(): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(
+      "Photo upload failed",
+      "Your photo couldn't be uploaded. Submit the report without the photo?",
+      [
+        { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+        { text: "Submit without photo", onPress: () => resolve(true) },
+      ],
+      { cancelable: true, onDismiss: () => resolve(false) },
+    );
+  });
+}
 
 const FALLBACK_COORDS = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
 const FALLBACK_LOCATION = {
@@ -162,19 +179,18 @@ export default function ReportScreen() {
       let photoUrl: string | undefined;
       if (photo) {
         setSubmitPhase("uploading-photo");
-        if (!photoFileExists(photo.uri)) {
+        // A failed photo asks before going on without it, instead of
+        // discarding the whole report (see services/reportPhoto.ts).
+        const photoOutcome = await resolveReportPhoto(photo, {
+          fileExists: photoFileExists,
+          upload: (selected) => uploadReportPhoto(token, selected.uri, selected.fileName),
+          confirmSubmitWithoutPhoto,
+        });
+        if (!photoOutcome.proceed) {
           setSubmitPhase("idle");
-          Alert.alert("Photo upload failed", "Please try again or remove the photo.");
           return;
         }
-        try {
-          const uploaded = await uploadReportPhoto(token, photo.uri, photo.fileName);
-          photoUrl = uploaded.photoUrl;
-        } catch {
-          setSubmitPhase("idle");
-          Alert.alert("Photo upload failed", "Please try again or remove the photo.");
-          return;
-        }
+        photoUrl = photoOutcome.photoUrl;
       }
 
       setSubmitPhase("submitting");
