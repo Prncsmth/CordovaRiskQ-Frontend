@@ -9,17 +9,24 @@ import { apiGet, type ApiError } from "./api";
 import type { Coordinates } from "./location.service";
 
 // Mirrors the backend's ResponderRosterStatus, minus "left"/"declined" --
-// getForIncident only ever returns the currently-accepted responder, whose
-// status can't be either of those (see pickAcceptedByResponderId).
+// getForIncident only ever returns responders currently helping, whose
+// status can't be either of those (see trackingRoster.ts on the backend).
 export type ResponderRosterStatus = "joined" | "on_the_way" | "arrived";
 
-export type TrackingSnapshot = {
+// One responder currently helping with the incident.
+export type ResponderTrack = {
   responderId: string;
   responderName: string;
   location: Coordinates | null;
   locationUpdatedAt: string | null;
   status: ResponderRosterStatus;
   etaMinutes: number | null;
+};
+
+// The first responder to accept (flat, as before), plus every responder
+// currently helping -- first-accepted first -- for "Track Responders".
+export type TrackingSnapshot = ResponderTrack & {
+  responders: ResponderTrack[];
 };
 
 export type TrackingResult =
@@ -31,7 +38,7 @@ export type TrackingResult =
   // Caller isn't this incident's reporter.
   | { state: "forbidden" };
 
-type TrackingApiRow = {
+type ResponderTrackApiRow = {
   responderId: string;
   responderName: string;
   latitude: number | null;
@@ -40,6 +47,25 @@ type TrackingApiRow = {
   status: ResponderRosterStatus;
   etaMinutes: number | null;
 };
+
+type TrackingApiRow = ResponderTrackApiRow & {
+  // Absent on a backend from before multi-responder tracking.
+  responders?: ResponderTrackApiRow[];
+};
+
+function toResponderTrack(row: ResponderTrackApiRow): ResponderTrack {
+  return {
+    responderId: row.responderId,
+    responderName: row.responderName,
+    location:
+      row.latitude != null && row.longitude != null
+        ? { latitude: row.latitude, longitude: row.longitude }
+        : null,
+    locationUpdatedAt: row.locationUpdatedAt,
+    status: row.status,
+    etaMinutes: row.etaMinutes,
+  };
+}
 
 export async function getResponderTracking(
   token: string,
@@ -51,18 +77,17 @@ export async function getResponderTracking(
       token,
     );
     const row = response.tracking;
+    const primary = toResponderTrack(row);
     return {
       state: "ok",
       snapshot: {
-        responderId: row.responderId,
-        responderName: row.responderName,
-        location:
-          row.latitude != null && row.longitude != null
-            ? { latitude: row.latitude, longitude: row.longitude }
-            : null,
-        locationUpdatedAt: row.locationUpdatedAt,
-        status: row.status,
-        etaMinutes: row.etaMinutes,
+        ...primary,
+        // An older backend only sends the first responder -- treat it as a
+        // list of one so every caller can rely on `responders`.
+        responders:
+          row.responders && row.responders.length > 0
+            ? row.responders.map(toResponderTrack)
+            : [primary],
       },
     };
   } catch (err) {

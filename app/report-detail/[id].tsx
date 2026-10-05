@@ -28,6 +28,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
+import { trackRespondersLabel } from "@/utils/trackResponders";
 
 const MAP_HEIGHT = 170;
 
@@ -170,7 +171,7 @@ export default function ReportDetailScreen() {
 
       {TRACKABLE_STATUSES.has(report.status) && (
         <PrimaryButton
-          title="Track Responder"
+          title={trackRespondersLabel(report.respondersCount)}
           onPress={() => router.push({ pathname: "/track-responder/[id]", params: { id: report.id } })}
           style={styles.trackButton}
         />

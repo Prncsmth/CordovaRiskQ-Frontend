@@ -17,6 +17,11 @@ import SosBubble from "@/components/sos/SosBubble";
 import { useAuth } from "@/context/AuthContext";
 import { useSos, type SosTrackingState } from "@/context/SosContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
+import {
+  respondersAssignedMessage,
+  respondersAssignedTitle,
+  trackRespondersLabel,
+} from "@/utils/trackResponders";
 
 export default function SosOverlay() {
   const { token } = useAuth();
@@ -91,9 +96,14 @@ export default function SosOverlay() {
             <ActiveView
               incidentId={incidentId}
               tracking={tracking}
-              onTrack={(id) =>
-                router.push({ pathname: "/track-responder/[id]", params: { id } })
-              }
+              onTrack={(id) => {
+                // Minimize first, like "Back to Home" below: this full-screen
+                // view sits above all navigation, so without it the map
+                // opened hidden underneath and the button looked dead. The
+                // SOS bubble stays on screen to come back here.
+                minimizeSOS();
+                router.push({ pathname: "/track-responder/[id]", params: { id } });
+              }}
               onCancel={cancelSOS}
               onMinimize={minimizeSOS}
               onBackToHome={() => {
@@ -351,7 +361,10 @@ function ActiveView({
   // lands the same as "waiting" -- stage is already "active" by the time
   // this view renders, so there's always really an incident to wait on.
   const isAssigned = tracking.kind === "live";
-  const responderName = tracking.kind === "live" ? tracking.snapshot.responderName : null;
+  // Everyone helping so far, first-accepted first -- the title, message and
+  // button read "Responders" once there are two or more.
+  const responderNames =
+    tracking.kind === "live" ? tracking.snapshot.responders.map((r) => r.responderName) : [];
 
   return (
     <View style={[styles.activeScreen, { paddingBottom: insets.bottom + SPACING.lg }]}>
@@ -373,11 +386,11 @@ function ActiveView({
         </View>
         <PulseRings styles={styles} />
         <Text style={styles.activeTitle}>
-          {isAssigned ? "Responder Assigned" : "Waiting for Responder"}
+          {isAssigned ? respondersAssignedTitle(responderNames.length) : "Waiting for Responder"}
         </Text>
         <Text style={styles.activeSubtitle}>
           {isAssigned
-            ? `${responderName ?? "A responder"} has been assigned and is on the way.`
+            ? respondersAssignedMessage(responderNames)
             : "Your SOS has been sent. Please wait while a responder accepts your request."}
         </Text>
       </View>
@@ -385,7 +398,7 @@ function ActiveView({
       {incidentId && isAssigned && (
         <Pressable style={styles.trackButton} onPress={() => onTrack(incidentId)}>
           <Ionicons name="navigate" size={18} color={COLORS.primary} />
-          <Text style={styles.trackButtonText}>Track Responder</Text>
+          <Text style={styles.trackButtonText}>{trackRespondersLabel(responderNames.length)}</Text>
         </Pressable>
       )}
 

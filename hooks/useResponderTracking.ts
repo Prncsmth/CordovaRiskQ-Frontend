@@ -25,7 +25,31 @@ export type TrackingState =
       secondsSinceUpdate: number | null;
       stale: boolean;
       veryStale: boolean;
+      // The ticking clock, so a caller showing a different responder than
+      // the first one (Track Responders) can work out that responder's
+      // freshness with locationFreshness().
+      now: number;
     };
+
+export type LocationFreshness = {
+  secondsSinceUpdate: number | null;
+  stale: boolean;
+  veryStale: boolean;
+};
+
+// How fresh one responder's last known location is, as of `now`.
+export function locationFreshness(locationUpdatedAt: string | null, now: number): LocationFreshness {
+  const updatedAtMs = locationUpdatedAt ? new Date(locationUpdatedAt).getTime() : null;
+  const secondsSinceUpdate =
+    updatedAtMs != null && Number.isFinite(updatedAtMs)
+      ? Math.max(0, Math.round((now - updatedAtMs) / 1000))
+      : null;
+  return {
+    secondsSinceUpdate,
+    stale: secondsSinceUpdate != null && secondsSinceUpdate >= STALE_AFTER_SECONDS,
+    veryStale: secondsSinceUpdate != null && secondsSinceUpdate >= VERY_STALE_AFTER_SECONDS,
+  };
+}
 
 export function useResponderTracking(
   token: string | null,
@@ -86,10 +110,7 @@ export function useResponderTracking(
   if (terminal) return { kind: terminal };
   if (!snapshot) return { kind: waiting ? "waiting" : "loading" };
 
-  const updatedAtMs = snapshot.locationUpdatedAt ? new Date(snapshot.locationUpdatedAt).getTime() : null;
-  const secondsSinceUpdate = updatedAtMs != null ? Math.max(0, Math.round((now - updatedAtMs) / 1000)) : null;
-  const stale = secondsSinceUpdate != null && secondsSinceUpdate >= STALE_AFTER_SECONDS;
-  const veryStale = secondsSinceUpdate != null && secondsSinceUpdate >= VERY_STALE_AFTER_SECONDS;
+  const { secondsSinceUpdate, stale, veryStale } = locationFreshness(snapshot.locationUpdatedAt, now);
 
-  return { kind: "live", snapshot, secondsSinceUpdate, stale, veryStale };
+  return { kind: "live", snapshot, secondsSinceUpdate, stale, veryStale, now };
 }
