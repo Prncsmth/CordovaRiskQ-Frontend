@@ -171,7 +171,9 @@ export default function GoogleButton({ onError }: GoogleButtonProps) {
       }
 
       const result = await googleAuth(idToken);
-      await login(result.token, result.user, result.isNewUser);
+      // viaGoogle: a brand-new Google account stays signed in after Terms
+      // and lands on Home + the app guide (see utils/signupFinish.ts).
+      await login(result.token, result.user, result.isNewUser, { viaGoogle: true });
     } catch (err) {
       if (isErrorWithCode!(err) && err.code === statusCodes!.SIGN_IN_CANCELLED) {
         return;

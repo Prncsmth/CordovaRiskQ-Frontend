@@ -14,6 +14,7 @@ import Animated, {
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BrandLockup from "@/components/common/BrandLockup";
 import FeaturePreview, { type FeaturePreviewType } from "@/components/onboarding/FeaturePreview";
+import { useAuth } from "@/context/AuthContext";
 import {
     FONT_FAMILY,
     RADIUS,
@@ -78,6 +79,7 @@ const SWIPE_THRESHOLD = 50;
 
 export default function AppIntroScreen() {
   const router = useRouter();
+  const { markWelcomeSeen } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [index, setIndex] = useState(0);
@@ -122,6 +124,8 @@ export default function AppIntroScreen() {
   }));
 
   function goToLogin() {
+    // Finishing the walkthrough: from now on, this device opens on Login.
+    markWelcomeSeen();
     router.push("/(auth)/login");
   }
 
