@@ -15,9 +15,11 @@ export async function getProfile(token: string): Promise<UserProfile> {
   return response.user;
 }
 
+// The email can't be changed (the backend rejects a different one); it may
+// still be sent unchanged, as phone-number.tsx's onboarding step does.
 export async function updateProfile(
   token: string,
-  payload: { name?: string; email: string; mobile?: string },
+  payload: { name?: string; email?: string; mobile?: string },
 ): Promise<UserProfile> {
   const response = await apiPut<{ success: true; user: UserProfile }>(
     "/api/users/me",

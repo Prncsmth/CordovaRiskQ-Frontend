@@ -18,6 +18,9 @@ type ProfileFieldInputProps = {
   value: string;
   onChangeText: (text: string) => void;
   containerStyle?: StyleProp<ViewStyle>;
+  // Read-only display (e.g. the account email): not editable, shown dimmed
+  // with a lock so it doesn't look like a broken input.
+  readOnly?: boolean;
 } & Pick<
   TextInputProps,
   "keyboardType" | "autoCapitalize" | "secureTextEntry" | "placeholder"
@@ -33,6 +36,7 @@ export default function ProfileFieldInput({
   autoCapitalize,
   secureTextEntry,
   placeholder,
+  readOnly = false,
 }: ProfileFieldInputProps) {
   const [isFocused, setIsFocused] = useState(false);
   const COLORS = useThemeColors();
@@ -48,11 +52,19 @@ export default function ProfileFieldInput({
           <Text style={styles.label}>{label}</Text>
         </View>
       ) : null}
-      <View style={[styles.field, isFocused && styles.fieldFocused]}>
+      <View
+        style={[
+          styles.field,
+          isFocused && !readOnly && styles.fieldFocused,
+          readOnly && styles.fieldReadOnly,
+        ]}
+      >
         <TextInput
-          style={styles.input}
+          style={[styles.input, readOnly && styles.inputReadOnly]}
           value={value}
           onChangeText={onChangeText}
+          editable={!readOnly}
+          accessibilityState={{ disabled: readOnly }}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
           secureTextEntry={secureTextEntry}
@@ -61,6 +73,9 @@ export default function ProfileFieldInput({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
         />
+        {readOnly ? (
+          <Ionicons name="lock-closed-outline" size={16} color={COLORS.textTertiary} />
+        ) : null}
       </View>
     </View>
   );
@@ -98,11 +113,17 @@ function createStyles(COLORS: ColorPalette) {
       borderColor: COLORS.primary,
       backgroundColor: COLORS.background,
     },
+    fieldReadOnly: {
+      opacity: 0.7,
+    },
     input: {
       flex: 1,
       fontSize: TYPOGRAPHY.body,
       color: COLORS.text,
       height: "100%",
+    },
+    inputReadOnly: {
+      color: COLORS.textSecondary,
     },
   });
 }
