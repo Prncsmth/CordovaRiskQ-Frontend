@@ -13,7 +13,25 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
 
 import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
@@ -44,6 +62,55 @@ const STYLE_URLS = {
 } as const;
 
 type StyleKey = keyof typeof STYLE_URLS;
+
+// Must stay a synchronous require() inside this try/catch: a static import
+// is hoisted and evaluated eagerly, so it would throw at module-load time
+// (crashing Expo Go, where @rnmapbox/maps isn't available) instead of being
+// caught here.
+function loadMapboxModule(): { mapbox: MapboxModule | null; mapError: string | null } {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const module = require("@rnmapbox/maps");
+    const mapboxModule = (module as any).default ? (module as any).default : module;
+    const setAccessTokenFn =
+      mapboxModule.setAccessToken ?? (mapboxModule.default?.setAccessToken as unknown);
+
+    if (typeof setAccessTokenFn === "function") {
+      setAccessTokenFn(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "");
+    }
+
+    return { mapbox: mapboxModule as unknown as MapboxModule, mapError: null };
+  } catch (error) {
+    console.warn("Failed to load Mapbox module", error);
+    return {
+      mapbox: null,
+      mapError: "Map is unavailable. Please rebuild the app with native Mapbox support.",
+    };
+  }
+}
+
+const PULSE_DURATION_MS = 1600;
+
+// The radar-ping ring behind a pulsing marker. Animated on the UI thread
+// from one shared progress value (0 -> 1, looping), so the map component
+// itself never re-renders to animate it. It used to be driven by a 50 ms
+// setInterval + setState, which re-rendered the whole map -- every marker,
+// route line and the user dot -- 20 times a second and made map screens lag.
+function PulseRing({
+  progress,
+  color,
+  style,
+}: {
+  progress: SharedValue<number>;
+  color: string;
+  style: StyleProp<ViewStyle>;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: 0.4 * (1 - progress.value),
+    transform: [{ scale: 0.6 + progress.value * 0.9 }],
+  }));
+  return <Animated.View style={[style, { backgroundColor: color }, animatedStyle]} />;
+}
 
 type MapboxModule = {
   default: { setAccessToken: (token: string) => void };
@@ -81,8 +148,9 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
 ) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const [mapbox, setMapbox] = useState<MapboxModule | null>(null);
-  const [mapError, setMapError] = useState<string | null>(null);
+  // Loaded once, synchronously, on first render -- no effect and no second
+  // render just to store it.
+  const [{ mapbox, mapError }] = useState(loadMapboxModule);
   const [styleKey, setStyleKey] = useState<StyleKey>("streets");
   const [layerMenuOpen, setLayerMenuOpen] = useState(false);
   // Drives any marker.pulse === true glow (a live incident, or a flat
@@ -91,54 +159,45 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   // blue dot itself. A plain circle/marker just sitting there is easy to
   // miss, so this animates it expanding + fading out on a loop (classic
   // radar-ping look) rather than only resizing it. One shared loop drives
-  // every pulsing marker, rather than a separate timer per marker.
-  const [pulseProgress, setPulseProgress] = useState(0);
+  // every pulsing marker, rather than a separate timer per marker -- and it
+  // runs on the UI thread (see PulseRing), not through React state. When
+  // it isn't running the value stays 0: a static ring, as before.
+  const pulseProgress = useSharedValue(0);
   const hasPulsingMarker = markers.some((marker) => marker.pulse);
 
   useEffect(() => {
     if (!interactive || !hasPulsingMarker) {
       return;
     }
-    const durationMs = 1600;
-    const start = Date.now();
-    const timer = setInterval(() => {
-      const elapsed = (Date.now() - start) % durationMs;
-      setPulseProgress(elapsed / durationMs);
-    }, 50);
-    return () => clearInterval(timer);
-  }, [interactive, hasPulsingMarker]);
+    pulseProgress.value = 0;
+    pulseProgress.value = withRepeat(
+      withTiming(1, { duration: PULSE_DURATION_MS, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => {
+      cancelAnimation(pulseProgress);
+      pulseProgress.value = 0;
+    };
+  }, [interactive, hasPulsingMarker, pulseProgress]);
+
+  // A route line's shape is rebuilt only when that line's points change,
+  // not on every render of the map.
+  const polylineShapes = useMemo(
+    () =>
+      polylines.map((line) => ({
+        type: "Feature" as const,
+        properties: {},
+        geometry: {
+          type: "LineString" as const,
+          coordinates: line.points.map((p) => [p.longitude, p.latitude]),
+        },
+      })),
+    [polylines],
+  );
   const cameraRef = useRef<any>(null);
   const currentZoomRef = useRef(zoom);
 
-  useEffect(() => {
-    let mounted = true;
-
-    try {
-      // Must stay a synchronous require() inside this try/catch: a static import
-      // is hoisted and evaluated eagerly, so it would throw at module-load time
-      // (crashing Expo Go, where @rnmapbox/maps isn't available) instead of being
-      // caught here.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const module = require("@rnmapbox/maps");
-      const mapboxModule = (module as any).default ? (module as any).default : module;
-      const setAccessTokenFn =
-        mapboxModule.setAccessToken ?? (mapboxModule.default?.setAccessToken as unknown);
-
-      if (typeof setAccessTokenFn === "function") {
-        setAccessTokenFn(process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN ?? "");
-      }
-
-      if (mounted) setMapbox(mapboxModule as unknown as MapboxModule);
-    } catch (error) {
-      if (!mounted) return;
-      console.warn("Failed to load Mapbox module", error);
-      setMapError("Map is unavailable. Please rebuild the app with native Mapbox support.");
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useImperativeHandle(
     ref,
@@ -291,14 +350,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
           <ShapeSource
             key={`line-${index}`}
             id={`line-${index}`}
-            shape={{
-              type: "Feature",
-              properties: {},
-              geometry: {
-                type: "LineString",
-                coordinates: line.points.map((p) => [p.longitude, p.latitude]),
-              },
-            }}
+            shape={polylineShapes[index]}
           >
             <LineLayer
               id={`line-layer-${index}`}
@@ -345,15 +397,10 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
                     (with flat) an evacuation center, should draw the eye
                     and read as "highlighted," not sit there static. */}
                 {marker.pulse && (
-                  <View
-                    style={[
-                      marker.flat ? styles.flatPulseRing : styles.pinPulseRing,
-                      {
-                        backgroundColor: marker.color ?? COLORS.primary,
-                        opacity: 0.4 * (1 - pulseProgress),
-                        transform: [{ scale: 0.6 + pulseProgress * 0.9 }],
-                      },
-                    ]}
+                  <PulseRing
+                    progress={pulseProgress}
+                    color={marker.color ?? COLORS.primary}
+                    style={marker.flat ? styles.flatPulseRing : styles.pinPulseRing}
                   />
                 )}
                 {marker.flat ? (
