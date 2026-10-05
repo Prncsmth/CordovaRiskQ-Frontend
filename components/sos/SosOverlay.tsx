@@ -136,6 +136,8 @@ export default function SosOverlay() {
       <GeofenceToast
         visible={showResolvedToast}
         message="Incident Resolved"
+        // Good news -- green with a checkmark, not the red warning look.
+        tone="success"
         onDismiss={dismissResolvedToast}
         style={{ top: insets.top + SPACING.sm }}
       />

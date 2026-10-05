@@ -17,6 +17,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useFocusEffect } from "expo-router";
 
+import type { Coordinates } from "@/services/location.service";
 import { getResponderTracking, type TrackingSnapshot } from "@/services/tracking.service";
 import { connectToTrackingSocket } from "@/services/trackingSocket.service";
 import type { MovementMode } from "@/utils/responderMovement";
@@ -47,6 +48,9 @@ export type TrackingState =
       now: number;
       // Driving or walking, per responder ID.
       movement: Record<string, MovementMode>;
+      // Where to draw each responder, per responder ID -- held still
+      // through GPS jitter while they're parked (see steadyPositions).
+      positions: Record<string, Coordinates>;
     };
 
 export type LocationFreshness = {
@@ -147,5 +151,14 @@ export function useResponderTracking(
 
   const { secondsSinceUpdate, stale, veryStale } = locationFreshness(snapshot.locationUpdatedAt, now);
 
-  return { kind: "live", snapshot, secondsSinceUpdate, stale, veryStale, now, movement };
+  return {
+    kind: "live",
+    snapshot,
+    secondsSinceUpdate,
+    stale,
+    veryStale,
+    now,
+    movement,
+    positions: data.positions,
+  };
 }

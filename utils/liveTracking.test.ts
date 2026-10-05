@@ -3,29 +3,45 @@ import {
   easeInOutCubic,
   interpolateCoordinate,
   routeOriginDecision,
-  shouldUploadFix,
+  movementThresholdMeters,
+  uploadDecision,
 } from "./liveTracking";
 
 const METER_LAT = 1 / 111_195;
 const BASE = { latitude: 10.25, longitude: 123.95 };
 const north = (meters: number) => ({ latitude: BASE.latitude + meters * METER_LAT, longitude: BASE.longitude });
 
-describe("shouldUploadFix", () => {
+describe("uploadDecision", () => {
   it("always sends the first fix", () => {
-    expect(shouldUploadFix(null, 0, BASE, 1000)).toBe(true);
+    expect(uploadDecision(null, 0, BASE, 1000)).toBe("move");
   });
 
   it("sends once the responder has moved 10 m", () => {
-    expect(shouldUploadFix(BASE, 0, north(10.5), 3000)).toBe(true);
+    expect(uploadDecision(BASE, 0, north(10.5), 3000)).toBe("move");
   });
 
   it("skips GPS jitter under 10 m", () => {
-    expect(shouldUploadFix(BASE, 0, north(4), 3000)).toBe(false);
+    expect(uploadDecision(BASE, 0, north(4), 3000)).toBe("skip");
   });
 
-  it("checks in every 15 s while stationary", () => {
-    expect(shouldUploadFix(BASE, 0, north(2), CHECK_IN_INTERVAL_MS - 1)).toBe(false);
-    expect(shouldUploadFix(BASE, 0, north(2), CHECK_IN_INTERVAL_MS)).toBe(true);
+  it("checks in (same spot) every 15 s while stationary", () => {
+    expect(uploadDecision(BASE, 0, north(2), CHECK_IN_INTERVAL_MS - 1)).toBe("skip");
+    expect(uploadDecision(BASE, 0, north(2), CHECK_IN_INTERVAL_MS)).toBe("check-in");
+  });
+
+  it("treats a hop within the GPS accuracy as jitter, not movement", () => {
+    // Parked indoors: a 20 m wander with a ±25 m fix isn't movement.
+    expect(uploadDecision(BASE, 0, north(20), 3000, 25)).toBe("skip");
+    expect(uploadDecision(BASE, 0, north(20), CHECK_IN_INTERVAL_MS, 25)).toBe("check-in");
+    // Beyond the accuracy it is.
+    expect(uploadDecision(BASE, 0, north(30), 3000, 25)).toBe("move");
+  });
+
+  it("never needs less than 10 m or more than 50 m to count as moving", () => {
+    expect(movementThresholdMeters(null)).toBe(10);
+    expect(movementThresholdMeters(3)).toBe(10);
+    expect(movementThresholdMeters(25)).toBe(25);
+    expect(movementThresholdMeters(400)).toBe(50);
   });
 });
 

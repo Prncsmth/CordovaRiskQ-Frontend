@@ -3,9 +3,9 @@ import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -18,6 +18,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import {
+  Dialog,
+  DialogActions,
+  DialogButton,
+  DialogIcon,
+  DialogMessage,
+  DialogTitle,
+} from "@/components/common/Dialog";
 import SupportRequestSent from "@/components/support/SupportRequestSent";
 import { useAuth } from "@/context/AuthContext";
 import { sendSupportRequest } from "@/services/support.service";
@@ -33,6 +41,14 @@ import {
 
 const TOPICS = ["App issue", "Report help", "Account", "Other"] as const;
 
+type SupportNotice = {
+  // "failed" offers Try Again; "info" just needs an OK.
+  kind: "info" | "failed";
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  message: string;
+};
+
 export default function ContactSupportScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -46,17 +62,28 @@ export default function ContactSupportScreen() {
   const [sent, setSent] = useState<{ topic: string; subject: string; sentAt: Date } | null>(null);
   const [focusedField, setFocusedField] = useState<"subject" | "message" | null>(null);
 
+  // The screen's notices, in the app's own dialog (teal, like the rest of
+  // Contact Support) instead of the plain system alert.
+  const [notice, setNotice] = useState<SupportNotice | null>(null);
+
   const sendRequest = async () => {
     if (isSending) return;
     if (!message.trim()) {
-      Alert.alert(
-        "Add a message",
-        "Tell us a little about what happened so we can help.",
-      );
+      setNotice({
+        kind: "info",
+        icon: "chatbubble-ellipses-outline",
+        title: "Add a message",
+        message: "Tell us a little about what happened so we can help.",
+      });
       return;
     }
     if (!token) {
-      Alert.alert("Sign in required", "Please sign in to contact support.");
+      setNotice({
+        kind: "info",
+        icon: "lock-closed-outline",
+        title: "Sign in required",
+        message: "Please sign in to contact support.",
+      });
       return;
     }
 
@@ -76,10 +103,12 @@ export default function ContactSupportScreen() {
       setSubject("");
       setMessage("");
     } catch (err) {
-      Alert.alert(
-        "Couldn't send your request",
-        err instanceof Error ? err.message : "Check your connection and try again.",
-      );
+      setNotice({
+        kind: "failed",
+        icon: "cloud-offline-outline",
+        title: "Couldn't send your request",
+        message: err instanceof Error ? err.message : "Check your connection and try again.",
+      });
     } finally {
       setIsSending(false);
     }
@@ -205,15 +234,54 @@ export default function ContactSupportScreen() {
         </View>
 
         <PrimaryButton
-          title="SEND TO SUPPORT"
+          title="Send Message"
           onPress={sendRequest}
           loading={isSending}
           colors={[COLORS.tide, COLORS.tide]}
+          style={styles.sendButton}
         />
         <Text style={styles.disclaimer}>
           For immediate danger, use SOS or call a local emergency hotline.
         </Text>
       </ScrollView>
+
+      <Modal
+        transparent
+        visible={notice !== null}
+        animationType="fade"
+        onRequestClose={() => setNotice(null)}
+      >
+        {notice && (
+          <Dialog>
+            <DialogIcon name={notice.icon} color={COLORS.tide} backgroundColor={COLORS.tideTint} />
+            <DialogTitle>{notice.title}</DialogTitle>
+            <DialogMessage>{notice.message}</DialogMessage>
+            <DialogActions>
+              {notice.kind === "failed" ? (
+                <>
+                  <DialogButton label="Cancel" variant="secondary" onPress={() => setNotice(null)} />
+                  <DialogButton
+                    label="Try Again"
+                    variant="primary"
+                    color={COLORS.tide}
+                    onPress={() => {
+                      setNotice(null);
+                      void sendRequest();
+                    }}
+                  />
+                </>
+              ) : (
+                <DialogButton
+                  label="OK"
+                  variant="primary"
+                  color={COLORS.tide}
+                  onPress={() => setNotice(null)}
+                />
+              )}
+            </DialogActions>
+          </Dialog>
+        )}
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -358,6 +426,10 @@ function createStyles(COLORS: ColorPalette) {
     textAlign: "right",
     marginTop: -SPACING.sm,
     marginBottom: SPACING.sm,
+  },
+  // A little breathing room between the form and the button.
+  sendButton: {
+    marginTop: SPACING.lg,
   },
   disclaimer: {
     color: COLORS.textTertiary,

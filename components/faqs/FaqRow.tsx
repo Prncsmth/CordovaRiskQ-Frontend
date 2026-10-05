@@ -2,7 +2,7 @@
 // Expandable question/answer row used by the FAQs screen's question list.
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -12,6 +12,9 @@ import Animated, {
 
 import { SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
+const BULLET_SIZE = 7;
+const QUESTION_LINE_HEIGHT = 24;
+
 export type Faq = {
   id: string;
   category: "Safety" | "Reports" | "Account";
@@ -19,21 +22,6 @@ export type Faq = {
   answer: string;
 };
 
-// A category badge (icon + color) instead of Atome's one generic coin icon
-// for every row -- since our FAQs actually span distinct topics (matching
-// the Safety/Reports/Account filter chips above the list), giving each its
-// own glyph tells the user what a question is about at a glance, not just
-// that it's "a question."
-function categoryVisual(category: Faq["category"], COLORS: ColorPalette) {
-  switch (category) {
-    case "Safety":
-      return { icon: "shield-checkmark" as const, color: COLORS.primary };
-    case "Reports":
-      return { icon: "document-text" as const, color: COLORS.tide };
-    case "Account":
-      return { icon: "person" as const, color: COLORS.warning };
-  }
-}
 
 export default function FaqRow({
   faq,
@@ -46,10 +34,17 @@ export default function FaqRow({
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
-  const visual = categoryVisual(faq.category, COLORS);
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+  }));
+  // The chevron turns from pointing down (closed) to up (open).
+  const rotation = useSharedValue(isOpen ? 180 : 0);
+  useEffect(() => {
+    rotation.value = withTiming(isOpen ? 180 : 0, { duration: 200 });
+  }, [isOpen, rotation]);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
   return (
@@ -68,13 +63,15 @@ export default function FaqRow({
           }}
           style={styles.questionRow}
         >
-          <Ionicons name={visual.icon} size={19} color={visual.color} />
+          <View style={styles.bullet} />
           <Text style={styles.question}>{faq.question}</Text>
-          <Ionicons
-            name={isOpen ? "remove" : "add"}
-            size={18}
-            color={isOpen ? COLORS.primary : COLORS.textSecondary}
-          />
+          <Animated.View style={[styles.chevron, chevronStyle]}>
+            <Ionicons
+              name="chevron-down"
+              size={18}
+              color={isOpen ? COLORS.primary : COLORS.textTertiary}
+            />
+          </Animated.View>
         </Pressable>
       </Animated.View>
       {isOpen && <Text style={styles.answer}>{faq.answer}</Text>}
@@ -84,25 +81,40 @@ export default function FaqRow({
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
+    // Top-aligned, so on a two-line question the bullet and chevron sit
+    // beside the first line rather than floating in the middle.
     questionRow: {
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: SPACING.sm,
       minHeight: 64,
       paddingVertical: SPACING.md + 2,
+    },
+    // One brand-red bullet for every question.
+    bullet: {
+      backgroundColor: COLORS.primary,
+      width: BULLET_SIZE,
+      height: BULLET_SIZE,
+      borderRadius: BULLET_SIZE / 2,
+      // Centered on the question's first line (lineHeight 24).
+      marginTop: (QUESTION_LINE_HEIGHT - BULLET_SIZE) / 2,
+    },
+    chevron: {
+      marginTop: (QUESTION_LINE_HEIGHT - 18) / 2,
     },
     question: {
       flex: 1,
       color: COLORS.text,
       fontSize: TYPOGRAPHY.body,
-      lineHeight: 24,
+      lineHeight: QUESTION_LINE_HEIGHT,
       fontWeight: "700",
     },
     answer: {
       color: COLORS.textSecondary,
       fontSize: TYPOGRAPHY.caption,
       lineHeight: 22,
-      paddingLeft: 16,
+      // Lines the answer up under the question text, past the bullet.
+      paddingLeft: BULLET_SIZE + SPACING.sm,
       paddingBottom: SPACING.md,
       paddingRight: SPACING.lg,
     },

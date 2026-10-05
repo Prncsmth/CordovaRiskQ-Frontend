@@ -21,6 +21,9 @@ export type LiveFix = Coordinates & {
   // Epoch ms when this app received the fix -- the device clock, the same
   // one Date.now() comparisons use, not the GPS chip's own timestamp.
   receivedAt: number;
+  // The OS's own accuracy estimate in meters (radius), when it gives one --
+  // lets the upload loop tell GPS jitter from real movement.
+  accuracy: number | null;
 };
 
 type Listener = (fix: LiveFix) => void;
@@ -70,12 +73,14 @@ async function start(myGeneration: number) {
         timeInterval: WATCH_TIME_INTERVAL_MS,
         distanceInterval: WATCH_DISTANCE_INTERVAL_METERS,
       },
-      (position: { coords: { latitude: number; longitude: number } }) => {
+      (position: { coords: { latitude: number; longitude: number; accuracy?: number | null } }) => {
         if (myGeneration !== generation) return;
+        const accuracy = position.coords.accuracy;
         emit({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           receivedAt: Date.now(),
+          accuracy: typeof accuracy === "number" && Number.isFinite(accuracy) ? accuracy : null,
         });
       },
     );

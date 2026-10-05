@@ -37,14 +37,18 @@ export function Dialog({ children }: { children: React.ReactNode }) {
 export function DialogIcon({
   name,
   color,
+  backgroundColor,
 }: {
   name: keyof typeof Ionicons.glyphMap;
   color?: string;
+  // Overrides the default red tint behind the icon, e.g. teal on the
+  // teal-themed Contact Support screen.
+  backgroundColor?: string;
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   return (
-    <View style={styles.dialogIcon}>
+    <View style={[styles.dialogIcon, backgroundColor ? { backgroundColor } : null]}>
       <Ionicons name={name} size={28} color={color ?? COLORS.primary} />
     </View>
   );

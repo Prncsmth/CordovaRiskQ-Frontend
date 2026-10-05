@@ -185,7 +185,7 @@ function createStyles(COLORS: ColorPalette) {
   card: {
     flexDirection: "row",
     alignItems: "center",
-    gap: SPACING.sm,
+    gap: SPACING.md,
     backgroundColor: COLORS.background,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
@@ -201,7 +201,7 @@ function createStyles(COLORS: ColorPalette) {
   },
   textCol: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   category: {
     fontFamily: FONT_FAMILY.displaySemibold,
@@ -215,7 +215,7 @@ function createStyles(COLORS: ColorPalette) {
   meta: {
     fontSize: TYPOGRAPHY.small,
     color: COLORS.textTertiary,
-    marginTop: 2,
+    marginTop: 4,
   },
   pill: {
     borderRadius: RADIUS.full,

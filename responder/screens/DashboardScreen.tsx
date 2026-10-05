@@ -286,6 +286,10 @@ export default function ResponderIncidentsScreen() {
   };
 
   const highUrgencyCount = incidents.filter((i) => i.urgency === "high").length;
+  // SOS-sourced incidents carry the "sos" category; everything else is a
+  // citizen report.
+  const sosCount = incidents.filter((i) => i.categoryId === "sos").length;
+  const reportCount = incidents.length - sosCount;
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
   const availableTypes = useMemo(
@@ -450,6 +454,19 @@ export default function ResponderIncidentsScreen() {
             </View>
           </View>
 
+          {/* Right under the greeting, like the citizen Home's advisory. */}
+          {announcement ? (
+            <View style={styles.announcement}>
+              <AdvisoryBanner
+                id={announcement.id}
+                priority={announcement.priority}
+                time={formatShortDateTime(announcement.createdAt)}
+                title={announcement.title}
+                message={announcement.content}
+              />
+            </View>
+          ) : null}
+
           <QueuedAlertBadge
             style={{ marginHorizontal: SPACING.md, marginBottom: SPACING.sm }}
           />
@@ -485,15 +502,30 @@ export default function ResponderIncidentsScreen() {
             </Text>
           </View>
 
+          {/* How many of the nearby incidents are SOS alerts vs citizen
+              reports, at a glance -- next to the High Urgency filter. */}
           <View style={styles.statsRow}>
+            <View style={[styles.statCard, { borderLeftColor: COLORS.danger }]}>
+              <View style={styles.statTopRow}>
+                <View style={[styles.statIcon, { backgroundColor: `${COLORS.danger}26` }]}>
+                  <Ionicons name="warning" size={14} color={COLORS.danger} />
+                </View>
+                <Text style={[styles.statValue, { color: COLORS.danger }]}>{sosCount}</Text>
+              </View>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                SOS Alerts
+              </Text>
+            </View>
             <View style={[styles.statCard, { borderLeftColor: COLORS.tide }]}>
-              <View style={[styles.statIcon, { backgroundColor: `${COLORS.tide}26` }]}>
-                <Ionicons name="navigate" size={14} color={COLORS.tide} />
+              <View style={styles.statTopRow}>
+                <View style={[styles.statIcon, { backgroundColor: `${COLORS.tide}26` }]}>
+                  <Ionicons name="document-text" size={14} color={COLORS.tide} />
+                </View>
+                <Text style={styles.statValue}>{reportCount}</Text>
               </View>
-              <View style={styles.statTextCol}>
-                <Text style={styles.statValue}>{incidents.length}</Text>
-                <Text style={styles.statLabel}>Nearby</Text>
-              </View>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                Reports
+              </Text>
             </View>
             <Pressable
               style={[
@@ -509,29 +541,19 @@ export default function ResponderIncidentsScreen() {
                   : "High urgency, tap to show high urgency incidents only"
               }
             >
-              <View style={[styles.statIcon, { backgroundColor: `${COLORS.primary}26` }]}>
-                <Ionicons name="alert-circle" size={14} color={COLORS.primary} />
-              </View>
-              <View style={styles.statTextCol}>
+              <View style={styles.statTopRow}>
+                <View style={[styles.statIcon, { backgroundColor: `${COLORS.primary}26` }]}>
+                  <Ionicons name="alert-circle" size={14} color={COLORS.primary} />
+                </View>
                 <Text style={[styles.statValue, { color: COLORS.primary }]}>
                   {highUrgencyCount}
                 </Text>
-                <Text style={styles.statLabel}>High Urgency</Text>
               </View>
+              <Text style={styles.statLabel} numberOfLines={1}>
+                High Urgency
+              </Text>
             </Pressable>
           </View>
-
-          {announcement ? (
-            <View style={styles.announcement}>
-              <AdvisoryBanner
-                id={announcement.id}
-                priority={announcement.priority}
-                time={formatShortDateTime(announcement.createdAt)}
-                title={announcement.title}
-                message={announcement.content}
-              />
-            </View>
-          ) : null}
         </LinearGradient>
       </View>
 
@@ -809,13 +831,13 @@ function createStyles(COLORS: ColorPalette) {
     },
     announcement: {
       paddingHorizontal: SPACING.md,
-      marginTop: SPACING.sm,
+      marginBottom: SPACING.sm,
     },
+    // Three across: icon + number on top, label underneath, so even
+    // "High Urgency" fits on a narrow phone.
     statCard: {
       flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
+      gap: 2,
       backgroundColor: COLORS.background,
       borderRadius: RADIUS.lg,
       borderLeftWidth: 3,
@@ -832,8 +854,10 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       justifyContent: "center",
     },
-    statTextCol: {
-      flexShrink: 1,
+    statTopRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
     },
     statValue: {
       fontFamily: FONT_FAMILY.display,
@@ -886,10 +910,11 @@ function createStyles(COLORS: ColorPalette) {
     list: {
       paddingHorizontal: SPACING.md,
       paddingTop: SPACING.sm,
-      gap: SPACING.sm,
+      // Room between incident cards, like the citizen Report History list.
+      gap: SPACING.md,
     },
     nearestSection: {
-      gap: SPACING.sm,
+      gap: SPACING.md,
     },
     nearestLabel: {
       fontSize: TYPOGRAPHY.small,

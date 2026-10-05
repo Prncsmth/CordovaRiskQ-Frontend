@@ -17,7 +17,8 @@
 // - every UPLOAD_INTERVAL_MS uploads that latest fix if it moved at least
 //   MOVE_THRESHOLD_METERS, or -- standing still -- every
 //   CHECK_IN_INTERVAL_MS so the citizen's "Updated Xs ago" stays honest
-//   (see shouldUploadFix in utils/liveTracking.ts);
+//   (see uploadDecision in utils/liveTracking.ts) -- a check-in re-sends the
+//   same spot, and "moved" means farther than the GPS accuracy;
 // - falls back to a one-off fix when the stream has nothing yet, or has
 //   gone quiet past a check-in, so a missing stream never freezes tracking;
 // - keeps the screen awake. There's no background location: an auto-locked
@@ -31,7 +32,7 @@ import { useEffect } from "react";
 import { updateResponderLocation } from "@/responder/services/incident.service";
 import { subscribeToLiveLocation, type LiveFix } from "@/services/liveLocationWatcher";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
-import { CHECK_IN_INTERVAL_MS, shouldUploadFix, UPLOAD_INTERVAL_MS } from "@/utils/liveTracking";
+import { CHECK_IN_INTERVAL_MS, UPLOAD_INTERVAL_MS, uploadDecision } from "@/utils/liveTracking";
 import { holdScreenAwake } from "@/utils/screenAwake";
 
 const keepAwakeApi = { activate: activateKeepAwakeAsync, deactivate: deactivateKeepAwake };
@@ -60,6 +61,9 @@ export function useLiveLocationUpload(token: string | null, active: boolean): vo
       inFlight = true;
       try {
         let fix: Coordinates | null = latestFix;
+        // A one-off fallback fix carries no accuracy -- the plain 10 m rule
+        // applies to it.
+        let accuracy: number | null = latestFix?.accuracy ?? null;
         const now = Date.now();
         // Give the stream one interval to deliver its first fix before
         // falling back; after that, fall back whenever it has gone quiet
@@ -71,15 +75,26 @@ export function useLiveLocationUpload(token: string | null, active: boolean): vo
           const oneOff = await getCurrentLocation({ accuracy: "high" });
           if (cancelled) return;
           // A stream fix that landed while we waited is newer -- prefer it.
-          if (latestFix && Date.now() - latestFix.receivedAt < CHECK_IN_INTERVAL_MS) fix = latestFix;
-          else if (oneOff) fix = oneOff;
+          if (latestFix && Date.now() - latestFix.receivedAt < CHECK_IN_INTERVAL_MS) {
+            fix = latestFix;
+            accuracy = latestFix.accuracy;
+          } else if (oneOff) {
+            fix = oneOff;
+            accuracy = null;
+          }
         }
-        if (!fix || !shouldUploadFix(lastSent, lastSentAt, fix, Date.now())) return;
+        if (!fix) return;
+        const decision = uploadDecision(lastSent, lastSentAt, fix, Date.now(), accuracy);
+        if (decision === "skip") return;
+        // Standing still: re-send the exact spot already on the citizen's
+        // map -- only the timestamp refreshes, so GPS jitter never nudges a
+        // parked responder's marker.
+        const toSend = decision === "check-in" && lastSent ? lastSent : fix;
 
         try {
-          await updateResponderLocation(token, { latitude: fix.latitude, longitude: fix.longitude });
+          await updateResponderLocation(token, { latitude: toSend.latitude, longitude: toSend.longitude });
           if (!cancelled) {
-            lastSent = fix;
+            lastSent = toSend;
             lastSentAt = Date.now();
           }
         } catch {

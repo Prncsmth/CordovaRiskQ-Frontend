@@ -18,6 +18,7 @@ import BackButton from "@/components/common/BackButton";
 import { getReportStatusDisplay } from "@/components/report/reportStatusDisplay";
 import InfoRow from "@/components/report-detail/InfoRow";
 import { useAuth } from "@/context/AuthContext";
+import { useResponderTracking } from "@/hooks/useResponderTracking";
 import { getReportDetailById, type ReportDetail, type ReportStatus } from "@/services/report.service";
 import {
   FONT_FAMILY,
@@ -36,6 +37,8 @@ const MAP_HEIGHT = 170;
 // the only window where GET /api/incidents/:id/tracking has anything to
 // return (see trackingService.getForIncident on the backend).
 const TRACKABLE_STATUSES = new Set<ReportStatus>(["assigned", "on_the_way", "arrived"]);
+// Still open -- worth listening for a responder (pending) or following one.
+const ACTIVE_STATUSES = new Set<ReportStatus>(["pending", "assigned", "on_the_way", "arrived"]);
 
 export default function ReportDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -49,6 +52,13 @@ export default function ReportDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Same live responder feed as the SOS flow and the Track Responder map
+  // (socket + 4 s poll, only while this screen is focused), so a responder
+  // accepting -- and their arrival time -- shows up here on its own instead
+  // of only after reopening the report. Off once the report is closed.
+  const isActive = !!report && ACTIVE_STATUSES.has(report.status);
+  const tracking = useResponderTracking(isActive ? token : null, isActive ? id : undefined);
 
   const loadReport = useCallback(() => {
     if (!token || !id) {
@@ -78,6 +88,24 @@ export default function ReportDetailScreen() {
       .catch(() => {})
       .finally(() => setRefreshing(false));
   }, [token, id]);
+
+  // When the live feed changes phase -- a responder accepted, or the
+  // incident closed -- quietly re-fetch the report so its status pill
+  // matches, without the full-screen loading state.
+  const trackingPhase = tracking.kind;
+  useEffect(() => {
+    if (!token || !id) return;
+    if (trackingPhase !== "live" && trackingPhase !== "ended") return;
+    let cancelled = false;
+    getReportDetailById(token, id)
+      .then((result) => {
+        if (!cancelled && result) setReport(result);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [trackingPhase, token, id]);
 
   if (isLoading) {
     return (
@@ -118,6 +146,9 @@ export default function ReportDetailScreen() {
   const { label, color, bg } = getReportStatusDisplay(report.status, COLORS);
   const hasCoords = report.latitude != null && report.longitude != null;
 
+  const respondersCount =
+    tracking.kind === "live" ? tracking.snapshot.responders.length : report.respondersCount;
+
   return (
     <ScrollView
       style={styles.flex}
@@ -138,7 +169,11 @@ export default function ReportDetailScreen() {
       </View>
 
       <View style={styles.titleRow}>
-        <Text style={styles.category}>{report.category}</Text>
+        {/* One line, always -- a long category ("Medical Emergency")
+            shrinks to fit beside the status pill instead of wrapping. */}
+        <Text style={styles.category} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+          {report.category}
+        </Text>
         <View style={[styles.statusPill, { backgroundColor: bg }]}>
           <Text style={[styles.statusText, { color }]}>{label}</Text>
         </View>
@@ -169,9 +204,12 @@ export default function ReportDetailScreen() {
         </View>
       ) : null}
 
-      {TRACKABLE_STATUSES.has(report.status) && (
+      {/* The responder's details, arrival time and Call button live on the
+          Track Responder screen only. The live feed here just makes this
+          button appear as soon as a responder accepts. */}
+      {(TRACKABLE_STATUSES.has(report.status) || tracking.kind === "live") && isActive && (
         <PrimaryButton
-          title={trackRespondersLabel(report.respondersCount)}
+          title={trackRespondersLabel(respondersCount)}
           onPress={() => router.push({ pathname: "/track-responder/[id]", params: { id: report.id } })}
           style={styles.trackButton}
         />
@@ -253,9 +291,10 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.subtitle,
       color: COLORS.text,
     },
+    // Category and status pill side by side on one line, centered together.
     titleRow: {
       flexDirection: "row",
-      alignItems: "flex-start",
+      alignItems: "center",
       justifyContent: "space-between",
       gap: SPACING.sm,
     },
@@ -269,7 +308,8 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: RADIUS.full,
       paddingHorizontal: SPACING.sm,
       paddingVertical: 4,
-      marginTop: 2,
+      // Keeps its full width; the category shrinks to fit instead.
+      flexShrink: 0,
     },
     statusText: {
       fontSize: TYPOGRAPHY.small,

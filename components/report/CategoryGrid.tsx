@@ -34,9 +34,8 @@ export default function CategoryGrid({ selected, onSelect }: CategoryGridProps) 
   );
 }
 
-// Neutral card + a bold colored left-border stripe -- the same "designated
-// color" accent used on the home screen's EvacuationCenterCard, so a
-// category reads as color-coded without tinting the whole card.
+// Plain neutral card with an even border all round -- the category's color
+// lives only in its icon and label (and fills the card once selected).
 function CategoryCard({
   category,
   isSelected,
@@ -58,11 +57,9 @@ function CategoryCard({
       <Pressable
         style={[
           styles.card,
-          { borderLeftColor: category.color },
           isSelected && {
             backgroundColor: category.color,
             borderColor: category.color,
-            borderLeftColor: category.color,
           },
         ]}
         onPress={() => {
@@ -113,7 +110,6 @@ function createStyles(COLORS: ColorPalette) {
     borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: COLORS.borderMuted,
-    borderLeftWidth: 3,
     paddingVertical: SPACING.sm,
     paddingHorizontal: SPACING.sm,
     alignItems: "center",
