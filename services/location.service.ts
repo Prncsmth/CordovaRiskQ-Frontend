@@ -27,10 +27,19 @@ function withTimeout(promise: Promise<any>, ms: number): Promise<any> {
   });
 }
 
+// "high" requests expo-location's Accuracy.High (GPS-grade; Android
+// PRIORITY_HIGH_ACCURACY) instead of the default Balanced (~100 m, often
+// from Wi-Fi/cell). Only the responder's live location upload asks for it
+// (hooks/useLiveLocationUpload.ts), so a moving responder's marker follows
+// the road on the citizen's map; every other caller keeps the default.
+export type LocationAccuracyOption = "default" | "high";
+
 // Best-effort location fetch — the native module may not be linked (Expo Go,
 // web) and permission may be denied, so callers should treat `undefined` as
 // "location unavailable" and degrade gracefully rather than throw.
-export async function getCurrentLocation(): Promise<Coordinates | undefined> {
+export async function getCurrentLocation(
+  options: { accuracy?: LocationAccuracyOption } = {},
+): Promise<Coordinates | undefined> {
   try {
     const module = require("expo-location") as typeof import("expo-location");
     const requestFn =
@@ -53,8 +62,14 @@ export async function getCurrentLocation(): Promise<Coordinates | undefined> {
     const { status } = await requestFn();
     if (status !== "granted") return undefined;
 
+    const accuracyEnum = (module as any).Accuracy ?? (module as any).default?.Accuracy;
+    const positionOptions =
+      options.accuracy === "high" && accuracyEnum?.High !== undefined
+        ? { accuracy: accuracyEnum.High }
+        : {};
+
     const position = await withTimeout(
-      getCurrentPositionFn({}),
+      getCurrentPositionFn(positionOptions),
       FRESH_FIX_TIMEOUT_MS,
     );
     if (position) {

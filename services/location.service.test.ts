@@ -2,7 +2,7 @@ jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
   getLastKnownPositionAsync: jest.fn(),
-  Accuracy: { Highest: 5 },
+  Accuracy: { High: 4, Highest: 5 },
 }));
 
 import * as Location from "expo-location";
@@ -50,6 +50,36 @@ describe("getCurrentLocation", () => {
     const result = await resultPromise;
 
     expect(result).toEqual({ latitude: 10.26, longitude: 123.96 });
+  });
+
+  it("keeps the default (Balanced) accuracy for every caller that doesn't ask for more", async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: "granted" });
+    getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 10.25, longitude: 123.95 } });
+
+    await getCurrentLocation();
+
+    expect(getCurrentPositionAsync).toHaveBeenCalledWith({});
+  });
+
+  it("requests Accuracy.High when asked (responder live location upload)", async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: "granted" });
+    getCurrentPositionAsync.mockResolvedValue({ coords: { latitude: 10.25, longitude: 123.95 } });
+
+    const result = await getCurrentLocation({ accuracy: "high" });
+
+    expect(getCurrentPositionAsync).toHaveBeenCalledWith({ accuracy: 4 }); // Location.Accuracy.High
+    expect(result).toEqual({ latitude: 10.25, longitude: 123.95 });
+  });
+
+  it("high accuracy still falls back to the last known position if the fix times out", async () => {
+    requestForegroundPermissionsAsync.mockResolvedValue({ status: "granted" });
+    getCurrentPositionAsync.mockReturnValue(new Promise(() => {}));
+    getLastKnownPositionAsync.mockResolvedValue({ coords: { latitude: 10.27, longitude: 123.97 } });
+
+    const resultPromise = getCurrentLocation({ accuracy: "high" });
+    await jest.advanceTimersByTimeAsync(10_000);
+
+    expect(await resultPromise).toEqual({ latitude: 10.27, longitude: 123.97 });
   });
 
   it("returns undefined when the fresh fix times out and no cached position exists", async () => {
