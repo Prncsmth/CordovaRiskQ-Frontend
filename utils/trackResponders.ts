@@ -7,7 +7,9 @@
 // Also the pure state logic behind the live map (hooks/useResponderTracking):
 // merging a polled snapshot and individual socket location pushes by
 // responder ID, and each responder's driving/walking state.
+import type { Coordinates } from "@/services/location.service";
 import type { ResponderTrack, TrackingSnapshot } from "@/services/tracking.service";
+import { haversineDistanceKm } from "@/utils/distance";
 import {
   advanceMovement,
   INITIAL_MOVEMENT_STATE,
@@ -42,9 +44,11 @@ function sameTrack(a: ResponderTrack, b: ResponderTrack): boolean {
 }
 
 // The snapshot's flat fields mirror its primary (first-accepted) responder.
+// The snapshot's other fields (the primary's contact) are carried over --
+// rebuilding from the responder alone used to drop them on every live push.
 function withPrimary(snapshot: TrackingSnapshot, responders: ResponderTrack[]): TrackingSnapshot {
   const primary = responders.find((r) => r.responderId === snapshot.responderId) ?? responders[0];
-  return primary ? { ...primary, responders } : { ...snapshot, responders };
+  return primary ? { ...snapshot, ...primary, responders } : { ...snapshot, responders };
 }
 
 // Applies one socket location push to the matching responder only. Returns
@@ -93,19 +97,50 @@ export function mergeTrackingSnapshot(
   // poll tick doesn't re-render the map.
   const unchanged =
     next.responderId === prev.responderId &&
+    next.primaryMobile === prev.primaryMobile &&
+    next.primaryUnit === prev.primaryUnit &&
     responders.length === prev.responders.length &&
     responders.every((r, i) => r === prev.responders[i]);
   if (unchanged) return prev;
   return withPrimary(next, responders);
 }
 
+// A parked responder's phone still reports a slightly different spot on
+// every check-in (GPS jitter, often 5-15 m), which made their marker creep
+// around while they weren't moving. The map shows a held position instead,
+// and only moves it once the responder is this far from it -- small steps
+// add up against the held spot, so real movement always gets through.
+export const JITTER_HOLD_METERS = 15;
+
+// The position to draw for each responder (per responder ID). Display only:
+// the snapshot, freshness and driving/walking detection still use every
+// raw position. Returns the same object when no marker needs to move.
+export function steadyPositions(
+  prev: Record<string, Coordinates>,
+  responders: ResponderTrack[],
+): Record<string, Coordinates> {
+  const next: Record<string, Coordinates> = {};
+  let changed = false;
+  for (const r of responders) {
+    if (!r.location) continue;
+    const held = prev[r.responderId];
+    const keep = held && haversineDistanceKm(held, r.location) * 1000 < JITTER_HOLD_METERS;
+    next[r.responderId] = keep ? held : r.location;
+    if (next[r.responderId] !== held) changed = true;
+  }
+  if (Object.keys(next).length !== Object.keys(prev).length) changed = true;
+  return changed ? next : prev;
+}
+
 export type TrackingData = {
   snapshot: TrackingSnapshot | null;
   // Per responder ID -- each responder has their own driving/walking state.
   movement: Record<string, MovementState>;
+  // Per responder ID -- where to draw them (see steadyPositions).
+  positions: Record<string, Coordinates>;
 };
 
-export const INITIAL_TRACKING_DATA: TrackingData = { snapshot: null, movement: {} };
+export const INITIAL_TRACKING_DATA: TrackingData = { snapshot: null, movement: {}, positions: {} };
 
 export type TrackingAction =
   | { type: "snapshot"; snapshot: TrackingSnapshot }
@@ -143,7 +178,20 @@ export function trackingReducer(data: TrackingData, action: TrackingAction): Tra
   return {
     snapshot,
     movement: snapshot ? advanceAll(data.movement, snapshot.responders) : data.movement,
+    positions: snapshot ? steadyPositions(data.positions, snapshot.responders) : data.positions,
   };
+}
+
+// The arrival line on the Call Responder card, e.g. "Arriving in ~6 min".
+export function arrivalLabel(
+  status: string,
+  hasLocation: boolean,
+  etaMinutes: number | null | undefined,
+): string {
+  if (status === "arrived") return "Arrived";
+  if (!hasLocation) return "Waiting for location";
+  if (etaMinutes == null || !Number.isFinite(etaMinutes)) return "On the way";
+  return `Arriving in ~${Math.max(1, Math.round(etaMinutes))} min`;
 }
 
 // The icon each responder should show right now.

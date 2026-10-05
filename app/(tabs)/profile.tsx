@@ -2,18 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import {
-  Dialog,
-  DialogActions,
-  DialogButton,
-  DialogIcon,
-  DialogMessage,
-  DialogTitle,
-} from "@/components/common/Dialog";
-import ContactSupportCard from "@/components/profile/ContactSupportCard";
+import LogoutDialog from "@/components/common/LogoutDialog";
 import MenuRow from "@/components/profile/MenuRow";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import { useAuth } from "@/context/AuthContext";
@@ -47,55 +39,81 @@ export default function ProfileScreen() {
   const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
+  // The dialog stays open (showing "Logging out…") until logout -- which
+  // also clears this phone's push token -- has finished.
   async function confirmLogout() {
-    setShowLogoutConfirm(false);
     await logout();
+    setShowLogoutConfirm(false);
     router.replace("/(auth)/login");
   }
 
-  const menuItems: MenuItem[] = [
+  // Grouped by what the user is trying to do, each group in its own card --
+  // instead of one long mixed list under a single "Settings" heading.
+  const sections: { title: string; items: MenuItem[] }[] = [
     {
-      key: "user-profile",
-      icon: "person-outline",
-      label: "User Profile",
-      onPress: () => router.push("/user-profile"),
+      title: "Account",
+      items: [
+        {
+          key: "user-profile",
+          icon: "person-outline",
+          label: "User Profile",
+          onPress: () => router.push("/user-profile"),
+        },
+        {
+          key: "change-password",
+          icon: "lock-closed-outline",
+          label: "Change Password",
+          onPress: () => router.push("/change-password"),
+        },
+      ],
     },
     {
-      key: "change-password",
-      icon: "lock-closed-outline",
-      label: "Change Password",
-      onPress: () => router.push("/change-password"),
+      title: "Preferences",
+      items: [
+        {
+          key: "push-notification",
+          icon: "notifications-outline",
+          label: "Push Notifications",
+          right: (
+            <Switch
+              value={pushNotificationsEnabled}
+              onValueChange={setPushNotificationsEnabled}
+              trackColor={{ true: COLORS.primary }}
+              thumbColor={COLORS.white}
+              accessibilityLabel="Push Notifications"
+            />
+          ),
+        },
+        {
+          key: "settings",
+          icon: "settings-outline",
+          label: "Settings",
+          onPress: () => router.push("/settings"),
+        },
+      ],
     },
     {
-      key: "emergency-contacts",
-      icon: "call-outline",
-      label: "Emergency Hotlines",
-      onPress: () => router.push("/contacts"),
-    },
-    {
-      key: "faqs",
-      icon: "help-circle-outline",
-      label: "FAQs",
-      onPress: () => router.push("/faqs"),
-    },
-    {
-      key: "settings",
-      icon: "settings-outline",
-      label: "Settings",
-      onPress: () => router.push("/settings"),
-    },
-    {
-      key: "push-notification",
-      icon: "notifications-outline",
-      label: "Push Notification",
-      right: (
-        <Switch
-          value={pushNotificationsEnabled}
-          onValueChange={setPushNotificationsEnabled}
-          trackColor={{ true: COLORS.primary }}
-          thumbColor={COLORS.white}
-        />
-      ),
+      title: "Help & Support",
+      items: [
+        {
+          key: "emergency-contacts",
+          icon: "call-outline",
+          label: "Emergency Hotlines",
+          onPress: () => router.push("/contacts"),
+        },
+        {
+          key: "faqs",
+          icon: "help-circle-outline",
+          label: "FAQs",
+          onPress: () => router.push("/faqs"),
+        },
+        {
+          key: "contact-support",
+          icon: "headset-outline",
+          label: "Contact Support",
+          onPress: () => router.push("/contact-support"),
+        },
+      ],
     },
   ];
 
@@ -111,27 +129,30 @@ export default function ProfileScreen() {
 
       <ProfileHeader
         name={user?.name ?? "User"}
+        email={user?.email}
         onPress={() => router.push("/user-profile")}
       />
 
-      <Text style={styles.sectionHeading}>Settings</Text>
-      <View style={styles.menuCard}>
-        {menuItems.map((item, index) => (
-          <View
-            key={item.key}
-            style={index < menuItems.length - 1 ? styles.menuRowDivider : undefined}
-          >
-            <MenuRow
-              icon={item.icon}
-              label={item.label}
-              onPress={item.onPress}
-              right={item.right}
-            />
+      {sections.map((section) => (
+        <View key={section.title} style={styles.section}>
+          <Text style={styles.sectionHeading}>{section.title}</Text>
+          <View style={styles.menuCard}>
+            {section.items.map((item, index) => (
+              <View
+                key={item.key}
+                style={index < section.items.length - 1 ? styles.menuRowDivider : undefined}
+              >
+                <MenuRow
+                  icon={item.icon}
+                  label={item.label}
+                  onPress={item.onPress}
+                  right={item.right}
+                />
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
-
-      <ContactSupportCard />
+        </View>
+      ))}
 
       <Pressable
         style={({ pressed }) => [styles.logoutCard, pressed && styles.pressed]}
@@ -144,26 +165,12 @@ export default function ProfileScreen() {
         <Text style={styles.logoutText}>Log Out</Text>
       </Pressable>
 
-      <Modal
-        transparent
+      <LogoutDialog
         visible={showLogoutConfirm}
-        animationType="fade"
-        onRequestClose={() => setShowLogoutConfirm(false)}
-      >
-        <Dialog>
-          <DialogIcon name="log-out-outline" color={COLORS.primary} />
-          <DialogTitle>Log out?</DialogTitle>
-          <DialogMessage>Are you sure you want to log out?</DialogMessage>
-          <DialogActions>
-            <DialogButton
-              label="Cancel"
-              variant="secondary"
-              onPress={() => setShowLogoutConfirm(false)}
-            />
-            <DialogButton label="Log out" variant="primary" onPress={confirmLogout} />
-          </DialogActions>
-        </Dialog>
-      </Modal>
+        role="citizen"
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+      />
     </ScrollView>
   );
 }
@@ -184,12 +191,13 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.text,
     marginBottom: SPACING.sm,
   },
+  section: {
+    gap: SPACING.xs,
+  },
   sectionHeading: {
     fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
+    fontWeight: "600",
     color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
     marginLeft: 2,
   },
   menuCard: {

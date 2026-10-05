@@ -24,16 +24,32 @@ export const MOVE_THRESHOLD_METERS = 10;
 // citizen's "Updated Xs ago" doesn't keep growing while they wait at a
 // junction or on scene.
 export const CHECK_IN_INTERVAL_MS = 15_000;
+// A fix only counts as movement once it's farther from the last sent spot
+// than the GPS's own reported accuracy -- indoors or under a roof a parked
+// phone's fix can wander 15-30 m. Never below MOVE_THRESHOLD_METERS, and
+// capped so a very poor fix can't hold back a driving responder for long.
+export const MAX_ACCURACY_THRESHOLD_METERS = 50;
 
-export function shouldUploadFix(
+export function movementThresholdMeters(accuracyMeters: number | null | undefined): number {
+  if (accuracyMeters == null || !Number.isFinite(accuracyMeters)) return MOVE_THRESHOLD_METERS;
+  return Math.min(MAX_ACCURACY_THRESHOLD_METERS, Math.max(MOVE_THRESHOLD_METERS, accuracyMeters));
+}
+
+// "move": upload the new fix. "check-in": standing still -- re-send the
+// SAME spot that was last sent (only the timestamp refreshes), so jitter
+// never moves a parked responder's marker. "skip": nothing to send yet.
+export type UploadDecision = "move" | "check-in" | "skip";
+
+export function uploadDecision(
   lastSent: Coordinates | null,
   lastSentAt: number,
   fix: Coordinates,
   now: number,
-): boolean {
-  if (!lastSent) return true;
-  if (distanceMeters(lastSent, fix) >= MOVE_THRESHOLD_METERS) return true;
-  return now - lastSentAt >= CHECK_IN_INTERVAL_MS;
+  accuracyMeters?: number | null,
+): UploadDecision {
+  if (!lastSent) return "move";
+  if (distanceMeters(lastSent, fix) >= movementThresholdMeters(accuracyMeters)) return "move";
+  return now - lastSentAt >= CHECK_IN_INTERVAL_MS ? "check-in" : "skip";
 }
 
 // ---- Route recalculation --------------------------------------------------

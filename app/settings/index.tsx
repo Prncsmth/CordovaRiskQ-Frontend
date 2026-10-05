@@ -3,18 +3,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AppState, Alert, Linking, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
+import { AppState, Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import BackButton from "@/components/common/BackButton";
-import {
-  Dialog,
-  DialogActions,
-  DialogButton,
-  DialogIcon,
-  DialogMessage,
-  DialogTitle,
-} from "@/components/common/Dialog";
+import LogoutDialog from "@/components/common/LogoutDialog";
 import NavSettingRow, { type NavRow } from "@/components/settings/NavSettingRow";
 import ToggleSettingRow, { type ToggleRow } from "@/components/settings/ToggleSettingRow";
 import { useAuth } from "@/context/AuthContext";
@@ -115,9 +108,11 @@ export default function SettingsScreen({
     setShowLogoutConfirm(true);
   };
 
+  // The dialog stays open (showing "Logging out…") until logout -- which
+  // also clears this phone's push token -- has finished.
   async function confirmLogout() {
-    setShowLogoutConfirm(false);
     await logout();
+    setShowLogoutConfirm(false);
     router.replace("/(auth)/login");
   }
 
@@ -296,12 +291,12 @@ export default function SettingsScreen({
         <View style={styles.card}>
           <View style={styles.row}>
             <LinearGradient
-              colors={[COLORS.surface, COLORS.surface]}
+              colors={[COLORS.primaryTint, COLORS.primaryTint]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.iconCircle}
             >
-              <Ionicons name="information-circle-outline" size={18} color={COLORS.gray} />
+              <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
             </LinearGradient>
             <Text style={styles.label}>App Version</Text>
             <Text style={styles.versionText}>{APP_VERSION}</Text>
@@ -309,26 +304,13 @@ export default function SettingsScreen({
         </View>
       </View>
 
-      <Modal
-        transparent
+      <LogoutDialog
         visible={showLogoutConfirm}
-        animationType="fade"
-        onRequestClose={() => setShowLogoutConfirm(false)}
-      >
-        <Dialog>
-          <DialogIcon name="log-out-outline" color={COLORS.primary} />
-          <DialogTitle>Log out?</DialogTitle>
-          <DialogMessage>You&apos;ll need to sign in again to continue.</DialogMessage>
-          <DialogActions>
-            <DialogButton
-              label="Cancel"
-              variant="secondary"
-              onPress={() => setShowLogoutConfirm(false)}
-            />
-            <DialogButton label="Log Out" variant="primary" onPress={confirmLogout} />
-          </DialogActions>
-        </Dialog>
-      </Modal>
+        role={user?.role === "responder" ? "responder" : "citizen"}
+        isOnDuty={user?.isOnDuty ?? false}
+        onCancel={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+      />
     </ScrollView>
   );
 }

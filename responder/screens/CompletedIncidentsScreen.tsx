@@ -104,7 +104,8 @@ function createStyles(COLORS: ColorPalette) {
       marginLeft: 2,
     },
     list: {
-      gap: SPACING.sm,
+      // Same breathing room as the citizen Report History list.
+      gap: SPACING.md,
     },
   });
 }

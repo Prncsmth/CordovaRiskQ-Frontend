@@ -115,8 +115,12 @@ export default function ReportHistoryScreen() {
         <Text style={styles.subtitle}>{"Track the status of what you've reported"}</Text>
       </View>
 
+      {/* Same pill shape as the Home screen's SOS button (and Submit
+          Report), in the usual red gradient. */}
       <PrimaryButton
-        title="+ New Report"
+        title="New Report"
+        pill
+        leadingIcon="add"
         onPress={() => router.push("/(tabs)/report")}
       />
 
@@ -186,7 +190,8 @@ function createStyles(COLORS: ColorPalette) {
     marginLeft: 2,
   },
   list: {
-    gap: SPACING.sm,
+    // Room between cards so a long history doesn't read as one solid block.
+    gap: SPACING.md,
   },
   errorState: {
     marginTop: SPACING.xl,

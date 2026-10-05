@@ -186,10 +186,12 @@ export default function OnTheWayView({
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onLeave();
           }}
-          style={styles.leaveLink}
-          hitSlop={8}
+          style={({ pressed }) => [styles.leaveButton, pressed && styles.leaveButtonPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Leave incident"
         >
-          <Text style={styles.leaveLinkText}>Leave Incident</Text>
+          <Ionicons name="exit-outline" size={18} color={COLORS.danger} />
+          <Text style={styles.leaveButtonText}>Leave Incident</Text>
         </Pressable>
       </View>
     </View>
@@ -310,15 +312,26 @@ function createStyles(COLORS: ColorPalette) {
       marginTop: SPACING.lg,
       marginBottom: 0,
     },
-    leaveLink: {
-      alignSelf: "center",
-      marginTop: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.lg,
+    // Secondary to Navigate: a quiet outline button in the danger tint,
+    // same red-on-tint language as the Lobby's "Leave Incident" row.
+    leaveButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: SPACING.xs,
+      height: 46,
+      marginTop: SPACING.sm,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: `${COLORS.danger}40`,
+      backgroundColor: `${COLORS.danger}0D`,
     },
-    leaveLinkText: {
+    leaveButtonPressed: {
+      backgroundColor: `${COLORS.danger}1F`,
+    },
+    leaveButtonText: {
       fontSize: TYPOGRAPHY.caption,
-      fontWeight: "600",
+      fontWeight: "700",
       color: COLORS.danger,
     },
   });

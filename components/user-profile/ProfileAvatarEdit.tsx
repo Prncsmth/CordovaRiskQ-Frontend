@@ -1,12 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo } from "react";
-import { Alert, Image, Pressable, StyleSheet, View } from "react-native";
+import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
-import { useThemeColors, RADIUS, SHADOW_LG, type ColorPalette } from "@/theme";
+import { useThemeColors, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 
 async function pickFromCamera(): Promise<string | null> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -85,6 +84,8 @@ export default function ProfileAvatarEdit() {
     Alert.alert("Profile Photo", undefined, options);
   }
 
+  // A plain photo circle with a thin border and a small camera badge --
+  // no gradient ring -- plus a clear "Change photo" label under it.
   return (
     <Pressable
       style={styles.wrap}
@@ -92,29 +93,19 @@ export default function ProfileAvatarEdit() {
       accessibilityRole="button"
       accessibilityLabel="Change profile photo"
     >
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.ring}
-      >
+      <View>
         <View style={styles.circle}>
           {photoUri ? (
             <Image source={{ uri: photoUri }} style={styles.photo} />
           ) : (
-            <Ionicons name="person-outline" size={52} color={COLORS.primary} />
+            <Ionicons name="person" size={44} color={COLORS.textTertiary} />
           )}
         </View>
-      </LinearGradient>
-
-      <LinearGradient
-        colors={[COLORS.primary, COLORS.primaryDark]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.badge}
-      >
-        <Ionicons name="camera" size={16} color={COLORS.white} />
-      </LinearGradient>
+        <View style={styles.badge}>
+          <Ionicons name="camera" size={14} color={COLORS.white} />
+        </View>
+      </View>
+      <Text style={styles.changeText}>{photoUri ? "Change photo" : "Add photo"}</Text>
     </Pressable>
   );
 }
@@ -123,27 +114,19 @@ function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
     wrap: {
       alignSelf: "center",
-      width: 120,
-      height: 120,
-    },
-    ring: {
-      width: 120,
-      height: 120,
-      borderRadius: RADIUS.full,
       alignItems: "center",
-      justifyContent: "center",
-      ...SHADOW_LG,
+      gap: SPACING.sm,
     },
     circle: {
-      width: 108,
-      height: 108,
+      width: 96,
+      height: 96,
       borderRadius: RADIUS.full,
       overflow: "hidden",
-      backgroundColor: COLORS.primaryTint,
+      backgroundColor: COLORS.surface,
+      borderWidth: 1,
+      borderColor: COLORS.border,
       alignItems: "center",
       justifyContent: "center",
-      borderWidth: 3,
-      borderColor: COLORS.background,
     },
     photo: {
       width: "100%",
@@ -153,18 +136,19 @@ function createStyles(COLORS: ColorPalette) {
       position: "absolute",
       bottom: 0,
       right: 0,
-      width: 36,
-      height: 36,
+      width: 30,
+      height: 30,
       borderRadius: RADIUS.full,
+      backgroundColor: COLORS.primary,
       alignItems: "center",
       justifyContent: "center",
       borderWidth: 2,
       borderColor: COLORS.background,
-      shadowColor: COLORS.primary,
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      shadowOffset: { width: 0, height: 3 },
-      elevation: 3,
+    },
+    changeText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "600",
+      color: COLORS.primary,
     },
   });
 }

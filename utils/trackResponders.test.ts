@@ -1,4 +1,5 @@
 import {
+  arrivalLabel,
   INITIAL_TRACKING_DATA,
   mergeResponderLocation,
   mergeTrackingSnapshot,
@@ -117,6 +118,19 @@ describe("respondersAssignedMessage", () => {
   });
 });
 
+describe("arrivalLabel", () => {
+  it("shows the ETA in whole minutes, at least 1", () => {
+    expect(arrivalLabel("on_the_way", true, 6.4)).toBe("Arriving in ~6 min");
+    expect(arrivalLabel("on_the_way", true, 0.2)).toBe("Arriving in ~1 min");
+  });
+
+  it("says arrived, waiting for location, or just on the way", () => {
+    expect(arrivalLabel("arrived", true, 3)).toBe("Arrived");
+    expect(arrivalLabel("joined", false, 5)).toBe("Waiting for location");
+    expect(arrivalLabel("on_the_way", true, null)).toBe("On the way");
+  });
+});
+
 describe("live tracking state", () => {
   const METER_LAT = 1 / 111_195;
   const iso = (seconds: number) => new Date(Date.UTC(2026, 9, 5, 8, 0, seconds)).toISOString();
@@ -132,8 +146,11 @@ describe("live tracking state", () => {
     };
   }
 
-  function snapshot(responders: ResponderTrack[]): TrackingSnapshot {
-    return { ...responders[0], responders };
+  function snapshot(
+    responders: ResponderTrack[],
+    contact: { primaryMobile: string | null; primaryUnit: string | null } = { primaryMobile: null, primaryUnit: null },
+  ): TrackingSnapshot {
+    return { ...responders[0], responders, ...contact };
   }
 
   function push(id: string, meters: number, seconds: number): ResponderLocationUpdate {
@@ -165,6 +182,16 @@ describe("live tracking state", () => {
       expect(after.locationUpdatedAt).toBe(iso(3));
     });
 
+    it("keeps the primary responder's contact through live location pushes", () => {
+      const before = snapshot([track("a", 0, 0), track("b", 0, 0)], {
+        primaryMobile: "09171234567",
+        primaryUnit: "MDRRMO",
+      });
+      const after = mergeResponderLocation(before, push("a", 50, 3));
+      expect(after.primaryMobile).toBe("09171234567");
+      expect(after.primaryUnit).toBe("MDRRMO");
+    });
+
     it("ignores an unknown responder and a stale push (same object back)", () => {
       const before = snapshot([track("a", 0, 10)]);
       expect(mergeResponderLocation(before, push("zzz", 50, 20))).toBe(before);
@@ -186,6 +213,25 @@ describe("live tracking state", () => {
       const onScreen = snapshot([track("a", 0, 0), track("b", 10, 0)]);
       const polled = snapshot([track("a", 0, 0), track("b", 10, 0)]);
       expect(mergeTrackingSnapshot(onScreen, polled)).toBe(onScreen);
+    });
+
+    it("switches the call contact when the primary responder leaves", () => {
+      const onScreen = snapshot([track("a", 0, 0), track("b", 0, 0)], {
+        primaryMobile: "09170000001",
+        primaryUnit: "BDRRMO",
+      });
+      // "a" left: the backend now names "b" primary, with b's contact.
+      const polled = snapshot([track("b", 0, 0)], { primaryMobile: "09170000002", primaryUnit: "MDRRMO" });
+      const merged = mergeTrackingSnapshot(onScreen, polled);
+      expect(merged.responderId).toBe("b");
+      expect(merged.primaryMobile).toBe("09170000002");
+      expect(merged.primaryUnit).toBe("MDRRMO");
+    });
+
+    it("picks up a primary contact that changed even when the roster didn't", () => {
+      const onScreen = snapshot([track("a", 0, 0)], { primaryMobile: null, primaryUnit: null });
+      const polled = snapshot([track("a", 0, 0)], { primaryMobile: "09171234567", primaryUnit: null });
+      expect(mergeTrackingSnapshot(onScreen, polled).primaryMobile).toBe("09171234567");
     });
 
     it("adds and removes responders as the roster changes", () => {
@@ -238,6 +284,43 @@ describe("live tracking state", () => {
     it("ignores a location push before the first snapshot", () => {
       const data = trackingReducer(INITIAL_TRACKING_DATA, { type: "location", update: push("a", 10, 1) });
       expect(data).toBe(INITIAL_TRACKING_DATA);
+    });
+
+    it("holds a parked responder's marker still through GPS jitter", () => {
+      let data = trackingReducer(INITIAL_TRACKING_DATA, {
+        type: "snapshot",
+        snapshot: snapshot([track("a", 0, 0)]),
+      });
+      const held = data.positions.a;
+      // Check-ins from the same spot, drifting a few meters each time.
+      for (const [meters, seconds] of [[6, 15], [-4, 30], [9, 45]] as const) {
+        data = trackingReducer(data, { type: "location", update: push("a", meters, seconds) });
+      }
+      expect(data.positions.a).toBe(held);
+      // The raw position and freshness still update underneath.
+      expect(data.snapshot?.responders[0].locationUpdatedAt).toBe(iso(45));
+    });
+
+    it("moves the marker once the responder really moves, even in small steps", () => {
+      let data = trackingReducer(INITIAL_TRACKING_DATA, {
+        type: "snapshot",
+        snapshot: snapshot([track("a", 0, 0)]),
+      });
+      // Walking ~5 m per update: held for the first steps, then follows.
+      for (const [meters, seconds] of [[5, 3], [10, 6], [16, 9]] as const) {
+        data = trackingReducer(data, { type: "location", update: push("a", meters, seconds) });
+      }
+      expect(data.positions.a.latitude).toBeCloseTo(10.25 + 16 * METER_LAT);
+    });
+
+    it("draws a responder with no location nowhere, and drops one who left", () => {
+      let data = trackingReducer(INITIAL_TRACKING_DATA, {
+        type: "snapshot",
+        snapshot: snapshot([track("a", 0, 0), track("b", null, null)]),
+      });
+      expect(Object.keys(data.positions)).toEqual(["a"]);
+      data = trackingReducer(data, { type: "snapshot", snapshot: snapshot([track("b", 0, 1)]) });
+      expect(Object.keys(data.positions)).toEqual(["b"]);
     });
 
     it("returns the same state when nothing changed", () => {
