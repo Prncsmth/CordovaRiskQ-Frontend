@@ -40,9 +40,8 @@ import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import { getIncidentById, updateMyResponderStatus } from "@/responder/services/incident.service";
 import { connectToIncidentSocket } from "@/responder/services/incidentSocket.service";
 import { mergeIncidentUpdate } from "@/responder/components/incident-detail/mergeIncidentUpdate";
-import type { TravelProfile } from "@/services/directions.service";
-import type { Coordinates } from "@/services/location.service";
-import { getCurrentLocation } from "@/services/location.service";
+import { useLiveCoordinates } from "@/hooks/useLiveCoordinates";
+import type { Route, TravelProfile } from "@/services/directions.service";
 import type { Incident } from "@/responder/types/responder";
 import {
     FONT_FAMILY,
@@ -72,7 +71,9 @@ export default function NavigateScreen() {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const [incident, setIncident] = useState<Incident | undefined>(undefined);
-  const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
+  // Follows the responder as they drive, from the shared live GPS stream --
+  // it used to be read once on open, so the route never moved with them.
+  const { coords: responderCoords, resolved: locationResolved } = useLiveCoordinates();
   const [isArriving, setIsArriving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -82,6 +83,9 @@ export default function NavigateScreen() {
   const mapRef = useRef<MapHandle>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mode, setMode] = useState<TravelProfile>("driving");
+  // The route re-requests from the responder's live position only every
+  // ~30 m / 10 s (see useIncidentRoute), so it shortens as they drive
+  // without a Directions call on every GPS fix.
   const { routes, selectedRouteIndex, selectRoute, midpoint, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
     incident?.incidentCoords,
@@ -94,14 +98,10 @@ export default function NavigateScreen() {
     if (!token || !id) return;
     setIsLoading(true);
     setLoadFailed(false);
-    // getCurrentLocation never rejects (resolves undefined when location is
-    // unavailable), so Promise.all only rejects on a real getIncidentById
-    // failure -- that's the only case worth a retry.
-    Promise.all([getIncidentById(token, id), getCurrentLocation()])
-      .then(([incidentData, coords]) => {
-        setIncident(incidentData);
-        setResponderCoords(coords);
-      })
+    // The responder's own position comes from useLiveCoordinates above, so
+    // only a real getIncidentById failure is worth a retry here.
+    getIncidentById(token, id)
+      .then(setIncident)
       .catch(() => setLoadFailed(true))
       .finally(() => setIsLoading(false));
   }, [token, id]);
@@ -181,17 +181,35 @@ export default function NavigateScreen() {
   // (the fetch happens after the map itself is already "ready"), so the
   // very first fit only has the two endpoints to work with; this effect
   // re-fits once real route geometry is available.
+  //
+  // Now that the responder's position and route update live while they
+  // drive, it fits once on the endpoints and once more when the first route
+  // set for the current travel mode arrives -- not on every position or
+  // route refresh, which would keep yanking the camera back mid-drive.
+  // `routesAtSwitch` is whatever route set was showing when the mode was
+  // (first) set -- the previous mode's routes linger until the new fetch
+  // lands, and those mustn't count as "this mode's routes arrived".
+  const fitStageRef = useRef<{ mode: TravelProfile; routesAtSwitch: Route[]; fittedRoutes: boolean } | null>(
+    null,
+  );
   useEffect(() => {
     if (!mapReady || !responderCoords || !incident?.incidentCoords) return;
-    const allPoints = [
-      responderCoords,
-      incident.incidentCoords,
-      ...routes.flatMap((route) => route.coordinates),
-    ];
-    mapRef.current?.fitToPoints(allPoints, mapFitPadding);
-  }, [mapReady, responderCoords, incident?.incidentCoords, routes, mapFitPadding]);
+    const stage = fitStageRef.current;
+    const endpoints = [responderCoords, incident.incidentCoords];
+    if (!stage || stage.mode !== mode) {
+      fitStageRef.current = { mode, routesAtSwitch: routes, fittedRoutes: false };
+      mapRef.current?.fitToPoints(endpoints, mapFitPadding);
+      return;
+    }
+    if (stage.fittedRoutes || routes.length === 0 || routes === stage.routesAtSwitch) return;
+    stage.fittedRoutes = true;
+    mapRef.current?.fitToPoints(
+      [...endpoints, ...routes.flatMap((route) => route.coordinates)],
+      mapFitPadding,
+    );
+  }, [mapReady, responderCoords, incident?.incidentCoords, routes, mode, mapFitPadding]);
 
-  if (isLoading) {
+  if (isLoading || (!responderCoords && !locationResolved)) {
     return (
       <View style={styles.fallbackScreen}>
         <Stack.Screen

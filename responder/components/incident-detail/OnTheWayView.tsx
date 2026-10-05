@@ -5,8 +5,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useIsFocused, useRouter } from "expo-router";
+import React, { useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -15,8 +15,7 @@ import { getIncidentVisual } from "@/responder/components/shared/incidentVisual"
 import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
 import RButton from "@/responder/components/shared/RButton";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
-import type { Coordinates } from "@/services/location.service";
-import { getCurrentLocation } from "@/services/location.service";
+import { useLiveCoordinates } from "@/hooks/useLiveCoordinates";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -44,18 +43,25 @@ export default function OnTheWayView({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
-  const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
+  // Follows the responder from the shared live GPS stream (it used to be
+  // read once on mount); the route re-requests only every ~30 m / 10 s
+  // (see useIncidentRoute).
+  const { coords: responderCoords } = useLiveCoordinates();
   const mapRef = useRef<MapHandle>(null);
+  // While the full-screen Navigate map is open on top, this screen is
+  // blurred and that map already keeps the route fresh -- pause this one's
+  // route requests so the two don't double the Directions API calls. It
+  // catches up as soon as the responder comes back here.
+  const isFocused = useIsFocused();
   const { route, midpoint, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
     incident.incidentCoords,
     incident.etaMinutes,
     incident.distanceKm,
+    "driving",
+    undefined,
+    isFocused,
   );
-
-  useEffect(() => {
-    getCurrentLocation().then(setResponderCoords).catch(() => {});
-  }, []);
 
   if (!incident.incidentCoords || !responderCoords || !midpoint) {
     return (

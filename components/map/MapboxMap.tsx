@@ -7,6 +7,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -37,6 +38,7 @@ import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
 import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import ResponderMarker from "./ResponderMarker";
 import type { MapEngineProps, MapFitPadding, MapHandle, MapLatLng } from "./types";
 
 function normalizePadding(padding: MapFitPadding | undefined, fallback: number) {
@@ -197,6 +199,15 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
   );
   const cameraRef = useRef<any>(null);
   const currentZoomRef = useRef(zoom);
+
+  // A press handler whose identity never changes, so a memoized marker
+  // (ResponderMarker) doesn't re-render just because the screen passed a
+  // fresh inline onMarkerPress on its latest render.
+  const onMarkerPressRef = useRef(onMarkerPress);
+  useEffect(() => {
+    onMarkerPressRef.current = onMarkerPress;
+  }, [onMarkerPress]);
+  const handleMarkerPress = useCallback((id: string) => onMarkerPressRef.current?.(id), []);
 
 
   useImperativeHandle(
@@ -365,7 +376,20 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
         ))}
 
         {markers.map((marker) =>
-          marker.icon === "logo" ? (
+          marker.icon === "responder" ? (
+            <ResponderMarker
+              key={marker.id}
+              MarkerView={MarkerView}
+              id={marker.id}
+              latitude={marker.latitude}
+              longitude={marker.longitude}
+              movement={marker.movement ?? "vehicle"}
+              selected={marker.selected ?? false}
+              color={marker.color ?? COLORS.primary}
+              accessibilityLabel={marker.label}
+              onPress={handleMarkerPress}
+            />
+          ) : marker.icon === "logo" ? (
             <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
               <View style={styles.logoMarkerWrap}>
                 {/* Deliberately static -- no pulse/radar-ping loop, same

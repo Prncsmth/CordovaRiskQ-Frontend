@@ -17,6 +17,7 @@ import { useIncidentRoute } from "@/hooks/useIncidentRoute";
 import { locationFreshness, useResponderTracking } from "@/hooks/useResponderTracking";
 import { getReportDetailById, type ReportDetail } from "@/services/report.service";
 import type { Coordinates } from "@/services/location.service";
+import type { ResponderTrack } from "@/services/tracking.service";
 import { haversineDistanceKm } from "@/utils/distance";
 import {
   FONT_FAMILY,
@@ -35,6 +36,8 @@ import { respondersHeadline, selectedResponder } from "@/utils/trackResponders";
 const RECENTER_THRESHOLD_METERS = 10;
 
 const TRACKABLE_STATUSES = new Set(["assigned", "on_the_way", "arrived"]);
+
+const NO_RESPONDERS: ResponderTrack[] = [];
 
 // Citizen-facing labels for the responder's own per-incident status --
 // deliberately separate from getReportStatusDisplay()'s incident-level
@@ -114,17 +117,67 @@ export default function TrackResponderScreen() {
   // Everyone helping, first-accepted first. The map focuses on one of them
   // at a time (route, ETA, freshness): the one tapped in the list or on the
   // map, defaulting to the first to accept.
-  const responders = tracking.kind === "live" ? tracking.snapshot.responders : [];
+  // A shared empty list (not a fresh [] each render), so the memoized
+  // markers below stay put while there's no snapshot yet.
+  const responders = tracking.kind === "live" ? tracking.snapshot.responders : NO_RESPONDERS;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = selectedResponder(responders, selectedId);
   const responderCoords = selected?.location ?? undefined;
 
+  // Keyed by the selected responder, so switching responders routes from
+  // the new one immediately; otherwise the route only follows a moving
+  // responder every ~30 m / 10 s (see useIncidentRoute).
   const { route, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
     incidentCoords,
     selected?.etaMinutes ?? undefined,
     undefined,
+    "driving",
+    selected?.responderId,
   );
+
+  // One marker per responder with a known location, keyed by their stable
+  // responder ID: RiskQ-red with a vehicle/walking symbol, the selected one
+  // emphasized. No names on the map -- they're in the chips above. Memoized
+  // on the data it's built from, so the 1 s freshness clock doesn't rebuild
+  // it (and AppMap, being memoized, doesn't re-render for that clock).
+  const movement = tracking.kind === "live" ? tracking.movement : undefined;
+  const markers = useMemo(() => {
+    if (!incidentCoords) return [];
+    const selectedResponderId = selectedResponder(responders, selectedId)?.responderId;
+    return [
+      { id: "incident", latitude: incidentCoords.latitude, longitude: incidentCoords.longitude, color: COLORS.primary },
+      ...responders.flatMap((r) =>
+        r.location
+          ? [
+              {
+                id: `responder:${r.responderId}`,
+                latitude: r.location.latitude,
+                longitude: r.location.longitude,
+                color: COLORS.primary,
+                icon: "responder" as const,
+                movement: movement?.[r.responderId] ?? ("vehicle" as const),
+                selected: r.responderId === selectedResponderId,
+                label: `${r.responderName}, ${movement?.[r.responderId] === "walking" ? "walking" : "driving"}`,
+              },
+            ]
+          : [],
+      ),
+    ];
+  }, [incidentCoords, responders, movement, selectedId, COLORS]);
+
+  const polylines = useMemo(() => {
+    const from = selectedResponder(responders, selectedId)?.location;
+    if (!from || !incidentCoords) return [];
+    return [
+      {
+        points: route ? route.coordinates : [from, incidentCoords],
+        color: COLORS.secondary,
+        dashed: !route,
+        weight: 4,
+      },
+    ];
+  }, [responders, selectedId, incidentCoords, route, COLORS]);
 
   const selectResponder = useCallback((responderId: string) => {
     setSelectedId(responderId);
@@ -132,6 +185,16 @@ export default function TrackResponderScreen() {
     // responder even if they haven't moved.
     lastCenteredRef.current = null;
   }, []);
+
+  const handleMarkerPress = useCallback(
+    (markerId: string) => {
+      if (markerId.startsWith("responder:")) {
+        selectResponder(markerId.slice("responder:".length));
+      }
+    },
+    [selectResponder],
+  );
+  const handleMapReady = useCallback(() => setMapReady(true), []);
 
   // One-time bounds fit the moment the incident and at least one responder
   // location are known -- fitting every responder on the map, not on every
@@ -220,50 +283,11 @@ export default function TrackResponderScreen() {
     );
   }
 
-  // A marker for every responder with a known location: the selected one
-  // with the logo pin, the others with a name label. Tapping one selects it.
-  const markers = [
-    { id: "incident", latitude: incidentCoords.latitude, longitude: incidentCoords.longitude, color: COLORS.primary },
-    ...responders.flatMap((r) =>
-      r.location
-        ? [
-            r.responderId === selected?.responderId
-              ? {
-                  id: `responder:${r.responderId}`,
-                  latitude: r.location.latitude,
-                  longitude: r.location.longitude,
-                  color: COLORS.secondary,
-                  icon: "logo" as const,
-                }
-              : {
-                  id: `responder:${r.responderId}`,
-                  latitude: r.location.latitude,
-                  longitude: r.location.longitude,
-                  color: COLORS.secondary,
-                  icon: "label" as const,
-                  label: r.responderName,
-                },
-          ]
-        : [],
-    ),
-  ];
-
   const isMultiple = responders.length >= 2;
   const freshness =
     tracking.kind === "live" && selected
       ? locationFreshness(selected.locationUpdatedAt, tracking.now)
       : null;
-
-  const polylines = responderCoords
-    ? [
-        {
-          points: route ? route.coordinates : [responderCoords, incidentCoords],
-          color: COLORS.secondary,
-          dashed: !route,
-          weight: 4,
-        },
-      ]
-    : [];
 
   return (
     <View style={styles.screen}>
@@ -277,12 +301,8 @@ export default function TrackResponderScreen() {
         showLayerSwitcher
         markers={markers}
         polylines={polylines}
-        onMarkerPress={(markerId) => {
-          if (markerId.startsWith("responder:")) {
-            selectResponder(markerId.slice("responder:".length));
-          }
-        }}
-        onReady={() => setMapReady(true)}
+        onMarkerPress={handleMarkerPress}
+        onReady={handleMapReady}
       />
 
       <View style={[styles.topCard, { top: insets.top + SPACING.sm }]}>
@@ -343,7 +363,9 @@ export default function TrackResponderScreen() {
                   accessibilityLabel={`${r.responderName}, ${ROSTER_STATUS_LABEL[r.status] ?? "Responding"}`}
                 >
                   <Ionicons
-                    name={r.location ? "navigate" : "time-outline"}
+                    name={
+                      !r.location ? "time-outline" : movement?.[r.responderId] === "walking" ? "walk" : "car"
+                    }
                     size={12}
                     color={isSelected ? COLORS.white : COLORS.secondary}
                   />
