@@ -11,7 +11,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://cordova-riskq-api.onrender.com"
+        "EXPO_PUBLIC_API_BASE_URL": "https://cordova-riskq-api.onrender.com",
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "armeabi-v7a,arm64-v8a"
       }
     },
     "production": {
