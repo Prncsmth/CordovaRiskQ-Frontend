@@ -13,11 +13,13 @@ import { RADIUS, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "
 export type MenuRowProps = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  // Secondary line under the label (e.g. "Managed securely by Google").
+  description?: string;
   onPress?: () => void;
   right?: React.ReactNode;
 };
 
-export default function MenuRow({ icon, label, onPress, right }: MenuRowProps) {
+export default function MenuRow({ icon, label, description, onPress, right }: MenuRowProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const scale = useSharedValue(1);
@@ -30,7 +32,10 @@ export default function MenuRow({ icon, label, onPress, right }: MenuRowProps) {
       <View style={styles.iconCircle}>
         <Ionicons name={icon} size={18} color={COLORS.gray} />
       </View>
-      <Text style={styles.label}>{label}</Text>
+      <View style={styles.textCol}>
+        <Text style={styles.label}>{label}</Text>
+        {description ? <Text style={styles.description}>{description}</Text> : null}
+      </View>
       {right ?? (
         <Ionicons name="chevron-forward" size={20} color={COLORS.textFaint} />
       )}
@@ -77,11 +82,18 @@ function createStyles(COLORS: ColorPalette) {
     alignItems: "center",
     justifyContent: "center",
   },
-  label: {
+  textCol: {
     flex: 1,
+  },
+  label: {
     fontSize: TYPOGRAPHY.body,
     fontWeight: "700",
     color: COLORS.text,
+  },
+  description: {
+    fontSize: TYPOGRAPHY.small,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
   });
 }

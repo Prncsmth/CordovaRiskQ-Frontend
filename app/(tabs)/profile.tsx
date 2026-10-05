@@ -19,6 +19,7 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import { useAuth } from "@/context/AuthContext";
 import { usePreferences } from "@/context/PreferencesContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
+import { useIsGoogleAccount } from "@/hooks/useIsGoogleAccount";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -33,6 +34,7 @@ type MenuItem = {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  description?: string;
   onPress?: () => void;
   right?: React.ReactNode;
 };
@@ -46,6 +48,7 @@ export default function ProfileScreen() {
   const tabBarHeight = useTabBarHeight();
   const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const isGoogleAccount = useIsGoogleAccount() === true;
 
   async function confirmLogout() {
     setShowLogoutConfirm(false);
@@ -60,12 +63,24 @@ export default function ProfileScreen() {
       label: "User Profile",
       onPress: () => router.push("/user-profile"),
     },
-    {
-      key: "change-password",
-      icon: "lock-closed-outline",
-      label: "Change Password",
-      onPress: () => router.push("/change-password"),
-    },
+    // An account that signs in with Google shows its password row as a
+    // Google one. Tapping it still opens the Change Password screen, which
+    // explains where to manage it (or, for an account linked to Google that
+    // also has a RiskQ password, still lets it change that password).
+    isGoogleAccount
+      ? {
+          key: "change-password",
+          icon: "logo-google",
+          label: "Password (Google Account)",
+          description: "Managed securely by Google",
+          onPress: () => router.push("/change-password"),
+        }
+      : {
+          key: "change-password",
+          icon: "lock-closed-outline",
+          label: "Change Password",
+          onPress: () => router.push("/change-password"),
+        },
     {
       key: "emergency-contacts",
       icon: "call-outline",
@@ -124,6 +139,7 @@ export default function ProfileScreen() {
             <MenuRow
               icon={item.icon}
               label={item.label}
+              description={item.description}
               onPress={item.onPress}
               right={item.right}
             />

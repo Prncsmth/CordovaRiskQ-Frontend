@@ -8,6 +8,9 @@ export type UserProfile = {
   // False for a Google Sign-In account, which has no password to change.
   // Missing from a backend that predates it.
   hasPassword?: boolean;
+  // True for any account that signs in with Google (Google-only, or an
+  // email/password account later linked to it). Missing from an older backend.
+  isGoogleAccount?: boolean;
 };
 
 export async function getProfile(token: string): Promise<UserProfile> {

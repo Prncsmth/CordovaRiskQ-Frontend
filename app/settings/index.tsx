@@ -22,6 +22,7 @@ import { usePreferences } from "@/context/PreferencesContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
 import { useThemeMode } from "@/context/ThemeContext";
+import { useIsGoogleAccount } from "@/hooks/useIsGoogleAccount";
 import {
   getLocationPermissionStatus,
   requestLocationPermission,
@@ -59,6 +60,7 @@ export default function SettingsScreen({
   const { user, logout } = useAuth();
   const tour = useTour();
   const isResponder = user?.role === "responder";
+  const isGoogleAccount = useIsGoogleAccount() === true;
 
   const { pushNotificationsEnabled, setPushNotificationsEnabled } = usePreferences();
   const [locationAccess, setLocationAccess] = useState(false);
@@ -131,12 +133,21 @@ export default function SettingsScreen({
       label: "User Profile",
       onPress: () => router.push("/user-profile"),
     },
-    {
-      key: "change-password",
-      icon: "lock-closed-outline",
-      label: "Change Password",
-      onPress: () => router.push("/change-password"),
-    },
+    // Same Google-account treatment as app/(tabs)/profile.tsx's row.
+    isGoogleAccount
+      ? {
+          key: "change-password",
+          icon: "logo-google",
+          label: "Password (Google Account)",
+          description: "Managed securely by Google",
+          onPress: () => router.push("/change-password"),
+        }
+      : {
+          key: "change-password",
+          icon: "lock-closed-outline",
+          label: "Change Password",
+          onPress: () => router.push("/change-password"),
+        },
     ...(isResponder
       ? [
           {

@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import React, { useMemo } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -18,6 +18,8 @@ export type NavRow = {
   key: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  // Secondary line under the label (e.g. "Managed securely by Google").
+  description?: string;
   onPress: () => void;
   danger?: boolean;
 };
@@ -61,15 +63,14 @@ export default function NavSettingRow({ row }: { row: NavRow }) {
             color={row.danger ? COLORS.danger : COLORS.gray}
           />
         </LinearGradient>
-        <Text
-          style={[
-            styles.label,
-            styles.navLabel,
-            row.danger && { color: COLORS.danger },
-          ]}
-        >
-          {row.label}
-        </Text>
+        <View style={styles.navLabel}>
+          <Text style={[styles.label, row.danger && { color: COLORS.danger }]}>
+            {row.label}
+          </Text>
+          {row.description ? (
+            <Text style={styles.description}>{row.description}</Text>
+          ) : null}
+        </View>
         {!row.danger && (
           <Ionicons name="chevron-forward" size={18} color={COLORS.textFaint} />
         )}
@@ -100,6 +101,11 @@ function createStyles(COLORS: ColorPalette) {
     },
     navLabel: {
       flex: 1,
+    },
+    description: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+      marginTop: 2,
     },
   });
 }
