@@ -26,6 +26,7 @@ import {
     useThemeColors,
     type ColorPalette,
 } from "@/theme";
+import { scrollToEndWhenKeyboardReady } from "@/utils/scrollOnKeyboard";
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -36,17 +37,13 @@ export default function RegisterScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Scrolling immediately on focus races the keyboard's own show animation
-  // -- the ScrollView's visible area hasn't actually shrunk yet, so
-  // scrollToEnd() lands short, and the keyboard finishes rising afterward
-  // and covers the field anyway. Waiting for the OS's own "keyboard is now
-  // fully shown" event (fired once, then removed) guarantees the scroll
-  // happens against the final, keyboard-adjusted layout.
+  // Brings Confirm Password up above the keyboard -- whether the keyboard
+  // is just opening or already open from the Password field above it (see
+  // utils/scrollOnKeyboard.ts).
   function scrollToEndOnceKeyboardShown() {
-    const subscription = Keyboard.addListener("keyboardDidShow", () => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-      subscription.remove();
-    });
+    scrollToEndWhenKeyboardReady(Keyboard, () =>
+      scrollViewRef.current?.scrollToEnd({ animated: true }),
+    );
   }
 
   const [name, setName] = useState("");

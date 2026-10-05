@@ -125,11 +125,12 @@ describe("validatePasswordReset", () => {
   });
 
   it("enforces the shared password rule", () => {
-    for (const newPassword of ["Ab1!", "Abcdefgh1!xyz", "newpass1!", "NEWPASS1!", "NewPass!!", "NewPass11"]) {
+    const tooLong = "Ab1!" + "x".repeat(61); // 65 characters
+    for (const newPassword of ["Ab1!", tooLong, "newpass1!", "NEWPASS1!", "NewPass!!", "NewPass11"]) {
       expect(
         validatePasswordReset({ ...validReset, newPassword, confirmPassword: newPassword }),
       ).toBe(
-        "Password must be 8-12 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.",
+        "Password must be 8-64 characters, with an uppercase letter, a lowercase letter, a number, and a symbol.",
       );
     }
   });

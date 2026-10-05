@@ -108,14 +108,25 @@ describe("validateRegistration", () => {
     ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
   });
 
-  it("rejects 13 characters (one above the maximum)", () => {
+  it("rejects 65 characters (one above the maximum)", () => {
+    const tooLong = "Ab1!" + "x".repeat(61);
     expect(
       validateRegistration({
         ...validInput,
-        password: "Abcdefghijk1!",
-        confirmPassword: "Abcdefghijk1!",
+        password: tooLong,
+        confirmPassword: tooLong,
       }),
     ).toBe(PASSWORD_REQUIREMENTS_MESSAGE);
+  });
+
+  it("accepts a long passphrase within the 64-character maximum", () => {
+    expect(
+      validateRegistration({
+        ...validInput,
+        password: "Cordova-Flood-Safe-2026!",
+        confirmPassword: "Cordova-Flood-Safe-2026!",
+      }),
+    ).toBeNull();
   });
 
   it("rejects a password missing an uppercase letter", () => {

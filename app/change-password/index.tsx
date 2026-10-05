@@ -21,6 +21,7 @@ import { useAuth } from "@/context/AuthContext";
 import { changePassword } from "@/services/user.service";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 import { isPasswordValid } from "@/utils/passwordPolicy";
+import { scrollToEndWhenKeyboardReady } from "@/utils/scrollOnKeyboard";
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -29,15 +30,12 @@ export default function ChangePasswordScreen() {
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const sheetScrollRef = useRef<ScrollView>(null);
 
-  // Scrolling immediately on focus races the keyboard's own show animation
-  // -- see the identical helper in app/(auth)/register.tsx for why this
-  // waits for the OS's "keyboard is now fully shown" event instead of
-  // scrolling synchronously in onFocus.
+  // Brings Confirm New Password up above the keyboard, whether it's just
+  // opening or already open from New Password (see utils/scrollOnKeyboard.ts).
   function scrollToEndOnceKeyboardShown() {
-    const subscription = Keyboard.addListener("keyboardDidShow", () => {
-      sheetScrollRef.current?.scrollToEnd({ animated: true });
-      subscription.remove();
-    });
+    scrollToEndWhenKeyboardReady(Keyboard, () =>
+      sheetScrollRef.current?.scrollToEnd({ animated: true }),
+    );
   }
 
   const [oldPassword, setOldPassword] = useState("");
