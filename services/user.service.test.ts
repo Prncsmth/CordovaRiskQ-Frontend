@@ -5,9 +5,10 @@ jest.mock("./api", () => ({
   apiPut: jest.fn(),
 }));
 
-import { apiPost, apiPut } from "./api";
-import { changePassword, updateProfile } from "./user.service";
+import { apiGet, apiPost, apiPut } from "./api";
+import { changePassword, getProfile, updateProfile } from "./user.service";
 
+const mockApiGet = apiGet as jest.Mock;
 const mockApiPost = apiPost as jest.Mock;
 const mockApiPut = apiPut as jest.Mock;
 
@@ -70,5 +71,15 @@ describe("updateProfile", () => {
     await expect(
       updateProfile("jwt", { name: "Juana", email: "someone-else@gmail.com" }),
     ).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("getProfile", () => {
+  it("passes through hasPassword: false for a Google Sign-In account", async () => {
+    const user = { id: "u1", name: "Juana Cruz", email: "juana@gmail.com", mobile: null, hasPassword: false };
+    mockApiGet.mockResolvedValue({ success: true, user });
+
+    await expect(getProfile("jwt")).resolves.toEqual(user);
+    expect(mockApiGet).toHaveBeenCalledWith("/api/users/me", "jwt");
   });
 });

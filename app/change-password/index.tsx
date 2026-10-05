@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Keyboard,
   KeyboardAvoidingView,
@@ -18,7 +19,7 @@ import PasswordRequirements from "@/components/change-password/PasswordRequireme
 import PasswordSheet from "@/components/change-password/PasswordSheet";
 import PasswordStrengthMeter from "@/components/change-password/PasswordStrengthMeter";
 import { useAuth } from "@/context/AuthContext";
-import { changePassword } from "@/services/user.service";
+import { changePassword, getProfile } from "@/services/user.service";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
 import { isPasswordValid } from "@/utils/passwordPolicy";
 import { scrollToEndWhenKeyboardReady } from "@/utils/scrollOnKeyboard";
@@ -42,6 +43,25 @@ export default function ChangePasswordScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  // null while checking. A Google Sign-In account has no password, so it
+  // gets a notice instead of the form (the backend rejects it anyway). If
+  // the check fails, show the form and let the backend decide.
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    getProfile(token)
+      .then((profile) => {
+        if (!cancelled) setHasPassword(profile.hasPassword !== false);
+      })
+      .catch(() => {
+        if (!cancelled) setHasPassword(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const passwordsMatch = confirmPassword.length > 0 && newPassword === confirmPassword;
   const passwordsMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
@@ -74,6 +94,30 @@ export default function ChangePasswordScreen() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  if (hasPassword === null) {
+    return (
+      <PasswordSheet onClose={handleClose}>
+        <ActivityIndicator style={styles.loader} color={COLORS.primary} />
+      </PasswordSheet>
+    );
+  }
+
+  if (!hasPassword) {
+    return (
+      <PasswordSheet onClose={handleClose}>
+        <Text style={styles.title}>Change Password</Text>
+        <View style={styles.googleBanner}>
+          <Ionicons name="logo-google" size={20} color={COLORS.textSecondary} />
+          <Text style={styles.googleText}>
+            You signed in with Google, so this account doesn&apos;t have a RiskQ
+            password to change. Manage your password in your Google Account.
+          </Text>
+        </View>
+        <PrimaryButton title="Got it" onPress={handleClose} />
+      </PasswordSheet>
+    );
   }
 
   return (
@@ -156,6 +200,23 @@ function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
     flex: {
       flex: 1,
+    },
+    loader: {
+      paddingVertical: SPACING.xl,
+    },
+    googleBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      padding: SPACING.md,
+    },
+    googleText: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
+      lineHeight: 19,
     },
     title: {
       fontFamily: FONT_FAMILY.displaySemibold,
