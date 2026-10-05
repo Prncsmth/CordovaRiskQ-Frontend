@@ -8,13 +8,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import { useAuth } from "@/context/AuthContext";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
-import { useResponderTracking } from "@/hooks/useResponderTracking";
+import { locationFreshness, useResponderTracking } from "@/hooks/useResponderTracking";
 import { getReportDetailById, type ReportDetail } from "@/services/report.service";
 import type { Coordinates } from "@/services/location.service";
 import { haversineDistanceKm } from "@/utils/distance";
@@ -28,6 +28,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
+import { respondersHeadline, selectedResponder } from "@/utils/trackResponders";
 
 // Below this, a poll tick's new responder position isn't worth an animated
 // recenter -- GPS jitter alone can move a stationary point a few meters.
@@ -44,6 +45,13 @@ const ROSTER_STATUS_LABEL: Record<string, string> = {
   joined: "Responder Assigned",
   on_the_way: "Responder En Route",
   arrived: "Responder Arrived",
+};
+
+// Compact form for the responder chips when tracking several at once.
+const SHORT_STATUS_LABEL: Record<string, string> = {
+  joined: "Assigned",
+  on_the_way: "En Route",
+  arrived: "Arrived",
 };
 
 function formatSecondsAgo(seconds: number): string {
@@ -102,25 +110,41 @@ export default function TrackResponderScreen() {
   const canTrack = !!report && TRACKABLE_STATUSES.has(report.status);
 
   const tracking = useResponderTracking(canTrack ? token : null, canTrack ? id : undefined);
-  const responderCoords = tracking.kind === "live" ? tracking.snapshot.location ?? undefined : undefined;
+
+  // Everyone helping, first-accepted first. The map focuses on one of them
+  // at a time (route, ETA, freshness): the one tapped in the list or on the
+  // map, defaulting to the first to accept.
+  const responders = tracking.kind === "live" ? tracking.snapshot.responders : [];
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = selectedResponder(responders, selectedId);
+  const responderCoords = selected?.location ?? undefined;
 
   const { route, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
     incidentCoords,
-    tracking.kind === "live" ? tracking.snapshot.etaMinutes ?? undefined : undefined,
+    selected?.etaMinutes ?? undefined,
     undefined,
   );
 
-  // One-time bounds fit the moment both points are first known -- not on
-  // every poll tick, so the map doesn't keep re-zooming as updates arrive.
+  const selectResponder = useCallback((responderId: string) => {
+    setSelectedId(responderId);
+    // Forces the recenter effect below to fly to the newly selected
+    // responder even if they haven't moved.
+    lastCenteredRef.current = null;
+  }, []);
+
+  // One-time bounds fit the moment the incident and at least one responder
+  // location are known -- fitting every responder on the map, not on every
+  // poll tick, so the map doesn't keep re-zooming as updates arrive.
+  const responderPoints = responders.flatMap((r) => (r.location ? [r.location] : []));
   useEffect(() => {
     if (!mapReady || hasFitRef.current) return;
-    if (!incidentCoords || !responderCoords) return;
+    if (!incidentCoords || responderPoints.length === 0) return;
 
-    mapRef.current?.fitToPoints([responderCoords, incidentCoords], insets.top + 160);
+    mapRef.current?.fitToPoints([...responderPoints, incidentCoords], insets.top + 160);
     hasFitRef.current = true;
-    lastCenteredRef.current = responderCoords;
-  }, [mapReady, incidentCoords, responderCoords, insets.top]);
+    lastCenteredRef.current = responderCoords ?? null;
+  }, [mapReady, incidentCoords, responderPoints, responderCoords, insets.top]);
 
   // After the initial fit, smoothly recenter on the responder<->incident
   // midpoint instead of re-fitting bounds -- but only once the responder has
@@ -196,20 +220,39 @@ export default function TrackResponderScreen() {
     );
   }
 
+  // A marker for every responder with a known location: the selected one
+  // with the logo pin, the others with a name label. Tapping one selects it.
   const markers = [
     { id: "incident", latitude: incidentCoords.latitude, longitude: incidentCoords.longitude, color: COLORS.primary },
-    ...(responderCoords
-      ? [
-          {
-            id: "responder",
-            latitude: responderCoords.latitude,
-            longitude: responderCoords.longitude,
-            color: COLORS.secondary,
-            icon: "logo" as const,
-          },
-        ]
-      : []),
+    ...responders.flatMap((r) =>
+      r.location
+        ? [
+            r.responderId === selected?.responderId
+              ? {
+                  id: `responder:${r.responderId}`,
+                  latitude: r.location.latitude,
+                  longitude: r.location.longitude,
+                  color: COLORS.secondary,
+                  icon: "logo" as const,
+                }
+              : {
+                  id: `responder:${r.responderId}`,
+                  latitude: r.location.latitude,
+                  longitude: r.location.longitude,
+                  color: COLORS.secondary,
+                  icon: "label" as const,
+                  label: r.responderName,
+                },
+          ]
+        : [],
+    ),
   ];
+
+  const isMultiple = responders.length >= 2;
+  const freshness =
+    tracking.kind === "live" && selected
+      ? locationFreshness(selected.locationUpdatedAt, tracking.now)
+      : null;
 
   const polylines = responderCoords
     ? [
@@ -234,6 +277,11 @@ export default function TrackResponderScreen() {
         showLayerSwitcher
         markers={markers}
         polylines={polylines}
+        onMarkerPress={(markerId) => {
+          if (markerId.startsWith("responder:")) {
+            selectResponder(markerId.slice("responder:".length));
+          }
+        }}
         onReady={() => setMapReady(true)}
       />
 
@@ -244,11 +292,17 @@ export default function TrackResponderScreen() {
           </View>
           <View style={styles.infoTextCol}>
             <Text style={styles.infoTitle} numberOfLines={1}>
-              {tracking.kind === "live" ? tracking.snapshot.responderName : "Finding responder…"}
+              {tracking.kind !== "live" || !selected
+                ? "Finding responder…"
+                : isMultiple
+                  ? respondersHeadline(responders.map((r) => r.status))
+                  : selected.responderName}
             </Text>
             <Text style={styles.infoSubtitle} numberOfLines={1}>
-              {tracking.kind === "live"
-                ? ROSTER_STATUS_LABEL[tracking.snapshot.status] ?? "Responding"
+              {tracking.kind === "live" && selected
+                ? isMultiple
+                  ? `${selected.responderName} · ${ROSTER_STATUS_LABEL[selected.status] ?? "Responding"}`
+                  : ROSTER_STATUS_LABEL[selected.status] ?? "Responding"
                 : report.location}
             </Text>
           </View>
@@ -270,12 +324,51 @@ export default function TrackResponderScreen() {
           </View>
         )}
 
-        {tracking.kind === "live" && (
+        {tracking.kind === "live" && isMultiple && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.responderList}
+            style={styles.responderListScroll}
+          >
+            {responders.map((r) => {
+              const isSelected = r.responderId === selected?.responderId;
+              return (
+                <Pressable
+                  key={r.responderId}
+                  onPress={() => selectResponder(r.responderId)}
+                  style={[styles.responderChip, isSelected && styles.responderChipSelected]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                  accessibilityLabel={`${r.responderName}, ${ROSTER_STATUS_LABEL[r.status] ?? "Responding"}`}
+                >
+                  <Ionicons
+                    name={r.location ? "navigate" : "time-outline"}
+                    size={12}
+                    color={isSelected ? COLORS.white : COLORS.secondary}
+                  />
+                  <Text
+                    style={[styles.responderChipText, isSelected && styles.responderChipTextSelected]}
+                    numberOfLines={1}
+                  >
+                    {r.responderName} · {SHORT_STATUS_LABEL[r.status] ?? "Responding"}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {tracking.kind === "live" && selected && freshness && (
           <View style={styles.statRow}>
             <View style={styles.statChip}>
               <Ionicons name="time-outline" size={14} color={COLORS.tide} />
               <Text style={styles.statChipText}>
-                {tracking.snapshot.status === "arrived" ? "Arrived" : `${durationMin} min`}
+                {selected.status === "arrived"
+                  ? "Arrived"
+                  : selected.location
+                    ? `${durationMin} min`
+                    : "No location yet"}
               </Text>
             </View>
             {distanceKm != null && (
@@ -284,22 +377,24 @@ export default function TrackResponderScreen() {
                 <Text style={styles.statChipText}>{distanceKm.toFixed(1)} km</Text>
               </View>
             )}
-            <View style={[styles.statChip, tracking.veryStale && styles.statChipMuted]}>
-              <Ionicons
-                name={tracking.veryStale ? "alert-circle-outline" : "radio-outline"}
-                size={14}
-                color={tracking.veryStale ? COLORS.textTertiary : COLORS.tide}
-              />
-              <Text style={[styles.statChipText, tracking.veryStale && styles.statChipTextMuted]}>
-                {tracking.veryStale
-                  ? "Last known location"
-                  : tracking.stale
-                    ? "Updating location…"
-                    : tracking.secondsSinceUpdate != null
-                      ? `Updated ${formatSecondsAgo(tracking.secondsSinceUpdate)}`
-                      : "Live"}
-              </Text>
-            </View>
+            {selected.location && (
+              <View style={[styles.statChip, freshness.veryStale && styles.statChipMuted]}>
+                <Ionicons
+                  name={freshness.veryStale ? "alert-circle-outline" : "radio-outline"}
+                  size={14}
+                  color={freshness.veryStale ? COLORS.textTertiary : COLORS.tide}
+                />
+                <Text style={[styles.statChipText, freshness.veryStale && styles.statChipTextMuted]}>
+                  {freshness.veryStale
+                    ? "Last known location"
+                    : freshness.stale
+                      ? "Updating location…"
+                      : freshness.secondsSinceUpdate != null
+                        ? `Updated ${formatSecondsAgo(freshness.secondsSinceUpdate)}`
+                        : "Live"}
+                </Text>
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -387,6 +482,39 @@ function createStyles(COLORS: ColorPalette) {
       borderRadius: RADIUS.full,
       paddingHorizontal: SPACING.sm,
       paddingVertical: 5,
+    },
+    responderListScroll: {
+      marginTop: SPACING.sm,
+      marginHorizontal: -SPACING.md,
+    },
+    responderList: {
+      gap: SPACING.xs,
+      paddingHorizontal: SPACING.md,
+    },
+    responderChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      maxWidth: 200,
+      borderRadius: RADIUS.full,
+      borderWidth: 1,
+      borderColor: COLORS.border,
+      backgroundColor: COLORS.surface,
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 6,
+    },
+    responderChipSelected: {
+      backgroundColor: COLORS.secondary,
+      borderColor: COLORS.secondary,
+    },
+    responderChipText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.text,
+      flexShrink: 1,
+    },
+    responderChipTextSelected: {
+      color: COLORS.white,
     },
     statChipMuted: {
       backgroundColor: COLORS.borderMuted,

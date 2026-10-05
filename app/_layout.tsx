@@ -18,6 +18,7 @@ import { TourProvider } from "@/context/TourContext";
 import { UserProvider } from "@/context/UserContext";
 import { useThemeColors } from "@/theme";
 import { useNotificationDeepLink } from "@/hooks/useNotificationDeepLink";
+import { loggedOutStartRoute } from "@/utils/loggedOutStart";
 import {
     registerForPushNotifications,
     unregisterPushNotifications,
@@ -67,6 +68,7 @@ function RootLayoutNav() {
     justRegistered,
     user,
     token,
+    hasSeenWelcome,
   } = useAuth();
   const COLORS = useThemeColors();
   const router = useRouter();
@@ -104,12 +106,12 @@ function RootLayoutNav() {
         return;
       }
 
-      // Cold launch should land on the public onboarding welcome screen so the
-      // first screen in Expo Go is the welcome flow instead of the auth form.
-      // Logged-out deep links or a stale route outside the auth group are still
-      // normalized back to the first onboarding state.
+      // A signed-out user outside the auth/onboarding screens (cold launch,
+      // logout, a forced logout on a revoked or expired session, or a stale
+      // deep link) lands on the welcome walkthrough only the first time on
+      // this device, and on Login every time after that.
       if (!inAuthGroup && !inOnboardingGroup) {
-        router.replace("/(onboarding)/welcome");
+        router.replace(loggedOutStartRoute(hasSeenWelcome));
       }
       return;
     }
@@ -179,6 +181,7 @@ function RootLayoutNav() {
     justRegistered,
     segments,
     user,
+    hasSeenWelcome,
   ]);
 
   useEffect(() => {

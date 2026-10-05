@@ -12,6 +12,7 @@ import {
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import { useAuth } from "@/context/AuthContext";
+import { signupFinishAction } from "@/utils/signupFinish";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -52,7 +53,7 @@ const SECTIONS: { heading: string; body: string }[] = [
 ];
 
 export default function TermsScreen() {
-  const { user, finishRegistration } = useAuth();
+  const { user, finishRegistration, completeTerms, signedUpWithGoogle } = useAuth();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
@@ -130,18 +131,29 @@ export default function TermsScreen() {
           title={scrolledToBottom ? "I Agree & Continue" : "Scroll to Bottom"}
           disabled={!scrolledToBottom}
           onPress={async () => {
-            // finishRegistration() logs the account out (isAuthenticated ->
-            // false) and marks it pending for the tour in one atomic
-            // AuthContext update, then returns -- it does NOT navigate.
-            // app/_layout.tsx's Stack remounts its whole navigator tree
-            // whenever isAuthenticated flips (it's keyed on that value), so
-            // calling router.replace() here ourselves would race that
-            // remount and can throw "action not handled by any navigator".
-            // RootLayoutNav's effect reads justRegistered and sends the user
-            // to registration-complete itself, after the remount settles.
-            if (user) {
-              await finishRegistration(user.id, user.name);
+            if (!user) return;
+
+            // Google sign-up: stay signed in. completeTerms() clears the
+            // last onboarding gate, and RootLayoutNav (app/_layout.tsx) then
+            // sends this fully onboarded account to Home itself, where the
+            // first-time app guide starts (isFreshAccount is still set).
+            // No auth change, so no navigator remount to race.
+            if (signupFinishAction(signedUpWithGoogle) === "stay-signed-in") {
+              completeTerms();
+              return;
             }
+
+            // Email/password sign-up: finishRegistration() logs the account
+            // out (isAuthenticated -> false) and marks it pending for the
+            // tour in one atomic AuthContext update, then returns -- it does
+            // NOT navigate. app/_layout.tsx's Stack remounts its whole
+            // navigator tree whenever isAuthenticated flips (it's keyed on
+            // that value), so calling router.replace() here ourselves would
+            // race that remount and can throw "action not handled by any
+            // navigator". RootLayoutNav's effect reads justRegistered and
+            // sends the user to registration-complete itself, after the
+            // remount settles.
+            await finishRegistration(user.id, user.name);
           }}
         />
       </View>

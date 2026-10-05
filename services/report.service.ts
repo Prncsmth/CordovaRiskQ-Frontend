@@ -163,6 +163,9 @@ export type ReportDetail = {
   ref: string;
   submittedDate: string;
   updatedDate: string;
+  // How many responders are currently helping -- decides "Track Responder"
+  // vs "Track Responders".
+  respondersCount: number;
 };
 
 type IncidentDetailApiRow = {
@@ -175,6 +178,7 @@ type IncidentDetailApiRow = {
   status: string;
   createdAt: string;
   updatedAt: string;
+  respondersCount?: number;
 };
 
 export async function getReportDetailById(
@@ -198,6 +202,7 @@ export async function getReportDetailById(
       ref: row.id.slice(0, 8).toUpperCase(),
       submittedDate: formatDate(row.createdAt),
       updatedDate: formatDate(row.updatedAt),
+      respondersCount: row.respondersCount ?? 0,
     };
   } catch (err) {
     // Only a real 404 means "no such report" -- a network/server failure

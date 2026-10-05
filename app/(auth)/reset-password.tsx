@@ -35,6 +35,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
+import { scrollToEndWhenKeyboardReady } from "@/utils/scrollOnKeyboard";
 
 // Step 2 of password reset: the 6-digit code from the email plus a new
 // password. Only the email arrives here (route param) -- resending needs
@@ -58,13 +59,13 @@ export default function ResetPasswordScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Same as register.tsx: wait for the keyboard to finish showing before
-  // scrolling, so the confirm field isn't left under the keyboard.
+  // Same as register.tsx: brings Confirm New Password up above the
+  // keyboard, whether it's just opening or already open (see
+  // utils/scrollOnKeyboard.ts).
   function scrollToEndOnceKeyboardShown() {
-    const subscription = Keyboard.addListener("keyboardDidShow", () => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-      subscription.remove();
-    });
+    scrollToEndWhenKeyboardReady(Keyboard, () =>
+      scrollViewRef.current?.scrollToEnd({ animated: true }),
+    );
   }
 
   const [code, setCode] = useState("");
