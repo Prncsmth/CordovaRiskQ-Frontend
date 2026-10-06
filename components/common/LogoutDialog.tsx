@@ -15,26 +15,25 @@ import {
   DialogIcon,
   DialogTitle,
 } from "@/components/common/Dialog";
-import { SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import { RADIUS, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 type Role = "citizen" | "responder";
 
+type Consequence = { icon: keyof typeof Ionicons.glyphMap; text: string };
+
 // What actually stops on this phone once logged out (see AuthContext's
 // logout: the session and the push token are both cleared).
-function consequences(role: Role, isOnDuty: boolean): string[] {
+function consequences(role: Role): Consequence[] {
   if (role === "responder") {
     return [
-      "You won't get new incident alerts on this phone.",
-      "Live location sharing for incidents you're responding to stops.",
-      ...(isOnDuty
-        ? ["You'll still show as On Duty until you switch it off -- turn it off first if you're done for the day."]
-        : []),
+      { icon: "notifications-off-outline", text: "New incident alerts stop on this phone." },
+      { icon: "location-outline", text: "Live location sharing for your active incidents stops." },
     ];
   }
   return [
-    "You won't get notifications about your reports or SOS.",
-    "Tracking a responder on the way to you stops.",
-    "You'll need to log in again to send an SOS or a report.",
+    { icon: "notifications-off-outline", text: "Updates about your reports and SOS stop." },
+    { icon: "navigate-outline", text: "Tracking a responder on the way to you stops." },
+    { icon: "lock-closed-outline", text: "You'll need to log in again to send an SOS or a report." },
   ];
 }
 
@@ -54,7 +53,7 @@ export default function LogoutDialog({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const [busy, setBusy] = useState(false);
-  const items = consequences(role, isOnDuty);
+  const items = consequences(role);
 
   const confirm = async () => {
     if (busy) return;
@@ -78,18 +77,43 @@ export default function LogoutDialog({
       <Dialog>
         <DialogIcon name="log-out-outline" color={COLORS.primary} />
         <DialogTitle>Log out?</DialogTitle>
-        <Text style={styles.lead}>On this phone, after you log out:</Text>
-        <View style={styles.list}>
+        <Text style={styles.subtitle}>You can log back in anytime.</Text>
+
+        {/* What stops on this phone, as one tidy panel. */}
+        <View style={styles.panel}>
+          <Text style={styles.panelLabel}>AFTER YOU LOG OUT</Text>
           {items.map((item) => (
-            <View key={item} style={styles.item}>
-              <Ionicons name="remove-circle-outline" size={16} color={COLORS.primary} style={styles.itemIcon} />
-              <Text style={styles.itemText}>{item}</Text>
+            <View key={item.text} style={styles.item}>
+              <View style={styles.itemIcon}>
+                <Ionicons name={item.icon} size={15} color={COLORS.textSecondary} />
+              </View>
+              <Text style={styles.itemText}>{item.text}</Text>
             </View>
           ))}
         </View>
-        {role === "citizen" ? (
-          <Text style={styles.note}>Your reports stay saved to your account.</Text>
+
+        {/* Logging out doesn't switch duty off -- the one thing a responder
+            must act on, so it's its own callout rather than another line. */}
+        {role === "responder" && isOnDuty ? (
+          <View style={styles.dutyCallout}>
+            <Ionicons name="radio-button-on" size={18} color={COLORS.warning} style={styles.calloutIcon} />
+            <View style={styles.calloutTextCol}>
+              <Text style={styles.calloutTitle}>You&apos;re still On Duty</Text>
+              <Text style={styles.calloutText}>
+                Logging out won&apos;t switch it off. Done for the day? Tap{" "}
+                <Text style={styles.calloutStrong}>On Duty</Text> on the Dashboard first.
+              </Text>
+            </View>
+          </View>
         ) : null}
+
+        {role === "citizen" ? (
+          <View style={styles.note}>
+            <Ionicons name="checkmark-circle" size={15} color={COLORS.success} />
+            <Text style={styles.noteText}>Your reports stay saved to your account.</Text>
+          </View>
+        ) : null}
+
         <DialogActions>
           <DialogButton
             label="Cancel"
@@ -107,25 +131,42 @@ export default function LogoutDialog({
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-    lead: {
-      alignSelf: "stretch",
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "600",
+    subtitle: {
+      fontSize: TYPOGRAPHY.caption,
       color: COLORS.textSecondary,
+      textAlign: "center",
       marginTop: SPACING.xs,
     },
-    list: {
+    panel: {
       alignSelf: "stretch",
-      gap: SPACING.xs,
-      marginTop: SPACING.xs,
+      marginTop: SPACING.md,
+      padding: SPACING.md,
+      gap: SPACING.sm + 2,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+    },
+    panelLabel: {
+      fontSize: 11,
+      fontWeight: "800",
+      letterSpacing: 0.8,
+      color: COLORS.textTertiary,
     },
     item: {
       flexDirection: "row",
-      alignItems: "flex-start",
-      gap: SPACING.xs,
+      alignItems: "center",
+      gap: SPACING.sm,
     },
     itemIcon: {
-      marginTop: 2,
+      width: 28,
+      height: 28,
+      borderRadius: RADIUS.full,
+      backgroundColor: COLORS.background,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      alignItems: "center",
+      justifyContent: "center",
     },
     itemText: {
       flex: 1,
@@ -133,11 +174,49 @@ function createStyles(COLORS: ColorPalette) {
       lineHeight: 19,
       color: COLORS.text,
     },
+    dutyCallout: {
+      alignSelf: "stretch",
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginTop: SPACING.sm,
+      padding: SPACING.md,
+      backgroundColor: COLORS.warningBg,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: `${COLORS.warning}55`,
+    },
+    calloutIcon: {
+      marginTop: 1,
+    },
+    calloutTextCol: {
+      flex: 1,
+      gap: 2,
+    },
+    calloutTitle: {
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "800",
+      color: COLORS.text,
+    },
+    calloutText: {
+      fontSize: TYPOGRAPHY.small,
+      lineHeight: 19,
+      color: COLORS.textSecondary,
+    },
+    calloutStrong: {
+      fontWeight: "800",
+      color: COLORS.text,
+    },
     note: {
       alignSelf: "stretch",
-      fontSize: TYPOGRAPHY.small,
-      color: COLORS.textTertiary,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
       marginTop: SPACING.sm,
+    },
+    noteText: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textSecondary,
     },
   });
 }

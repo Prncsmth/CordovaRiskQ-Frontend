@@ -269,10 +269,11 @@ function createStyles(COLORS: ColorPalette) {
     card: {
       flexDirection: "row",
       alignItems: "center",
-      gap: SPACING.sm,
+      gap: SPACING.sm + SPACING.xs,
       backgroundColor: COLORS.background,
       borderRadius: RADIUS.lg,
-      padding: SPACING.md,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.md + 2,
       ...SHADOW,
     },
     // No circle background -- a fixed width keeps the row's text column
@@ -283,7 +284,7 @@ function createStyles(COLORS: ColorPalette) {
     },
     textCol: {
       flex: 1,
-      gap: 2,
+      gap: SPACING.xs,
     },
     title: {
       fontFamily: FONT_FAMILY.displaySemibold,
@@ -293,7 +294,7 @@ function createStyles(COLORS: ColorPalette) {
     body: {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textSecondary,
-      lineHeight: 18,
+      lineHeight: 19,
     },
     meta: {
       fontSize: TYPOGRAPHY.small,

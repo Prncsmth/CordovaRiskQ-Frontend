@@ -273,7 +273,7 @@ function createStyles(COLORS: ColorPalette) {
   },
   content: {
     paddingHorizontal: SPACING.md,
-    gap: SPACING.lg,
+    gap: SPACING.lg + SPACING.xs,
   },
   header: {
     flexDirection: "row",
@@ -320,8 +320,10 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.white,
     fontWeight: "700",
   },
+  // Roomier than the old 8 px so a long list of notifications doesn't read
+  // as one crowded block.
   section: {
-    gap: SPACING.sm,
+    gap: SPACING.sm + SPACING.xs,
   },
   sectionLabel: {
     fontSize: TYPOGRAPHY.small,
@@ -332,7 +334,7 @@ function createStyles(COLORS: ColorPalette) {
     marginLeft: SPACING.xs,
   },
   list: {
-    gap: SPACING.sm,
+    gap: SPACING.sm + SPACING.xs,
   },
   });
 }
