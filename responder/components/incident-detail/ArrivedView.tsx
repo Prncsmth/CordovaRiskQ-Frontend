@@ -24,6 +24,7 @@ import { formatRelativeTime } from "@/utils/formatter";
 
 import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
+import ReporterContactCard from "./ReporterContactCard";
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
@@ -79,6 +80,8 @@ export default function ArrivedView({
             <Text style={styles.summarySubtitle}>{incident.location}</Text>
           </View>
         </View>
+
+        <ReporterContactCard incident={incident} style={styles.reporterCard} />
 
         <Text style={styles.sectionLabel}>Incident Details</Text>
         <View style={styles.detailsCard}>
@@ -145,6 +148,11 @@ function createStyles(COLORS: ColorPalette) {
       marginTop: 4,
       marginBottom: SPACING.lg,
       paddingHorizontal: SPACING.md,
+    },
+    // Same card treatment as the summary card above it.
+    reporterCard: {
+      marginBottom: SPACING.md,
+      ...SHADOW,
     },
     summaryCard: {
       flexDirection: "row",

@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Pressable,
   Share,
@@ -32,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/common/Dialog";
 import { darken } from "@/responder/components/shared/colorUtils";
+import { callResponderAction } from "@/utils/callResponder";
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
 import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
 import RButton from "@/responder/components/shared/RButton";
@@ -258,6 +260,8 @@ export default function NavigateScreen() {
   }
 
   const visual = getIncidentVisual(incident.type);
+  // The reporter's number, if the backend sent one (see ReporterContactCard).
+  const reporterCall = callResponderAction(incident.reporterContact?.mobile ?? null);
   const { incidentCoords } = incident;
 
   const handleLocate = () => {
@@ -325,6 +329,23 @@ export default function NavigateScreen() {
               {incident.location}
             </Text>
           </View>
+          {/* Call the reporter without leaving the map -- only when the
+              backend sent their contact (responder on the incident) and it
+              has a dialable number. Same green as the other Call buttons. */}
+          {reporterCall.kind === "call" ? (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                if (reporterCall.kind === "call") void Linking.openURL(reporterCall.telUrl);
+              }}
+              hitSlop={10}
+              style={({ pressed }) => [styles.callButton, pressed && styles.callButtonPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Call ${incident.reporterContact?.name ?? "the reporter"}`}
+            >
+              <Ionicons name="call" size={16} color={COLORS.white} />
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -499,6 +520,18 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 1,
+  },
+  callButton: {
+    width: 32,
+    height: 32,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.success,
+    alignItems: "center",
+    justifyContent: "center",
+    ...SHADOW,
+  },
+  callButtonPressed: {
+    opacity: 0.8,
   },
   closeButton: {
     width: 32,

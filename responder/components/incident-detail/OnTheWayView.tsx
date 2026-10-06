@@ -29,6 +29,10 @@ import {
 import type { Incident } from "@/responder/types/responder";
 
 import { darken } from "@/responder/components/shared/colorUtils";
+import ReporterContactCard from "./ReporterContactCard";
+
+// Card height (48px row + 2x16px padding) plus its top margin.
+const REPORTER_CARD_HEIGHT = 96;
 
 export default function OnTheWayView({
   incident,
@@ -78,9 +82,10 @@ export default function OnTheWayView({
   // locate button up top and the bottom sheet (thumbnail + text + Navigate
   // + Leave Incident), instead of one top-sized value applied to all four
   // sides, which forced the view more zoomed-out than the route needed.
+  // The reporter's call card makes the sheet taller when it's shown.
   const mapFitPadding = {
     top: insets.top + 70,
-    bottom: insets.bottom + 300,
+    bottom: insets.bottom + 300 + (incident.reporterContact ? REPORTER_CARD_HEIGHT : 0),
     left: SPACING.lg,
     right: SPACING.lg,
   };
@@ -167,6 +172,8 @@ export default function OnTheWayView({
             </Text>
           </View>
         </View>
+
+        <ReporterContactCard incident={incident} style={styles.reporterCard} />
 
         <RButton
           label="Navigate"
@@ -311,6 +318,9 @@ function createStyles(COLORS: ColorPalette) {
     navigateButton: {
       marginTop: SPACING.lg,
       marginBottom: 0,
+    },
+    reporterCard: {
+      marginTop: SPACING.md,
     },
     // Secondary to Navigate: a quiet outline button in the danger tint,
     // same red-on-tint language as the Lobby's "Leave Incident" row.

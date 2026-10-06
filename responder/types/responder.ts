@@ -56,4 +56,14 @@ export interface Incident {
   responderCoords?: Coordinates;
   incidentCoords?: Coordinates;
   createdAt: string;
+  // The citizen who reported it (or sent the SOS). The backend only sends it
+  // to a responder actively on this incident (joined / on the way / arrived);
+  // null otherwise. The number is dialed, never shown.
+  reporterContact?: ReporterContact | null;
+}
+
+export interface ReporterContact {
+  name: string | null;
+  // Null when the reporter has no usable number saved.
+  mobile: string | null;
 }

@@ -22,6 +22,7 @@ import type { Incident } from "@/responder/types/responder";
 import ActionRow from "./ActionRow";
 import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
+import ReporterContactCard from "./ReporterContactCard";
 
 export type LobbyTab = "lobby" | "details";
 
@@ -80,6 +81,8 @@ export default function LobbyView({
           <Text style={styles.summarySubtitle}>{incident.location}</Text>
         </View>
       </View>
+
+      <ReporterContactCard incident={incident} style={styles.reporterCard} />
 
       <View style={styles.tabRow}>
         <Pressable
@@ -162,6 +165,11 @@ function createStyles(COLORS: ColorPalette) {
       flex: 1,
       paddingHorizontal: SPACING.md,
       paddingBottom: SPACING.md,
+    },
+    // Same card treatment as the summary card above it.
+    reporterCard: {
+      marginBottom: SPACING.md,
+      ...SHADOW,
     },
     summaryCard: {
       flexDirection: "row",

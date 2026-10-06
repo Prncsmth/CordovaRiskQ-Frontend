@@ -81,11 +81,12 @@ export default function LogoutDialog({
 
         {/* What stops on this phone, as one tidy panel. */}
         <View style={styles.panel}>
-          <Text style={styles.panelLabel}>AFTER YOU LOG OUT</Text>
+          <Text style={styles.panelLabel}>After you log out</Text>
           {items.map((item) => (
             <View key={item.text} style={styles.item}>
+              {/* Same red-on-tint icon circles as the Profile and Settings rows. */}
               <View style={styles.itemIcon}>
-                <Ionicons name={item.icon} size={15} color={COLORS.textSecondary} />
+                <Ionicons name={item.icon} size={15} color={COLORS.primary} />
               </View>
               <Text style={styles.itemText}>{item.text}</Text>
             </View>
@@ -96,7 +97,7 @@ export default function LogoutDialog({
             must act on, so it's its own callout rather than another line. */}
         {role === "responder" && isOnDuty ? (
           <View style={styles.dutyCallout}>
-            <Ionicons name="radio-button-on" size={18} color={COLORS.warning} style={styles.calloutIcon} />
+            <Ionicons name="radio-button-on" size={18} color={COLORS.primary} style={styles.calloutIcon} />
             <View style={styles.calloutTextCol}>
               <Text style={styles.calloutTitle}>You&apos;re still On Duty</Text>
               <Text style={styles.calloutText}>
@@ -148,10 +149,9 @@ function createStyles(COLORS: ColorPalette) {
       borderColor: COLORS.borderMuted,
     },
     panelLabel: {
-      fontSize: 11,
-      fontWeight: "800",
-      letterSpacing: 0.8,
-      color: COLORS.textTertiary,
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "600",
+      color: COLORS.textSecondary,
     },
     item: {
       flexDirection: "row",
@@ -162,9 +162,7 @@ function createStyles(COLORS: ColorPalette) {
       width: 28,
       height: 28,
       borderRadius: RADIUS.full,
-      backgroundColor: COLORS.background,
-      borderWidth: 1,
-      borderColor: COLORS.borderMuted,
+      backgroundColor: COLORS.primaryTint,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -180,10 +178,10 @@ function createStyles(COLORS: ColorPalette) {
       gap: SPACING.sm,
       marginTop: SPACING.sm,
       padding: SPACING.md,
-      backgroundColor: COLORS.warningBg,
+      backgroundColor: COLORS.primaryTint,
       borderRadius: RADIUS.md,
       borderWidth: 1,
-      borderColor: `${COLORS.warning}55`,
+      borderColor: `${COLORS.primary}33`,
     },
     calloutIcon: {
       marginTop: 1,
