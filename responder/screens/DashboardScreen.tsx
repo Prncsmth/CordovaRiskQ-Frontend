@@ -89,7 +89,7 @@ export default function ResponderIncidentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useTabBarHeight();
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const { photoUri } = useProfilePhoto();
   const {
     notifyHomeReady,
@@ -390,13 +390,20 @@ export default function ResponderIncidentsScreen() {
     setDuty(next);
 
     if (!token) return;
-    updateDutyStatus(token, next === "online").catch(() => {
-      setDuty(previous);
-      Alert.alert(
-        "Something went wrong",
-        "Couldn't update your duty status. Please try again.",
-      );
-    });
+    updateDutyStatus(token, next === "online")
+      // Keep the app's saved user in step with the server, so the logout
+      // notice and this pill (after the screen remounts) show the real
+      // duty status instead of the one from login.
+      .then(() => {
+        if (user) void updateUser({ ...user, isOnDuty: next === "online" });
+      })
+      .catch(() => {
+        setDuty(previous);
+        Alert.alert(
+          "Something went wrong",
+          "Couldn't update your duty status. Please try again.",
+        );
+      });
   };
 
   return (
@@ -489,7 +496,7 @@ export default function ResponderIncidentsScreen() {
                 ]}
               />
               <Text style={styles.dutyText}>
-                {duty === "online" ? "Online" : "Offline"}
+                {duty === "online" ? "On Duty" : "Off Duty"}
               </Text>
             </Pressable>
 
@@ -505,7 +512,7 @@ export default function ResponderIncidentsScreen() {
           {/* How many of the nearby incidents are SOS alerts vs citizen
               reports, at a glance -- next to the High Urgency filter. */}
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { borderLeftColor: COLORS.danger }]}>
+            <View style={styles.statCard}>
               <View style={styles.statTopRow}>
                 <View style={[styles.statIcon, { backgroundColor: `${COLORS.danger}26` }]}>
                   <Ionicons name="warning" size={14} color={COLORS.danger} />
@@ -516,7 +523,7 @@ export default function ResponderIncidentsScreen() {
                 SOS Alerts
               </Text>
             </View>
-            <View style={[styles.statCard, { borderLeftColor: COLORS.tide }]}>
+            <View style={styles.statCard}>
               <View style={styles.statTopRow}>
                 <View style={[styles.statIcon, { backgroundColor: `${COLORS.tide}26` }]}>
                   <Ionicons name="document-text" size={14} color={COLORS.tide} />
@@ -530,7 +537,6 @@ export default function ResponderIncidentsScreen() {
             <Pressable
               style={[
                 styles.statCard,
-                { borderLeftColor: COLORS.primary },
                 filters.urgencies.has("high") && styles.statCardActive,
               ]}
               onPress={handleToggleHighUrgency}
@@ -569,10 +575,10 @@ export default function ResponderIncidentsScreen() {
           />
           <Ionicons name="moon-outline" size={32} color={COLORS.textTertiary} />
           <Text style={styles.offlineText}>
-            You&apos;re offline — go online to receive incidents.
+            You&apos;re off duty — go on duty to receive incidents.
           </Text>
           <RButton
-            label="Go Online"
+            label="Go On Duty"
             icon="radio-button-on-outline"
             variant="primary"
             onPress={handleToggleDuty}
@@ -840,7 +846,6 @@ function createStyles(COLORS: ColorPalette) {
       gap: 2,
       backgroundColor: COLORS.background,
       borderRadius: RADIUS.lg,
-      borderLeftWidth: 3,
       paddingVertical: SPACING.sm,
       paddingHorizontal: SPACING.sm,
     },

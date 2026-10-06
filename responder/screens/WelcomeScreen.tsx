@@ -52,7 +52,7 @@ function ResponderWelcomeContent() {
         </View>
         <Text style={styles.title}>Welcome to the Team, {firstName}!</Text>
         <Text style={styles.subtitle}>
-          You&apos;re set up as a responder. Go online from your dashboard to
+          You&apos;re set up as a responder. Go on duty from your dashboard to
           start receiving incident alerts near you.
         </Text>
 
@@ -67,7 +67,7 @@ function ResponderWelcomeContent() {
           />
           <ResponderPoint
             icon="radio-button-on-outline"
-            text="Toggle Online/Offline any time you're on or off duty"
+            text="Tap On Duty / Off Duty on your dashboard any time"
           />
         </View>
       </View>
