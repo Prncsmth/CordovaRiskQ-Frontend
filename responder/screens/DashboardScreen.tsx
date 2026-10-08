@@ -35,6 +35,7 @@ import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
 import BarangayChipSelector from "@/responder/components/dashboard/BarangayChipSelector";
 import BarangaySectionHeader from "@/responder/components/dashboard/BarangaySectionHeader";
+import DutyToggle from "@/responder/components/dashboard/DutyToggle";
 import {
   filterIncidents,
   incidentBarangay,
@@ -406,6 +407,24 @@ export default function ResponderIncidentsScreen() {
       });
   };
 
+  // The announcement scrolls with the incident list (it used to sit in the
+  // fixed header, squeezing the list); when no list is on screen -- off
+  // duty, loading, or an empty state -- it shows above that state instead.
+  const announcementBanner = announcement ? (
+    <AdvisoryBanner
+      id={announcement.id}
+      priority={announcement.priority}
+      time={formatShortDateTime(announcement.createdAt)}
+      title={announcement.title}
+      message={announcement.content}
+    />
+  ) : null;
+  const showsList =
+    duty === "online" &&
+    hasLoadedOnce &&
+    incidents.length > 0 &&
+    filteredIncidents.length > 0;
+
   return (
     <View style={styles.screen}>
       <View style={styles.hero}>
@@ -461,52 +480,18 @@ export default function ResponderIncidentsScreen() {
             </View>
           </View>
 
-          {/* Right under the greeting, like the citizen Home's advisory. */}
-          {announcement ? (
-            <View style={styles.announcement}>
-              <AdvisoryBanner
-                id={announcement.id}
-                priority={announcement.priority}
-                time={formatShortDateTime(announcement.createdAt)}
-                title={announcement.title}
-                message={announcement.content}
-              />
-            </View>
-          ) : null}
-
           <QueuedAlertBadge
             style={{ marginHorizontal: SPACING.md, marginBottom: SPACING.sm }}
           />
 
           <View style={styles.statusRow}>
-            <Pressable
-              style={[
-                styles.dutyPill,
-                duty === "offline" && styles.dutyPillOffline,
-              ]}
-              onPress={handleToggleDuty}
-            >
-              <View
-                style={[
-                  styles.dutyDot,
-                  {
-                    backgroundColor:
-                      duty === "online" ? COLORS.success : COLORS.gray,
-                  },
-                ]}
-              />
-              <Text style={styles.dutyText}>
-                {duty === "online" ? "On Duty" : "Off Duty"}
-              </Text>
-            </Pressable>
+            <DutyToggle onDuty={duty === "online"} onToggle={handleToggleDuty} />
 
-            <Text style={styles.headerSubtitle}>
-              {incidents.length} nearby incident
-              {incidents.length === 1 ? "" : "s"}
-              {duty === "online" && lastUpdatedAt
-                ? ` · Updated ${formatRelativeTime(lastUpdatedAt).toLowerCase()}`
-                : ""}
-            </Text>
+            {duty === "online" && lastUpdatedAt ? (
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
+                Updated {formatRelativeTime(lastUpdatedAt).toLowerCase()}
+              </Text>
+            ) : null}
           </View>
 
           {/* How many of the nearby incidents are SOS alerts vs citizen
@@ -563,6 +548,10 @@ export default function ResponderIncidentsScreen() {
         </LinearGradient>
       </View>
 
+      {duty === "offline" && announcementBanner ? (
+        <View style={styles.announcementOutsideList}>{announcementBanner}</View>
+      ) : null}
+
       {duty === "offline" ? (
         <View style={styles.offlineState}>
           <RippleRings
@@ -601,6 +590,10 @@ export default function ResponderIncidentsScreen() {
               onSelect={handleSelectBarangay}
             />
           )}
+
+          {!showsList && announcementBanner ? (
+            <View style={styles.announcementOutsideList}>{announcementBanner}</View>
+          ) : null}
 
           {!hasLoadedOnce ? (
             <View style={styles.noResultsState}>
@@ -656,37 +649,43 @@ export default function ResponderIncidentsScreen() {
               ]}
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
+              // An element, not an inline function: a new function each render
+              // is a new component type, so the header (and the announcement
+              // inside it) would remount every render -- and the banner's tour
+              // onLayout re-renders this screen, which looped forever.
               ListHeaderComponent={
-                nearestIncidents.length > 0
-                  ? () => (
-                      <View style={styles.nearestSection}>
-                        <Text style={styles.nearestLabel}>Nearest to You</Text>
-                        {nearestIncidents.map((incident) => (
-                          <IncidentCard
-                            key={incident.id}
-                            incident={incident}
-                            isNew={newIncidentIds.has(incident.id)}
-                            onPress={() =>
-                              router.push({
-                                pathname: "/responder/[id]",
-                                params: { id: incident.id },
-                              })
-                            }
-                          />
-                        ))}
-                        {nearestAll.length > NEAREST_INCIDENTS_COUNT && (
-                          <SeeAllToggle
-                            expanded={nearestExpanded}
-                            remainingCount={nearestAll.length - NEAREST_INCIDENTS_COUNT}
-                            onPress={() => setNearestExpanded((prev) => !prev)}
-                          />
-                        )}
-                        {!selectedBarangayId && availableBarangays.length > 0 && (
-                          <Text style={styles.pickBarangayHint}>
-                            Tap a barangay above to see its incidents.
-                          </Text>
-                        )}
-                      </View>
+                nearestIncidents.length > 0 || announcementBanner
+                  ? (
+                      <>
+                        {announcementBanner ? (
+                          <View style={styles.announcementInList}>{announcementBanner}</View>
+                        ) : null}
+                        {nearestIncidents.length > 0 ? (
+                          <View style={styles.nearestSection}>
+                            <Text style={styles.nearestLabel}>Nearest to You</Text>
+                            {nearestIncidents.map((incident) => (
+                              <IncidentCard
+                                key={incident.id}
+                                incident={incident}
+                                isNew={newIncidentIds.has(incident.id)}
+                                onPress={() =>
+                                  router.push({
+                                    pathname: "/responder/[id]",
+                                    params: { id: incident.id },
+                                  })
+                                }
+                              />
+                            ))}
+                            {nearestAll.length > NEAREST_INCIDENTS_COUNT && (
+                              <SeeAllToggle
+                                expanded={nearestExpanded}
+                                remainingCount={nearestAll.length - NEAREST_INCIDENTS_COUNT}
+                                onPress={() => setNearestExpanded((prev) => !prev)}
+                              />
+                            )}
+                          </View>
+                        ) : null}
+                      </>
                     )
                   : undefined
               }
@@ -804,40 +803,18 @@ function createStyles(COLORS: ColorPalette) {
       paddingHorizontal: SPACING.md,
       marginBottom: SPACING.sm,
     },
-    dutyPill: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: COLORS.primaryTint,
-      borderRadius: RADIUS.full,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      // Never shrink -- only the subtitle text next to it should give up width.
-      flexShrink: 0,
-    },
-    dutyPillOffline: {
-      backgroundColor: COLORS.background,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-    dutyDot: {
-      width: 8,
-      height: 8,
-      borderRadius: RADIUS.full,
-    },
-    dutyText: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "700",
-      color: COLORS.text,
-    },
     statsRow: {
       flexDirection: "row",
       gap: SPACING.sm,
       paddingHorizontal: SPACING.md,
     },
-    announcement: {
+    // The list already pads its sides; outside it the banner needs its own.
+    announcementInList: {
+      marginBottom: SPACING.md,
+    },
+    announcementOutsideList: {
       paddingHorizontal: SPACING.md,
-      marginBottom: SPACING.sm,
+      paddingTop: SPACING.md,
     },
     // Three across: icon + number on top, label underneath, so even
     // "High Urgency" fits on a narrow phone.
@@ -927,12 +904,6 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textSecondary,
       letterSpacing: 0.2,
       textTransform: "uppercase",
-    },
-    pickBarangayHint: {
-      marginTop: SPACING.xs,
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textTertiary,
-      textAlign: "center",
     },
   });
 }
