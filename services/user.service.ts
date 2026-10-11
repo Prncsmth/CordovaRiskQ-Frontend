@@ -8,6 +8,10 @@ export type UserProfile = {
   // False for a Google Sign-In account, which has no password to change.
   // Missing from a backend that predates it.
   hasPassword?: boolean;
+  // A responder's admin-set unit ("BDRRMO" | "MDRRMO") and home barangay.
+  // Missing from a backend that predates them.
+  unit?: string | null;
+  assignedBarangay?: string | null;
 };
 
 export async function getProfile(token: string): Promise<UserProfile> {
