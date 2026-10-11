@@ -10,9 +10,17 @@ import { getVerifiedLocation } from "@/services/location.service";
 import { cancelSosIncident, triggerSOS } from "@/services/sos.service";
 import { getResponderTracking, type TrackingSnapshot } from "@/services/tracking.service";
 import { isInsideCordova } from "@/utils/geofence";
+import {
+  SOS_SEND_TIMEOUT_MS,
+  classifySosSendError,
+  withSosSendTimeout,
+  type SosFailureReason,
+} from "@/utils/sosFailure";
 
 type SosStage = "idle" | "confirm" | "verifying" | "sending" | "active";
-type SosBlockedReason = "permission" | "unavailable" | null;
+// "outside" is the only geofence block; the SosFailureReason ones (no GPS,
+// no connection, timeout) offer calls instead -- see utils/sosFailure.ts.
+export type SosBlockedReason = "permission" | "outside" | SosFailureReason | null;
 
 // Whether a responder has accepted this SOS's linked incident yet --
 // separate from SosStage, which only tracks the citizen's own send/cancel
@@ -110,15 +118,20 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
         setBlockedReason("permission");
         return;
       }
-      if (result.status === "unavailable" || !isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+      if (result.status === "unavailable") {
         setStage("idle");
-        setBlockedReason("unavailable");
+        setBlockedReason("no-location");
+        return;
+      }
+      if (!isInsideCordova(result.coords.latitude, result.coords.longitude)) {
+        setStage("idle");
+        setBlockedReason("outside");
         return;
       }
 
       if (!token) {
         setStage("idle");
-        setBlockedReason("unavailable");
+        setBlockedReason("send-failed");
         return;
       }
 
@@ -139,8 +152,20 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
       if (!isCurrent()) return;
       const locationLabel = geocoded ?? barangayLabel;
       try {
-        const alert = await triggerSOS(token, result.coords, locationLabel);
+        // Capped at 20s so a weak signal can't leave "Sending" up for
+        // minutes. inFlightRef still blocks a second tap while this runs.
+        const alert = await withSosSendTimeout(
+          triggerSOS(token, result.coords, locationLabel),
+          SOS_SEND_TIMEOUT_MS,
+        );
         if (!isCurrent()) return;
+        // Saved, but its linked incident failed server-side, so no
+        // responder was paged -- don't show "Help Is On The Way".
+        if (alert.incidentId === null) {
+          setStage("idle");
+          setBlockedReason("not-dispatched");
+          return;
+        }
         setIncidentId(alert.incidentId);
         setStage("active");
         minimizeTimerRef.current = setTimeout(() => {
@@ -150,7 +175,8 @@ export function SosProvider({ children }: { children: React.ReactNode }) {
         console.warn("Failed to send SOS alert", error);
         if (isCurrent()) {
           setStage("idle");
-          setBlockedReason("unavailable");
+          // Only the backend's geofence 403 reads as "outside Cordova".
+          setBlockedReason(classifySosSendError(error));
         }
       }
     } finally {
