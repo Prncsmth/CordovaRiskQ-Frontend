@@ -22,12 +22,14 @@ type Role = "citizen" | "responder";
 type Consequence = { icon: keyof typeof Ionicons.glyphMap; text: string };
 
 // What actually stops on this phone once logged out (see AuthContext's
-// logout: the session and the push token are both cleared).
+// logout: the session and the push token are both cleared, and an on-duty
+// responder is switched Off Duty).
 function consequences(role: Role): Consequence[] {
   if (role === "responder") {
     return [
-      { icon: "notifications-off-outline", text: "New incident alerts stop on this phone." },
-      { icon: "location-outline", text: "Live location sharing for your active incidents stops." },
+      { icon: "notifications-off-outline", text: "SOS and incident alerts stop on this phone." },
+      { icon: "location-outline", text: "Your live location stops being shared with citizens and the admin." },
+      { icon: "lock-closed-outline", text: "You'll need to log in again to accept or update an incident." },
     ];
   }
   return [
@@ -77,7 +79,11 @@ export default function LogoutDialog({
       <Dialog>
         <DialogIcon name="log-out-outline" color={COLORS.primary} />
         <DialogTitle>Log out?</DialogTitle>
-        <Text style={styles.subtitle}>You can log back in anytime.</Text>
+        <Text style={styles.subtitle}>
+          {role === "responder"
+            ? "Log back in anytime to respond again."
+            : "You can log back in anytime."}
+        </Text>
 
         {/* What stops on this phone, as one tidy panel. */}
         <View style={styles.panel}>
@@ -93,27 +99,33 @@ export default function LogoutDialog({
           ))}
         </View>
 
-        {/* Logging out doesn't switch duty off -- the one thing a responder
-            must act on, so it's its own callout rather than another line. */}
+        {/* Logging out tries to switch duty off (see AuthContext logout),
+            but that needs a connection -- so it's worded as an attempt, and
+            the responder is told how to make sure. */}
         {role === "responder" && isOnDuty ? (
           <View style={styles.dutyCallout}>
             <Ionicons name="radio-button-on" size={18} color={COLORS.primary} style={styles.calloutIcon} />
             <View style={styles.calloutTextCol}>
-              <Text style={styles.calloutTitle}>You&apos;re still On Duty</Text>
+              <Text style={styles.calloutTitle}>You&apos;re On Duty</Text>
               <Text style={styles.calloutText}>
-                Logging out won&apos;t switch it off. Done for the day? Tap{" "}
-                <Text style={styles.calloutStrong}>On Duty</Text> on the Dashboard first.
+                Logging out switches you <Text style={styles.calloutStrong}>Off Duty</Text>, so
+                the admin won&apos;t count you as available. No connection? Switch it off on
+                the Dashboard first.
               </Text>
             </View>
           </View>
         ) : null}
 
-        {role === "citizen" ? (
-          <View style={styles.note}>
-            <Ionicons name="checkmark-circle" size={15} color={COLORS.success} />
-            <Text style={styles.noteText}>Your reports stay saved to your account.</Text>
-          </View>
-        ) : null}
+        {/* Logging out never removes a responder from an incident (only
+            Leave Incident does), so they're reminded it's still theirs. */}
+        <View style={styles.note}>
+          <Ionicons name="checkmark-circle" size={15} color={COLORS.success} />
+          <Text style={styles.noteText}>
+            {role === "responder"
+              ? "Incidents you've joined stay assigned to you."
+              : "Your reports stay saved to your account."}
+          </Text>
+        </View>
 
         <DialogActions>
           <DialogButton

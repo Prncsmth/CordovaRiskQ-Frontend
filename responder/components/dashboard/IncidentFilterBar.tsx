@@ -11,6 +11,9 @@
 // The urgency/type chips sit behind the filter button next to the search
 // (with a count badge while any are active) so the Dashboard header stays
 // compact -- the barangay row is the everyday control.
+// With a `title` (a BDRRMO responder locked to their barangay, where
+// searching makes little sense) the search is replaced by that title and
+// the filter button sits beside it as the list's header.
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useMemo, useState } from "react";
@@ -56,12 +59,15 @@ export type IncidentFilterBarProps = {
   filters: IncidentFilters;
   onFiltersChange: (filters: IncidentFilters) => void;
   availableTypes: string[];
+  // Shown instead of the search input, e.g. "Active in Buagsong (4)".
+  title?: string;
 };
 
 export default function IncidentFilterBar({
   filters,
   onFiltersChange,
   availableTypes,
+  title,
 }: IncidentFilterBarProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -79,6 +85,11 @@ export default function IncidentFilterBar({
   return (
     <View style={styles.container}>
       <View style={styles.searchRow}>
+        {title ? (
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+        ) : (
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color={COLORS.textSecondary} />
           <TextInput
@@ -99,6 +110,7 @@ export default function IncidentFilterBar({
             </Pressable>
           )}
         </View>
+        )}
 
         <Pressable
           hitSlop={4}
@@ -212,6 +224,15 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       gap: SPACING.sm,
       marginHorizontal: SPACING.md,
+    },
+    // Same uppercase section-label look as the Dashboard's other headers.
+    title: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      color: COLORS.textSecondary,
     },
     searchBar: {
       flex: 1,
