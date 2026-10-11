@@ -36,7 +36,7 @@ const SECTIONS: { heading: string; body: string }[] = [
   },
   {
     heading: "2. Location & Data Sharing",
-    body: "The app shares your real-time geolocation with local responders and volunteers only when you submit a report or trigger an SOS, so help can find you quickly.",
+    body: "Only when you submit a report or trigger an SOS, your real-time location and the details you provide are shared with Cordova responders and the MDRRMO operators, so help can find you quickly. Responders assigned to your incident can also see your name and call your mobile number from the app; the number itself is not displayed.",
   },
   {
     heading: "3. Emergency Reporting",
@@ -49,6 +49,10 @@ const SECTIONS: { heading: string; body: string }[] = [
   {
     heading: "5. Limitation of Liability",
     body: "Cordova RiskQ assists coordination but does not replace calling local emergency hotlines directly in life-threatening situations.",
+  },
+  {
+    heading: "6. Data Privacy",
+    body: "Your personal information is handled in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173). We collect your name, email, mobile number, and the location and details of the reports and SOS alerts you send, and use them only to coordinate emergency response. Your data is kept only as long as needed for emergency response and official records, as set by the Cordova MDRRMO. You can update your details in your Profile, and request access to or deletion of your account and data through Contact Support in the app.",
   },
 ];
 
