@@ -81,7 +81,12 @@ export default function ArrivedView({
           </View>
         </View>
 
-        <ReporterContactCard incident={incident} style={styles.reporterCard} />
+        {/* On scene, so just who reported it -- no Call button here. */}
+        <ReporterContactCard
+          incident={incident}
+          style={styles.reporterCard}
+          showCall={false}
+        />
 
         <Text style={styles.sectionLabel}>Incident Details</Text>
         <View style={styles.detailsCard}>

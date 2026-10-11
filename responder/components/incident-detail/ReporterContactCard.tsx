@@ -15,9 +15,11 @@ import type { Incident } from "@/responder/types/responder";
 export default function ReporterContactCard({
   incident,
   style,
+  showCall = true,
 }: {
   incident: Incident;
   style?: StyleProp<ViewStyle>;
+  showCall?: boolean;
 }) {
   const contact = incident.reporterContact;
   if (!contact) return null;
@@ -28,6 +30,7 @@ export default function ReporterContactCard({
       detail={incident.categoryId === "sos" ? "Sent this SOS" : "Reported this incident"}
       mobile={contact.mobile}
       showHotlinesFallback={false}
+      showCall={showCall}
       style={style}
     />
   );

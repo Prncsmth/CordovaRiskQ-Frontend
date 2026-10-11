@@ -15,7 +15,6 @@ import {
   Linking,
   Modal,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -269,10 +268,10 @@ export default function NavigateScreen() {
     mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 16);
   };
 
-  const handleShare = () => {
-    Share.share({
-      message: `I'm on my way to ${incident.type} at ${incident.location} -- ETA ${durationMin} min.`,
-    }).catch(() => {});
+  const handleCallReporter = () => {
+    if (reporterCall.kind !== "call") return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Linking.openURL(reporterCall.telUrl);
   };
 
   const handleArrive = async () => {
@@ -329,23 +328,6 @@ export default function NavigateScreen() {
               {incident.location}
             </Text>
           </View>
-          {/* Call the reporter without leaving the map -- only when the
-              backend sent their contact (responder on the incident) and it
-              has a dialable number. Same green as the other Call buttons. */}
-          {reporterCall.kind === "call" ? (
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                if (reporterCall.kind === "call") void Linking.openURL(reporterCall.telUrl);
-              }}
-              hitSlop={10}
-              style={({ pressed }) => [styles.callButton, pressed && styles.callButtonPressed]}
-              accessibilityRole="button"
-              accessibilityLabel={`Call ${incident.reporterContact?.name ?? "the reporter"}`}
-            >
-              <Ionicons name="call" size={16} color={COLORS.white} />
-            </Pressable>
-          ) : null}
           <Pressable
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -418,13 +400,18 @@ export default function NavigateScreen() {
         </View>
 
         <View style={styles.sheetActions}>
-          <RButton
-            label="Share Trip"
-            icon="paper-plane-outline"
-            variant="secondary"
-            onPress={handleShare}
-            style={styles.sheetButton}
-          />
+          {/* Call the reporter without leaving the map -- only when the
+              backend sent their contact (responder on the incident) and it
+              has a dialable number; otherwise Arrive takes the full row. */}
+          {reporterCall.kind === "call" ? (
+            <RButton
+              label="Call Reporter"
+              icon="call"
+              variant="secondary"
+              onPress={handleCallReporter}
+              style={styles.sheetButton}
+            />
+          ) : null}
           <RButton
             label={isArriving ? "Arriving…" : "Arrive"}
             icon="checkmark"
@@ -520,18 +507,6 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.textSecondary,
     marginTop: 1,
-  },
-  callButton: {
-    width: 32,
-    height: 32,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.success,
-    alignItems: "center",
-    justifyContent: "center",
-    ...SHADOW,
-  },
-  callButtonPressed: {
-    opacity: 0.8,
   },
   closeButton: {
     width: 32,
