@@ -61,7 +61,8 @@ export function useLiveLocationUpload(token: string | null, active: boolean): vo
       inFlight = true;
       try {
         let fix: Coordinates | null = latestFix;
-        // A one-off fallback fix carries no accuracy -- the plain 10 m rule
+        // A one-off fallback fix carries no accuracy -- the plain
+        // MOVE_THRESHOLD_METERS rule
         // applies to it.
         let accuracy: number | null = latestFix?.accuracy ?? null;
         const now = Date.now();

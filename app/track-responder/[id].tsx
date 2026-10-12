@@ -59,13 +59,6 @@ const SHORT_STATUS_LABEL: Record<string, string> = {
   arrived: "Arrived",
 };
 
-function formatSecondsAgo(seconds: number): string {
-  if (seconds < 5) return "just now";
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.round(seconds / 60);
-  return `${minutes}m ago`;
-}
-
 export default function TrackResponderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -438,13 +431,14 @@ export default function TrackResponderScreen() {
                   color={freshness.veryStale ? COLORS.textTertiary : COLORS.tide}
                 />
                 <Text style={[styles.statChipText, freshness.veryStale && styles.statChipTextMuted]}>
+                  {/* Live while updates keep arriving (every ~2 s on the
+                      move); the stale states stay so a lost signal is
+                      never shown as live. */}
                   {freshness.veryStale
                     ? "Last known location"
                     : freshness.stale
                       ? "Updating location…"
-                      : freshness.secondsSinceUpdate != null
-                        ? `Updated ${formatSecondsAgo(freshness.secondsSinceUpdate)}`
-                        : "Live"}
+                      : "Live"}
                 </Text>
               </View>
             )}

@@ -1,5 +1,6 @@
 import {
   CHECK_IN_INTERVAL_MS,
+  UPLOAD_INTERVAL_MS,
   easeInOutCubic,
   interpolateCoordinate,
   routeOriginDecision,
@@ -16,32 +17,42 @@ describe("uploadDecision", () => {
     expect(uploadDecision(null, 0, BASE, 1000)).toBe("move");
   });
 
-  it("sends once the responder has moved 10 m", () => {
-    expect(uploadDecision(BASE, 0, north(10.5), 3000)).toBe("move");
+  it("sends once the responder has moved 2 m (a few steps)", () => {
+    expect(uploadDecision(BASE, 0, north(2.5), 2000)).toBe("move");
   });
 
-  it("skips GPS jitter under 10 m", () => {
-    expect(uploadDecision(BASE, 0, north(4), 3000)).toBe("skip");
+  it("skips GPS jitter under 2 m", () => {
+    expect(uploadDecision(BASE, 0, north(1.5), 2000)).toBe("skip");
   });
 
-  it("checks in (same spot) every 15 s while stationary", () => {
-    expect(uploadDecision(BASE, 0, north(2), CHECK_IN_INTERVAL_MS - 1)).toBe("skip");
-    expect(uploadDecision(BASE, 0, north(2), CHECK_IN_INTERVAL_MS)).toBe("check-in");
+  it("uploads every 2 s", () => {
+    expect(UPLOAD_INTERVAL_MS).toBe(2000);
+  });
+
+  it("checks in (same spot) every 10 s while stationary", () => {
+    expect(CHECK_IN_INTERVAL_MS).toBe(10_000);
+    expect(uploadDecision(BASE, 0, north(1), CHECK_IN_INTERVAL_MS - 1)).toBe("skip");
+    expect(uploadDecision(BASE, 0, north(1), CHECK_IN_INTERVAL_MS)).toBe("check-in");
   });
 
   it("treats a hop within the GPS accuracy as jitter, not movement", () => {
-    // Parked indoors: a 20 m wander with a ±25 m fix isn't movement.
-    expect(uploadDecision(BASE, 0, north(20), 3000, 25)).toBe("skip");
-    expect(uploadDecision(BASE, 0, north(20), CHECK_IN_INTERVAL_MS, 25)).toBe("check-in");
-    // Beyond the accuracy it is.
-    expect(uploadDecision(BASE, 0, north(30), 3000, 25)).toBe("move");
+    // A ±4 m fix: a 3 m wander isn't movement, 4.5 m is.
+    expect(uploadDecision(BASE, 0, north(3), 2000, 4)).toBe("skip");
+    expect(uploadDecision(BASE, 0, north(3), CHECK_IN_INTERVAL_MS, 4)).toBe("check-in");
+    expect(uploadDecision(BASE, 0, north(4.5), 2000, 4)).toBe("move");
   });
 
-  it("never needs less than 10 m or more than 50 m to count as moving", () => {
-    expect(movementThresholdMeters(null)).toBe(10);
-    expect(movementThresholdMeters(3)).toBe(10);
-    expect(movementThresholdMeters(25)).toBe(25);
-    expect(movementThresholdMeters(400)).toBe(50);
+  it("a poor fix can't hold a walking responder back past 5 m", () => {
+    // ±40 m indoors/under cover used to need 40 m (~30 s on foot); now 5 m.
+    expect(uploadDecision(BASE, 0, north(5.5), 2000, 40)).toBe("move");
+    expect(uploadDecision(BASE, 0, north(4.5), 2000, 40)).toBe("skip");
+  });
+
+  it("never needs less than 2 m or more than 5 m to count as moving", () => {
+    expect(movementThresholdMeters(null)).toBe(2);
+    expect(movementThresholdMeters(1)).toBe(2);
+    expect(movementThresholdMeters(3)).toBe(3);
+    expect(movementThresholdMeters(400)).toBe(5);
   });
 });
 
