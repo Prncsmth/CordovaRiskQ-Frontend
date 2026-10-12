@@ -15,20 +15,25 @@ export function distanceMeters(a: Coordinates, b: Coordinates): number {
 
 // ---- Upload cadence -------------------------------------------------------
 
-// How often the responder app considers uploading the latest GPS fix.
-export const UPLOAD_INTERVAL_MS = 3000;
+// How often the responder app considers uploading the latest GPS fix --
+// with the 1 s / 2 m GPS stream, a moving responder's marker updates every
+// ~2 s, so tracking reads as live.
+export const UPLOAD_INTERVAL_MS = 2000;
 // Below this, a new fix isn't worth an upload -- device GPS jitter alone can
-// drift a stationary point a few meters between fixes.
-export const MOVE_THRESHOLD_METERS = 10;
+// drift a stationary point a meter or two between fixes. Kept tiny so even
+// a few steps on foot (~1.4 m/s) move the marker within a couple of seconds.
+export const MOVE_THRESHOLD_METERS = 2;
 // A stationary responder still re-sends their position this often, so the
 // citizen's "Updated Xs ago" doesn't keep growing while they wait at a
 // junction or on scene.
-export const CHECK_IN_INTERVAL_MS = 15_000;
+export const CHECK_IN_INTERVAL_MS = 10_000;
 // A fix only counts as movement once it's farther from the last sent spot
-// than the GPS's own reported accuracy -- indoors or under a roof a parked
-// phone's fix can wander 15-30 m. Never below MOVE_THRESHOLD_METERS, and
-// capped so a very poor fix can't hold back a driving responder for long.
-export const MAX_ACCURACY_THRESHOLD_METERS = 50;
+// than the GPS's own reported accuracy -- so a parked phone's jitter doesn't
+// walk its marker around. Capped low (it used to be 50 m, which held a
+// walking responder's marker still for ~35 s under a poor fix): past 5 m
+// it's treated as real movement, trading a little marker drift when parked
+// under a poor fix for a live marker on the move.
+export const MAX_ACCURACY_THRESHOLD_METERS = 5;
 
 export function movementThresholdMeters(accuracyMeters: number | null | undefined): number {
   if (accuracyMeters == null || !Number.isFinite(accuracyMeters)) return MOVE_THRESHOLD_METERS;
