@@ -695,7 +695,9 @@ export default function ResponderIncidentsScreen() {
         <>
           {/* Locked: the announcement takes the search bar's place. */}
           {lockedBarangay && announcementBanner ? (
-            <View style={styles.announcementOutsideList}>{announcementBanner}</View>
+            <View style={[styles.announcementOutsideList, styles.announcementAboveTitle]}>
+              {announcementBanner}
+            </View>
           ) : null}
 
           <IncidentFilterBar
@@ -1075,6 +1077,11 @@ function createStyles(COLORS: ColorPalette) {
     announcementOutsideList: {
       paddingHorizontal: SPACING.md,
       paddingTop: SPACING.md,
+    },
+    // Locked view: the short "Active in <Barangay>" title sits right under
+    // the banner (no search bar between), so give it room to breathe.
+    announcementAboveTitle: {
+      paddingBottom: SPACING.sm,
     },
     // Three across: icon + number on top, label underneath, so even
     // "High Urgency" fits on a narrow phone.

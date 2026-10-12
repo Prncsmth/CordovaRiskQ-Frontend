@@ -1,4 +1,5 @@
-import { apiGet, apiPatch, apiPost, apiPut } from "./api";
+import { API_BASE_URL, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "./api";
+import { guessPhotoMimeType, postPhotoWithTimeout, shrinkReportPhoto } from "./report.service";
 
 export type UserProfile = {
   id: string;
@@ -15,6 +16,8 @@ export type UserProfile = {
   // Missing from a backend that predates them.
   unit?: string | null;
   assignedBarangay?: string | null;
+  // Optional profile photo (Cloudinary URL). Missing from an older backend.
+  avatarUrl?: string | null;
 };
 
 export async function getProfile(token: string): Promise<UserProfile> {
@@ -64,4 +67,35 @@ export async function updateDutyStatus(
     { isOnDuty },
     token,
   );
+}
+
+// Profile photos are shown small (a contact card, a list row), so they're
+// shrunk harder than a report photo before upload; the backend then crops a
+// 400 px square around the face.
+const AVATAR_MAX_EDGE_PX = 512;
+
+// POST /api/users/me/avatar (multipart, field "photo"). Resolves the saved
+// photo's URL; throws (with the server's message when it sent one) on any
+// failure, so the caller can tell the user it didn't save.
+export async function uploadAvatar(token: string, uri: string): Promise<string> {
+  const photo = await shrinkReportPhoto(uri, "avatar.jpg", AVATAR_MAX_EDGE_PX);
+  const formData = new FormData();
+  formData.append("photo", {
+    uri: photo.uri,
+    name: photo.fileName,
+    type: guessPhotoMimeType(photo.fileName),
+  } as unknown as Blob);
+
+  const response = await postPhotoWithTimeout(`${API_BASE_URL}/api/users/me/avatar`, token, formData);
+  const data = (await response.json().catch(() => null)) as
+    | { success?: boolean; avatarUrl?: string; message?: string }
+    | null;
+  if (!response.ok || !data?.avatarUrl) {
+    throw new Error(data?.message ?? `Photo upload failed with status ${response.status}`);
+  }
+  return data.avatarUrl;
+}
+
+export async function removeAvatar(token: string): Promise<void> {
+  await apiDelete("/api/users/me/avatar", token);
 }

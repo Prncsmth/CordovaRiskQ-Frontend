@@ -20,6 +20,7 @@ import {
 import type { Incident } from "@/responder/types/responder";
 
 import GradientIconCircle from "./GradientIconCircle";
+import IncidentPhoto from "./IncidentPhoto";
 import { incidentDetailsText } from "./incidentDetailsText";
 
 export default function PendingView({
@@ -71,6 +72,7 @@ export default function PendingView({
         <Text style={[styles.detailsText, !details.provided && styles.detailsMuted]}>
           {details.text}
         </Text>
+        <IncidentPhoto uri={incident.photoUrl} style={styles.photo} />
       </View>
 
       <View style={styles.metaRow}>
@@ -154,6 +156,9 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
       marginBottom: SPACING.lg,
+    },
+    photo: {
+      marginTop: SPACING.md,
     },
     detailsCard: {
       width: "100%",

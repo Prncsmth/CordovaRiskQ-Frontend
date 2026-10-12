@@ -1,6 +1,34 @@
 import { File as FileClass } from "expo-file-system";
 
-import { getReportDetailById, photoFileExists, uploadReportPhoto } from "./report.service";
+import {
+  PHOTO_MAX_EDGE_PX,
+  PHOTO_UPLOAD_TIMEOUT_MS,
+  getReportDetailById,
+  photoFileExists,
+  shrinkReportPhoto,
+  uploadReportPhoto,
+} from "./report.service";
+
+const mockRender = jest.fn();
+const mockResize = jest.fn();
+const mockSave = jest.fn();
+jest.mock("expo-image-manipulator", () => ({
+  SaveFormat: { JPEG: "jpeg" },
+  ImageManipulator: {
+    manipulate: jest.fn(() => ({ renderAsync: mockRender, resize: mockResize })),
+  },
+}));
+
+function renderAs(width: number, height: number) {
+  mockRender.mockResolvedValue({ width, height, saveAsync: mockSave });
+}
+
+beforeEach(() => {
+  mockRender.mockReset();
+  mockResize.mockReset();
+  mockSave.mockReset().mockResolvedValue({ uri: "file:///small.jpg" });
+  renderAs(4000, 3000);
+});
 
 jest.mock("expo-file-system", () => ({
   File: jest.fn().mockImplementation((uri: string) => ({
@@ -31,6 +59,39 @@ describe("photoFileExists", () => {
     });
 
     expect(photoFileExists("not-a-uri")).toBe(false);
+  });
+});
+
+describe("shrinkReportPhoto", () => {
+  it("shrinks a big landscape photo to the max width, as a JPEG", async () => {
+    renderAs(4000, 3000);
+    await expect(shrinkReportPhoto("file:///big.heic", "IMG_1.heic")).resolves.toEqual({
+      uri: "file:///small.jpg",
+      fileName: "IMG_1.jpg",
+    });
+    expect(mockResize).toHaveBeenCalledWith({ width: PHOTO_MAX_EDGE_PX });
+    expect(mockSave).toHaveBeenCalledWith({ format: "jpeg", compress: 0.6 });
+  });
+
+  it("limits a portrait photo by its height", async () => {
+    renderAs(3000, 4000);
+    await shrinkReportPhoto("file:///tall.jpg", "tall.jpg");
+    expect(mockResize).toHaveBeenCalledWith({ height: PHOTO_MAX_EDGE_PX });
+  });
+
+  it("never enlarges a small photo, only re-compresses it", async () => {
+    renderAs(800, 600);
+    await shrinkReportPhoto("file:///s.png", "s.png");
+    expect(mockResize).not.toHaveBeenCalled();
+    expect(mockSave).toHaveBeenCalled();
+  });
+
+  it("falls back to the original when shrinking fails", async () => {
+    mockRender.mockRejectedValue(new Error("decode failed"));
+    await expect(shrinkReportPhoto("file:///x.jpg", "x.jpg")).resolves.toEqual({
+      uri: "file:///x.jpg",
+      fileName: "x.jpg",
+    });
   });
 });
 
@@ -72,6 +133,38 @@ describe("uploadReportPhoto", () => {
     await expect(
       uploadReportPhoto("token123", "file:///exists.jpg", "photo.jpg"),
     ).rejects.toThrow();
+  });
+
+  it("fails a response with no photoUrl instead of attaching nothing", async () => {
+    // @ts-ignore - global.fetch type
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true }),
+    }) as unknown as typeof fetch;
+
+    await expect(
+      uploadReportPhoto("token123", "file:///exists.jpg", "photo.jpg"),
+    ).rejects.toThrow();
+  });
+
+  it("gives up on a stalled upload so the report can still be sent", async () => {
+    jest.useFakeTimers();
+    try {
+      // @ts-ignore - global.fetch type
+      global.fetch = jest.fn(
+        (_url: string, init: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            init.signal.addEventListener("abort", () => reject(new Error("Aborted")));
+          }),
+      ) as unknown as typeof fetch;
+
+      const upload = uploadReportPhoto("token123", "file:///exists.jpg", "photo.jpg");
+      const assertion = expect(upload).rejects.toThrow("timed out");
+      await jest.advanceTimersByTimeAsync(PHOTO_UPLOAD_TIMEOUT_MS);
+      await assertion;
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("propagates a network failure", async () => {

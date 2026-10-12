@@ -63,6 +63,14 @@
           "icon": "./assets/images/notification-icon.png",
           "color": "#C8102E"
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
       ]
     ],
     "experiments": {

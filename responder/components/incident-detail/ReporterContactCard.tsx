@@ -29,6 +29,7 @@ export default function ReporterContactCard({
       name={contact.name ?? "Reporter"}
       detail={incident.categoryId === "sos" ? "Sent this SOS" : "Reported this incident"}
       mobile={contact.mobile}
+      avatarUrl={contact.avatarUrl}
       showHotlinesFallback={false}
       showCall={showCall}
       style={style}

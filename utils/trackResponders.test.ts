@@ -139,6 +139,7 @@ describe("live tracking state", () => {
     return {
       responderId: id,
       responderName: id.toUpperCase(),
+      avatarUrl: null,
       location: meters === null ? null : { latitude: 10.25 + meters * METER_LAT, longitude: 123.95 },
       locationUpdatedAt: seconds === null ? null : iso(seconds),
       status: "on_the_way",

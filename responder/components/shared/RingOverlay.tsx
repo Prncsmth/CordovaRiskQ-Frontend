@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/common/Dialog";
 import { useResponderAlert } from "@/context/ResponderAlertContext";
+import { useEmergencyAlarm } from "@/hooks/useEmergencyAlarm";
 import { incidentDetailsText } from "@/responder/components/incident-detail/incidentDetailsText";
 import type { Urgency } from "@/responder/types/responder";
 import { SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
@@ -34,6 +35,11 @@ export default function RingOverlay() {
   const { pendingIncident, accept, decline } = useResponderAlert();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  // Rings until Accept/Decline (or MAX_RING_MS) -- a silent popup is easy
+  // to miss with the phone in a pocket. SOS has its own, more urgent sound.
+  useEmergencyAlarm(
+    pendingIncident ? (pendingIncident.categoryId === "sos" ? "sos" : "incident") : null,
+  );
   const alertDetails = pendingIncident
     ? incidentDetailsText(pendingIncident)
     : { text: "", provided: false };

@@ -17,6 +17,9 @@ export type ResponderRosterStatus = "joined" | "on_the_way" | "arrived";
 export type ResponderTrack = {
   responderId: string;
   responderName: string;
+  // Their profile photo, so the citizen can recognize who's coming. Null
+  // when they haven't set one (or on an older backend).
+  avatarUrl: string | null;
   location: Coordinates | null;
   locationUpdatedAt: string | null;
   status: ResponderRosterStatus;
@@ -46,6 +49,7 @@ export type TrackingResult =
 type ResponderTrackApiRow = {
   responderId: string;
   responderName: string;
+  responderAvatarUrl?: string | null;
   latitude: number | null;
   longitude: number | null;
   locationUpdatedAt: string | null;
@@ -65,6 +69,7 @@ function toResponderTrack(row: ResponderTrackApiRow): ResponderTrack {
   return {
     responderId: row.responderId,
     responderName: row.responderName,
+    avatarUrl: row.responderAvatarUrl ?? null,
     location:
       row.latitude != null && row.longitude != null
         ? { latitude: row.latitude, longitude: row.longitude }

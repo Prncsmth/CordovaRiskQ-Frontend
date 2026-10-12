@@ -1,5 +1,6 @@
 // services/report.service.ts
 import { File } from "expo-file-system";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 import { API_BASE_URL, apiDelete, apiGet, apiPost, type ApiError } from "./api";
 import { CATEGORY_LABELS, type CategoryId } from "@/components/report/categories";
@@ -21,7 +22,7 @@ export function photoFileExists(uri: string): boolean {
   }
 }
 
-function guessPhotoMimeType(fileName: string): string {
+export function guessPhotoMimeType(fileName: string): string {
   const ext = fileName.split(".").pop()?.toLowerCase();
   switch (ext) {
     case "png":
@@ -35,34 +36,105 @@ function guessPhotoMimeType(fileName: string): string {
   }
 }
 
-// Contract assumed pending backend confirmation — see
-// docs/superpowers/specs/2026-09-12-report-photo-evidence-design.md.
-// Until the backend implements this route, calls here fail (404/network
-// error), which correctly drives the "upload failed" UI path rather than
-// silently pretending success.
+// A phone camera photo is 3-6 MB; shrunk to at most 1280 px on its long
+// edge as a JPEG it's ~150-350 KB -- still clear enough for a responder to
+// see the scene, but quick to send on mobile data and light on the user's
+// data plan. Best-effort: if shrinking fails, the original is sent (the
+// backend still caps its size).
+export const PHOTO_MAX_EDGE_PX = 1280;
+export const PHOTO_JPEG_QUALITY = 0.6;
+
+export async function shrinkReportPhoto(
+  uri: string,
+  fileName: string,
+  maxEdgePx: number = PHOTO_MAX_EDGE_PX,
+): Promise<{ uri: string; fileName: string }> {
+  // Native image memory is freed as soon as the JPEG is written, not left
+  // for the garbage collector -- a full-size photo is tens of MB decoded.
+  const toRelease: { release?: () => void }[] = [];
+  try {
+    const context = ImageManipulator.manipulate(uri);
+    toRelease.push(context);
+    let image = await context.renderAsync();
+    toRelease.push(image);
+    const longEdge = Math.max(image.width, image.height);
+    if (longEdge > maxEdgePx) {
+      context.resize(image.width >= image.height ? { width: maxEdgePx } : { height: maxEdgePx });
+      image = await context.renderAsync();
+      toRelease.push(image);
+    }
+    const saved = await image.saveAsync({ format: SaveFormat.JPEG, compress: PHOTO_JPEG_QUALITY });
+    const baseName = fileName.replace(/\.[^.]+$/, "") || "photo";
+    return { uri: saved.uri, fileName: `${baseName}.jpg` };
+  } catch {
+    return { uri, fileName };
+  } finally {
+    for (const ref of toRelease) {
+      try {
+        ref.release?.();
+      } catch {
+        // already released
+      }
+    }
+  }
+}
+
+// An upload on a weak signal must not hold an emergency report hostage:
+// past this, it's treated as failed and the user can send the report
+// without the photo (services/reportPhoto.ts).
+export const PHOTO_UPLOAD_TIMEOUT_MS = 30_000;
+
+export async function postPhotoWithTimeout(
+  url: string,
+  token: string,
+  body: FormData,
+  timeoutMs: number = PHOTO_UPLOAD_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error("Photo upload timed out");
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// POST /api/incidents/photo (multipart, field "photo") uploads to the
+// backend's Cloudinary account and answers { success, photoUrl }; the
+// report then carries that photoUrl. Any failure throws, which drives the
+// "submit without photo?" prompt (services/reportPhoto.ts) instead of
+// pretending the photo was attached.
 export async function uploadReportPhoto(
   token: string,
   uri: string,
   fileName: string,
 ): Promise<{ photoUrl: string }> {
+  const photo = await shrinkReportPhoto(uri, fileName);
   const formData = new FormData();
   formData.append("photo", {
-    uri,
-    name: fileName,
-    type: guessPhotoMimeType(fileName),
+    uri: photo.uri,
+    name: photo.fileName,
+    type: guessPhotoMimeType(photo.fileName),
   } as unknown as Blob);
 
-  const response = await fetch(`${API_BASE_URL}/api/incidents/photo`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-  });
+  const response = await postPhotoWithTimeout(`${API_BASE_URL}/api/incidents/photo`, token, formData);
 
   if (!response.ok) {
     throw new Error(`Photo upload failed with status ${response.status}`);
   }
 
-  const data = (await response.json()) as { success: true; photoUrl: string };
+  const data = (await response.json()) as { success?: boolean; photoUrl?: string };
+  // No URL back means nothing was attached -- fail rather than send the
+  // report as if it had a photo.
+  if (!data.photoUrl) throw new Error("Photo upload returned no photo");
   return { photoUrl: data.photoUrl };
 }
 

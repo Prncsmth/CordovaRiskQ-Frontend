@@ -1,5 +1,6 @@
 import Constants from "expo-constants";
 import * as Device from "expo-device";
+import { Platform } from "react-native";
 
 import { apiPatch } from "./api";
 import { getNotifications, notificationsUnavailable } from "@/utils/safeNotifications";
@@ -10,7 +11,27 @@ import { getNotifications, notificationsUnavailable } from "@/utils/safeNotifica
 // visually present an incoming remote notification while the app is in the
 // foreground — it's delivered to JS but never shown to the user.
 if (!notificationsUnavailable) {
-  getNotifications()!.setNotificationHandler({
+  const Notifications = getNotifications()!;
+  // Android routes every push without a channelId (the backend never sets
+  // one) to the "default" channel -- create it ourselves, loud, before Expo
+  // auto-creates a quieter one, so an incident/SOS push makes a sound and
+  // pops up as a heads-up banner. Keeping the id "default" means an older
+  // backend or app build still lands on a channel that exists (a push for
+  // a missing channelId is dropped). Android fixes a channel's importance
+  // once created, so a phone that already had the old one needs a
+  // reinstall to pick this up.
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "Emergency alerts",
+      importance: Notifications.AndroidImportance.MAX,
+      sound: "default",
+      enableVibrate: true,
+      vibrationPattern: [0, 600, 400, 600],
+      lightColor: "#C8102E",
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    }).catch(() => {});
+  }
+  Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
       shouldShowList: true,

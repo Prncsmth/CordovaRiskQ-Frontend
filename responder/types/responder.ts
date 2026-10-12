@@ -50,6 +50,8 @@ export interface Incident {
   // What the citizen wrote about it; null when they wrote nothing (an SOS
   // usually has none). Read through incidentDetailsText.ts.
   details: string | null;
+  // The reporter's photo (Cloudinary URL); null when none was attached.
+  photoUrl: string | null;
   urgency: Urgency;
   distanceKm?: number;
   status: IncidentStatus;
@@ -77,4 +79,6 @@ export interface ReporterContact {
   name: string | null;
   // Null when the reporter has no usable number saved.
   mobile: string | null;
+  // Their optional profile photo. Missing from an older backend.
+  avatarUrl?: string | null;
 }

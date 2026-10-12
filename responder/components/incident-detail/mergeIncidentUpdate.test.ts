@@ -13,6 +13,7 @@ const baseIncident: Incident = {
   canRespond: true,
   escalated: false,
   details: null,
+  photoUrl: null,
   distanceKm: 2.4,
   createdAt: "2026-01-01T00:00:00.000Z",
 };

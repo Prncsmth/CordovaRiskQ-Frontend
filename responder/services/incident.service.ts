@@ -16,6 +16,8 @@ type IncidentApiRow = {
   category: string;
   locationLabel: string;
   details?: string | null;
+  // Absent on an older backend, which had no photo support.
+  photoUrl?: string | null;
   latitude: number | null;
   longitude: number | null;
   urgency: "high" | "medium" | "low";
@@ -44,6 +46,7 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
     categoryId: row.category,
     location: row.locationLabel,
     details: row.details?.trim() || null,
+    photoUrl: row.photoUrl || null,
     urgency: row.urgency,
     distanceKm:
       incidentCoords && responderLocation

@@ -130,6 +130,9 @@ export default function NotificationRow({
   }
 
   // Responders' explicit "Mark as read" on an unread row (both layouts).
+  // Sits inline on the time/header line -- not on a line of its own -- so
+  // an unread card is no taller than a read one; it also stands in for the
+  // "New" pill (the thicker border still marks the row unread).
   const markReadButton =
     onMarkRead && !item.read ? (
       <Pressable
@@ -145,7 +148,7 @@ export default function NotificationRow({
         {marking ? (
           <ActivityIndicator size="small" color={COLORS.primary} />
         ) : (
-          <Ionicons name="checkmark-done" size={14} color={COLORS.primary} />
+          <Ionicons name="checkmark-done" size={13} color={COLORS.primary} />
         )}
         <Text style={styles.markReadText}>{marking ? "Marking…" : "Mark as read"}</Text>
       </Pressable>
@@ -215,11 +218,12 @@ export default function NotificationRow({
                     <Text style={styles.dateText} numberOfLines={1}>
                       {formatShortDateTime(item.createdAt)}
                     </Text>
-                    {!item.read && (
-                      <View style={[styles.pill, { backgroundColor: bg }]}>
-                        <Text style={[styles.pillText, { color }]}>New</Text>
-                      </View>
-                    )}
+                    {markReadButton ??
+                      (!item.read && (
+                        <View style={[styles.pill, { backgroundColor: bg }]}>
+                          <Text style={[styles.pillText, { color }]}>New</Text>
+                        </View>
+                      ))}
                   </View>
                   <Text style={styles.title} numberOfLines={1}>
                     {item.title}
@@ -227,7 +231,6 @@ export default function NotificationRow({
                   <Text style={styles.body} numberOfLines={2}>
                     {item.body}
                   </Text>
-                  {markReadButton}
                 </View>
                 <View style={[styles.typeBadge, { backgroundColor: color }]}>
                   <Ionicons name={icon} size={14} color={COLORS.white} />
@@ -244,11 +247,13 @@ export default function NotificationRow({
                   <Text style={styles.body} numberOfLines={2}>
                     {item.body}
                   </Text>
-                  <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
-                  {markReadButton}
+                  <View style={styles.metaRow}>
+                    <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
+                    {markReadButton}
+                  </View>
                 </View>
 
-                {!item.read && (
+                {!item.read && !markReadButton && (
                   <View style={[styles.pill, { backgroundColor: bg }]}>
                     <Text style={[styles.pillText, { color }]}>New</Text>
                   </View>
@@ -326,21 +331,26 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textSecondary,
       lineHeight: 19,
     },
+    metaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: SPACING.sm,
+      marginTop: 2,
+    },
     meta: {
+      flexShrink: 1,
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
-      marginTop: 2,
     },
     markReadButton: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 4,
-      alignSelf: "flex-start",
-      marginTop: SPACING.xs,
-      paddingVertical: 2,
+      gap: 3,
+      flexShrink: 0,
     },
     markReadText: {
-      fontSize: TYPOGRAPHY.small,
+      fontSize: 12,
       fontWeight: "700",
       color: COLORS.primary,
     },

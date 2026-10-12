@@ -24,6 +24,7 @@ import { formatRelativeTime } from "@/utils/formatter";
 
 import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
+import IncidentPhoto from "./IncidentPhoto";
 import { incidentDetailsText } from "./incidentDetailsText";
 import ReporterContactCard from "./ReporterContactCard";
 
@@ -114,6 +115,7 @@ export default function ArrivedView({
             last
           />
         </View>
+        <IncidentPhoto uri={incident.photoUrl} style={styles.photo} />
       </ScrollView>
 
       <View style={styles.markResolvedButton}>
@@ -162,6 +164,9 @@ function createStyles(COLORS: ColorPalette) {
       paddingHorizontal: SPACING.md,
     },
     // Same card treatment as the summary card above it.
+    photo: {
+      marginTop: SPACING.md,
+    },
     reporterCard: {
       marginBottom: SPACING.md,
       ...SHADOW,

@@ -14,6 +14,7 @@ import React, {
 } from "react";
 
 import { useAuth } from "@/context/AuthContext";
+import { ringAlarmFor } from "@/hooks/useEmergencyAlarm";
 import { connectToNotificationSocket } from "@/services/notificationSocket.service";
 import {
   deleteNotification as deleteNotificationRequest,
@@ -54,6 +55,8 @@ const NotificationContext = createContext<NotificationContextValue | undefined>(
 
 // clearAll's per-batch concurrency cap -- see its own comment for why.
 const CLEAR_ALL_BATCH_SIZE = 10;
+// How long a teammate's "Ring Team" rings this phone (a few double rings).
+const TEAM_RING_ALARM_MS = 6000;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { token, user } = useAuth();
@@ -109,23 +112,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         if (incoming.type === "announcement") {
           setLatestAnnouncementEvent(incoming);
         }
-        // Same treatment as ResponderAlertContext's new-incident alert: a
-        // teammate calling for backup deserves an attention-grabbing local
-        // sound, not just a silent entry in the notification list --
-        // especially since the app's own foregrounded push handler
-        // (push.service.ts) only plays a sound for a real remote push, and
-        // this socket event can arrive instead of/before one.
-        if (incoming.type === "team_ring" && !notificationsUnavailable) {
-          getNotificationsModule()
-            ?.scheduleNotificationAsync({
-              content: {
-                title: incoming.title,
-                body: incoming.body,
-                sound: true,
-              },
-              trigger: null,
-            })
-            ?.catch(() => {});
+        // A teammate pressed "Ring Team": ring this phone (siren +
+        // vibration) for a few seconds, like the new-incident popup -- a
+        // plain notification sound is easy to miss and doesn't play at all
+        // in Expo Go. The banner below is silent so it doesn't play over
+        // the siren.
+        if (incoming.type === "team_ring") {
+          ringAlarmFor("team_ring", TEAM_RING_ALARM_MS);
+          if (!notificationsUnavailable) {
+            getNotificationsModule()
+              ?.scheduleNotificationAsync({
+                content: {
+                  title: incoming.title,
+                  body: incoming.body,
+                  sound: false,
+                },
+                trigger: null,
+              })
+              ?.catch(() => {});
+          }
         }
       },
       // Reconnecting means the socket was down for some stretch of time --

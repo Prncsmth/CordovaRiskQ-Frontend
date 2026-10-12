@@ -452,6 +452,7 @@ export default function TrackResponderScreen() {
       {primary && (
         <ResponderContactCard
           name={primary.responderName}
+          avatarUrl={primary.avatarUrl}
           detail={[isMultiple ? "Primary responder" : primaryUnit, primaryArrival].filter(Boolean).join(" · ")}
           mobile={tracking.kind === "live" ? tracking.snapshot.primaryMobile : null}
           style={[styles.bottomCard, { bottom: insets.bottom + SPACING.md }]}

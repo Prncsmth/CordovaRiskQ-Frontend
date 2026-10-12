@@ -22,6 +22,7 @@ import type { Incident } from "@/responder/types/responder";
 import ActionRow from "./ActionRow";
 import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
+import IncidentPhoto from "./IncidentPhoto";
 import { incidentDetailsText } from "./incidentDetailsText";
 import ReporterContactCard from "./ReporterContactCard";
 
@@ -140,6 +141,7 @@ export default function LobbyView({
             label="Distance"
             value={incident.distanceKm != null ? `${incident.distanceKm.toFixed(1)} km` : "Unknown"}
           />
+          <IncidentPhoto uri={incident.photoUrl} style={styles.photo} />
         </ScrollView>
       )}
 
@@ -169,6 +171,9 @@ function createStyles(COLORS: ColorPalette) {
       paddingBottom: SPACING.md,
     },
     // Same card treatment as the summary card above it.
+    photo: {
+      marginTop: SPACING.md,
+    },
     reporterCard: {
       marginBottom: SPACING.md,
       ...SHADOW,

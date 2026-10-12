@@ -97,16 +97,17 @@ export default function HomeScreen() {
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const now = useSyncExternalStore(subscribeToClockTick, getClockSnapshot);
-  const homeOpacity = useSharedValue(0);
+  // Slide-in only, no fade: the screen used to start at opacity 0 and fade
+  // in, and coming back from another screen (e.g. a tapped notification)
+  // could leave the native view on that initial 0 -- a blank white Home
+  // with nothing to tap. A stuck slide is at worst 18 px off, never blank.
   const homeTranslateY = useSharedValue(18);
 
   useEffect(() => {
-    homeOpacity.value = withTiming(1, { duration: 420 });
     homeTranslateY.value = withTiming(0, { duration: 420 });
-  }, [homeOpacity, homeTranslateY]);
+  }, [homeTranslateY]);
 
   const homeEntranceStyle = useAnimatedStyle(() => ({
-    opacity: homeOpacity.value,
     transform: [{ translateY: homeTranslateY.value }],
   }));
 

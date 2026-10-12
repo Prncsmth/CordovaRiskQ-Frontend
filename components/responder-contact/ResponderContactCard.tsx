@@ -7,8 +7,17 @@
 // emergency hotlines are offered instead.
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { Linking, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
+import React, { useMemo, useState } from "react";
+import {
+  Image,
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 
 import {
   FONT_FAMILY,
@@ -38,6 +47,7 @@ export default function ResponderContactCard({
   style,
   showHotlinesFallback = true,
   showCall = true,
+  avatarUrl,
 }: {
   name: string;
   // e.g. "MDRRMO · Arriving in ~6 min"
@@ -51,18 +61,32 @@ export default function ResponderContactCard({
   // Off where calling no longer fits (a responder already on scene) --
   // the card then just says who it is.
   showCall?: boolean;
+  // Their profile photo, shown in place of the initials when set.
+  avatarUrl?: string | null;
 }) {
   const router = useRouter();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const callAction = callResponderAction(mobile);
   const canCall = callAction.kind === "call";
+  // A photo that fails to load falls back to the initials.
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const showAvatar = !!avatarUrl && avatarUrl !== failedAvatarUrl;
 
   return (
     <View style={[styles.card, style]}>
       <View style={styles.row}>
         <View style={styles.initials}>
-          <Text style={styles.initialsText}>{initialsOf(name)}</Text>
+          {showAvatar ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={styles.avatar}
+              onError={() => setFailedAvatarUrl(avatarUrl)}
+              accessibilityLabel={`Photo of ${name}`}
+            />
+          ) : (
+            <Text style={styles.initialsText}>{initialsOf(name)}</Text>
+          )}
         </View>
 
         <View style={styles.textCol}>
@@ -140,6 +164,11 @@ function createStyles(COLORS: ColorPalette) {
       borderColor: COLORS.borderMuted,
       alignItems: "center",
       justifyContent: "center",
+      overflow: "hidden",
+    },
+    avatar: {
+      width: "100%",
+      height: "100%",
     },
     initialsText: {
       fontSize: TYPOGRAPHY.caption,
