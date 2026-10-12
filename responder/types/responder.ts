@@ -64,6 +64,9 @@ export interface Incident {
   // from their assigned unit and barangay (see the backend's
   // responderScope.ts). False = view only: no alert, no actions.
   canRespond: boolean;
+  // True when it's open to this responder only because nobody in its own
+  // barangay took it within 2 minutes (the backend's escalation).
+  escalated: boolean;
 }
 
 export interface ReporterContact {

@@ -11,6 +11,7 @@ const baseIncident: Incident = {
   team: [{ id: "r1", name: "Alice", status: "joined" }],
   myStatus: "on_the_way",
   canRespond: true,
+  escalated: false,
   distanceKm: 2.4,
   createdAt: "2026-01-01T00:00:00.000Z",
 };

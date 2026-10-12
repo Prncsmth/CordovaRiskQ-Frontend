@@ -80,6 +80,17 @@ export default function PendingView({
       {/* Outside this responder's scope (the backend's canRespond): view
           only, from the Live Map or a direct link -- no Accept/Decline, and
           the backend rejects them anyway. */}
+      {/* Outside their barangay but nobody there took it in 2 minutes --
+          say why they're being asked. */}
+      {incident.canRespond && incident.escalated ? (
+        <View style={styles.escalatedNote}>
+          <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
+          <Text style={styles.escalatedText}>
+            No one in this barangay has responded for 2 minutes, so it&apos;s open to you.
+          </Text>
+        </View>
+      ) : null}
+
       {incident.canRespond ? (
         <View style={styles.pendingActions}>
           <RButton label={isRejoin ? "Rejoin" : "Accept"} onPress={onAccept} variant="primary" />
@@ -161,6 +172,22 @@ function createStyles(COLORS: ColorPalette) {
     },
     pendingActions: {
       width: "100%",
+    },
+    escalatedNote: {
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+      borderRadius: RADIUS.lg,
+      backgroundColor: COLORS.warningBg,
+    },
+    escalatedText: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.text,
+      lineHeight: 19,
     },
     viewOnly: {
       width: "100%",

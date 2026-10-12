@@ -26,6 +26,7 @@ type IncidentApiRow = {
   reporterContact?: ReporterContact | null;
   // Absent on an older backend, which had no barangay scoping.
   canRespond?: boolean;
+  escalated?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -52,6 +53,7 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
     reporterContact: row.reporterContact ?? null,
     // An older backend didn't scope incidents, so everything was actionable.
     canRespond: row.canRespond ?? true,
+    escalated: row.escalated ?? false,
     incidentCoords,
     createdAt: row.createdAt,
   };

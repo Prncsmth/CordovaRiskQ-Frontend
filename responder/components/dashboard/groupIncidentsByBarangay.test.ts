@@ -23,6 +23,7 @@ function makeIncident(overrides: Partial<Incident> & { id: string }): Incident {
     team: [],
     myStatus: "pending",
     canRespond: true,
+    escalated: false,
     createdAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
   };
