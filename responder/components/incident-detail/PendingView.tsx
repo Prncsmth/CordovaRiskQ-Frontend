@@ -1,6 +1,7 @@
 // components/responder/incident-detail/PendingView.tsx
 // Phase 1 of the incident-detail flow: a new incident offer, shown before
 // the responder accepts or declines.
+import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -76,12 +77,24 @@ export default function PendingView({
         </View>
       </View>
 
-      <View style={styles.pendingActions}>
-        <RButton label={isRejoin ? "Rejoin" : "Accept"} onPress={onAccept} variant="primary" />
-        {!isRejoin && (
-          <RButton label="Decline" onPress={onDecline} variant="secondary" />
-        )}
-      </View>
+      {/* Outside this responder's scope (the backend's canRespond): view
+          only, from the Live Map or a direct link -- no Accept/Decline, and
+          the backend rejects them anyway. */}
+      {incident.canRespond ? (
+        <View style={styles.pendingActions}>
+          <RButton label={isRejoin ? "Rejoin" : "Accept"} onPress={onAccept} variant="primary" />
+          {!isRejoin && (
+            <RButton label="Decline" onPress={onDecline} variant="secondary" />
+          )}
+        </View>
+      ) : (
+        <View style={styles.viewOnly}>
+          <Ionicons name="eye-outline" size={18} color={COLORS.textSecondary} />
+          <Text style={styles.viewOnlyText}>
+            View only — this incident is outside your assigned barangay.
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -148,6 +161,23 @@ function createStyles(COLORS: ColorPalette) {
     },
     pendingActions: {
       width: "100%",
+    },
+    viewOnly: {
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      padding: SPACING.md,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      backgroundColor: COLORS.surface,
+    },
+    viewOnlyText: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+      lineHeight: 19,
     },
   });
 }

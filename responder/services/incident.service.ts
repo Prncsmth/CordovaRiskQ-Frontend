@@ -24,6 +24,8 @@ type IncidentApiRow = {
   // The reporter (or SOS sender), only for a responder actively on this
   // incident -- absent otherwise, and on an older backend.
   reporterContact?: ReporterContact | null;
+  // Absent on an older backend, which had no barangay scoping.
+  canRespond?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -48,6 +50,8 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
     team: row.responders ?? [],
     myStatus: row.myStatus ?? "pending",
     reporterContact: row.reporterContact ?? null,
+    // An older backend didn't scope incidents, so everything was actionable.
+    canRespond: row.canRespond ?? true,
     incidentCoords,
     createdAt: row.createdAt,
   };

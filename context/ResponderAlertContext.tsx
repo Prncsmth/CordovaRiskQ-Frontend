@@ -22,6 +22,7 @@ import {
   getIncidents,
   joinIncident,
 } from "@/responder/services/incident.service";
+import { isActionableAlert } from "@/responder/components/dashboard/responderAssignment";
 import type { Incident } from "@/responder/types/responder";
 import { getNotifications, notificationsUnavailable } from "@/utils/safeNotifications";
 
@@ -91,7 +92,10 @@ export function ResponderAlertProvider({ children }: { children: React.ReactNode
     const poll = () => {
       getIncidents(token)
         .then((incidents) => {
-          const pending = incidents.filter((incident) => incident.myStatus === "pending");
+          // Only incidents this responder may act on (the backend's
+          // canRespond: their barangay, MDRRMO, or an escalation) -- one in
+          // another barangay never pops up, on any poll.
+          const pending = incidents.filter(isActionableAlert);
 
           if (isFirstPollRef.current) {
             isFirstPollRef.current = false;

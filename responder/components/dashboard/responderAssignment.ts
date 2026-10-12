@@ -65,3 +65,18 @@ export function sortForBarangay(incidents: Incident[]): Incident[] {
     return Date.parse(b.createdAt) - Date.parse(a.createdAt);
   });
 }
+
+// Incidents this responder may act on (the backend's canRespond, from their
+// assigned unit and barangay). The dashboard's lists and counts use only
+// these; anything else stays view-only on the Live Map.
+export function actionableIncidents(incidents: Incident[]): Incident[] {
+  return incidents.filter((incident) => incident.canRespond);
+}
+
+// What may pop up the new-incident alert: a fresh offer (not yet joined,
+// declined or left) that this responder can respond to. Checked on every
+// poll, so a refresh, reconnect or cached list can't alert on one they
+// can't act on.
+export function isActionableAlert(incident: Incident): boolean {
+  return incident.myStatus === "pending" && incident.canRespond;
+}

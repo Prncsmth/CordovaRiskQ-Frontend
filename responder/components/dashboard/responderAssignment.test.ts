@@ -1,7 +1,9 @@
 import {
+  actionableIncidents,
   assignedBarangayFor,
   assignmentLabel,
   incidentsOutsideBarangay,
+  isActionableAlert,
   sortForBarangay,
 } from "./responderAssignment";
 import type { Incident } from "@/responder/types/responder";
@@ -96,5 +98,24 @@ describe("sortForBarangay", () => {
     const list = [make("a", "fire", "low", "2026-10-10T01:00:00Z"), make("b", "sos", "low", "2026-10-10T01:00:00Z")];
     sortForBarangay(list);
     expect(list.map((i) => i.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("actionableIncidents / isActionableAlert", () => {
+  const make = (id: string, canRespond: boolean, myStatus = "pending") =>
+    ({ id, canRespond, myStatus }) as unknown as Incident;
+
+  it("keeps only the incidents this responder can respond to", () => {
+    const list = [make("mine", true), make("other-barangay", false), make("escalated", true)];
+    expect(actionableIncidents(list).map((i) => i.id)).toEqual(["mine", "escalated"]);
+  });
+
+  it("alerts only on a fresh offer the responder can respond to", () => {
+    expect(isActionableAlert(make("a", true))).toBe(true);
+    // Another barangay: never pops up, however many polls it shows up in.
+    expect(isActionableAlert(make("b", false))).toBe(false);
+    // Already joined / declined: not a new offer.
+    expect(isActionableAlert(make("c", true, "joined"))).toBe(false);
+    expect(isActionableAlert(make("d", true, "declined"))).toBe(false);
   });
 });

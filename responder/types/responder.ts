@@ -60,6 +60,10 @@ export interface Incident {
   // to a responder actively on this incident (joined / on the way / arrived);
   // null otherwise. The number is dialed, never shown.
   reporterContact?: ReporterContact | null;
+  // Whether this responder may accept/decline it, decided by the backend
+  // from their assigned unit and barangay (see the backend's
+  // responderScope.ts). False = view only: no alert, no actions.
+  canRespond: boolean;
 }
 
 export interface ReporterContact {

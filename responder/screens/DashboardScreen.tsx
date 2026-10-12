@@ -52,6 +52,7 @@ import IncidentFilterBar from "@/responder/components/dashboard/IncidentFilterBa
 import {
   assignedBarangayFor,
   assignmentLabel,
+  actionableIncidents,
   incidentsOutsideBarangay,
   sortForBarangay,
   type ResponderAssignment,
@@ -375,13 +376,14 @@ export default function ResponderIncidentsScreen() {
   // or with no location. Fail-open: MDRRMO, no / unknown barangay, or a
   // profile that hasn't loaded (or failed) all get the full dashboard.
   const lockedBarangay = myBarangay;
-  const scopeIncidents = useMemo(
-    () =>
-      lockedBarangay
-        ? incidents.filter((incident) => incidentBarangay(incident).id === lockedBarangay.id)
-        : incidents,
-    [incidents, lockedBarangay],
-  );
+  // Only what this responder may act on, decided by the backend
+  // (canRespond): their barangay, MDRRMO everywhere, or an escalation when
+  // nobody in scope is on duty. Others stay view-only on the Live Map.
+  const scopeIncidents = useMemo(() => actionableIncidents(incidents), [incidents]);
+  // Loaded, not MDRRMO, and no valid barangay: nothing is theirs to handle
+  // until the admin assigns one.
+  const awaitingAssignment =
+    assignment !== null && assignment.unit !== "MDRRMO" && myBarangay === null;
 
   const highUrgencyCount = scopeIncidents.filter((i) => i.urgency === "high").length;
   // SOS-sourced incidents carry the "sos" category; everything else is a
@@ -775,7 +777,9 @@ export default function ResponderIncidentsScreen() {
               <Text style={styles.noResultsText}>
                 {lockedBarangay
                   ? `You're all caught up — no incidents in ${lockedBarangay.name} right now.`
-                  : "You're all caught up — no nearby incidents right now."}
+                  : awaitingAssignment
+                    ? "You don't have an assigned barangay yet. Ask the admin to assign one."
+                    : "You're all caught up — no nearby incidents right now."}
               </Text>
               {lockedBarangay ? liveMapLink : null}
             </View>
