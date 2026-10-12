@@ -3,7 +3,13 @@ import { apiGet, apiPatch, apiPost, type ApiError } from "@/services/api";
 import type { Coordinates } from "@/services/location.service";
 import { haversineDistanceKm } from "@/utils/distance";
 import { formatDate } from "@/utils/formatter";
-import type { Incident, IncidentStatus, MyResponderStatus, ResponderStatus } from "@/responder/types/responder";
+import type {
+  Incident,
+  IncidentStatus,
+  MyResponderStatus,
+  ReporterContact,
+  ResponderStatus,
+} from "@/responder/types/responder";
 
 type IncidentApiRow = {
   id: string;
@@ -15,6 +21,9 @@ type IncidentApiRow = {
   status: IncidentStatus;
   responders?: { id: string; name: string; status: ResponderStatus }[];
   myStatus?: MyResponderStatus;
+  // The reporter (or SOS sender), only for a responder actively on this
+  // incident -- absent otherwise, and on an older backend.
+  reporterContact?: ReporterContact | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -38,6 +47,7 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
     status: row.status,
     team: row.responders ?? [],
     myStatus: row.myStatus ?? "pending",
+    reporterContact: row.reporterContact ?? null,
     incidentCoords,
     createdAt: row.createdAt,
   };

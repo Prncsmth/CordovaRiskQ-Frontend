@@ -36,13 +36,21 @@ export default function ResponderContactCard({
   detail,
   mobile,
   style,
+  showHotlinesFallback = true,
+  showCall = true,
 }: {
   name: string;
   // e.g. "MDRRMO · Arriving in ~6 min"
   detail: string;
-  // The primary responder's saved number, or null when there's none.
+  // The contact's saved number, or null when there's none.
   mobile: string | null;
   style?: StyleProp<ViewStyle>;
+  // With no number, a citizen is pointed to the emergency hotlines instead.
+  // A responder calling a reporter has no use for that link, so it's off there.
+  showHotlinesFallback?: boolean;
+  // Off where calling no longer fits (a responder already on scene) --
+  // the card then just says who it is.
+  showCall?: boolean;
 }) {
   const router = useRouter();
   const COLORS = useThemeColors();
@@ -68,6 +76,7 @@ export default function ResponderContactCard({
           ) : null}
         </View>
 
+        {showCall ? (
         <Pressable
           onPress={() => {
             if (callAction.kind === "call") void Linking.openURL(callAction.telUrl);
@@ -84,13 +93,15 @@ export default function ResponderContactCard({
         >
           <Ionicons name="call" size={20} color={canCall ? COLORS.white : COLORS.textTertiary} />
         </Pressable>
+        ) : null}
       </View>
 
-      {!canCall && (
+      {showCall && !canCall && (
         <View style={styles.unavailableRow}>
           <Text style={styles.unavailableText} numberOfLines={1}>
             No contact number available.
           </Text>
+          {showHotlinesFallback ? (
           <Pressable
             onPress={() => router.push("/contacts")}
             hitSlop={8}
@@ -99,6 +110,7 @@ export default function ResponderContactCard({
           >
             <Text style={styles.hotlineLinkText}>Emergency hotlines</Text>
           </Pressable>
+          ) : null}
         </View>
       )}
     </View>

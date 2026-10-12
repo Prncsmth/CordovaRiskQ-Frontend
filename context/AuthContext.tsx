@@ -10,6 +10,8 @@ import React, {
 import * as authStorage from "./authStorage";
 import { setUnauthorizedHandler } from "@/services/api";
 import { unregisterPushNotifications } from "@/services/push.service";
+import { updateDutyStatus } from "@/services/user.service";
+import { runLogoutCleanup } from "@/utils/logoutCleanup";
 import { hasSeenWelcomeOnStartup, WELCOME_SEEN_KEY } from "@/utils/loggedOutStart";
 import {
   completeOnboardingStep,
@@ -163,7 +165,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const LOGOUT_PUSH_TIMEOUT_MS = 4000;
+const LOGOUT_CLEANUP_TIMEOUT_MS = 4000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
@@ -335,16 +337,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Clears this phone's push token on the server before dropping the
       // session -- otherwise the backend keeps sending this account's
       // report updates / incident alerts to a phone nobody is signed in on.
-      // Best-effort and capped, so logging out offline isn't held up.
+      // An on-duty responder is also switched Off Duty, so the admin
+      // dashboard stops counting them as available (their incidents are
+      // left untouched). Best-effort and capped (see runLogoutCleanup), so
+      // logging out offline isn't held up -- and the local session is
+      // cleared no matter what.
       logout: async () => {
         const current = authState.token;
-        if (current) {
-          await Promise.race([
-            unregisterPushNotifications(current).catch(() => {}),
-            new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_PUSH_TIMEOUT_MS)),
-          ]);
+        const user = authState.user;
+        try {
+          if (current) {
+            await runLogoutCleanup({
+              unregisterPush: () => unregisterPushNotifications(current),
+              setOffDuty:
+                user?.role === "responder" && user.isOnDuty !== false
+                  ? () => updateDutyStatus(current, false)
+                  : undefined,
+              timeoutMs: LOGOUT_CLEANUP_TIMEOUT_MS,
+            });
+          }
+        } finally {
+          await clearSession();
         }
-        await clearSession();
       },
       hasSeenWelcome,
       markWelcomeSeen,

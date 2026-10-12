@@ -17,6 +17,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Pressable,
   SectionList,
   StyleSheet,
@@ -35,6 +36,7 @@ import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
 import BarangayChipSelector from "@/responder/components/dashboard/BarangayChipSelector";
 import BarangaySectionHeader from "@/responder/components/dashboard/BarangaySectionHeader";
+import DutyToggle from "@/responder/components/dashboard/DutyToggle";
 import {
   filterIncidents,
   incidentBarangay,
@@ -47,6 +49,13 @@ import {
 } from "@/responder/components/dashboard/groupIncidentsByBarangay";
 import IncidentCard from "@/responder/components/dashboard/IncidentCard";
 import IncidentFilterBar from "@/responder/components/dashboard/IncidentFilterBar";
+import {
+  assignedBarangayFor,
+  assignmentLabel,
+  incidentsOutsideBarangay,
+  sortForBarangay,
+  type ResponderAssignment,
+} from "@/responder/components/dashboard/responderAssignment";
 import SeeAllToggle from "@/responder/components/dashboard/SeeAllToggle";
 import { selectNearestIncidents } from "@/responder/components/dashboard/selectNearestIncidents";
 import RButton from "@/responder/components/shared/RButton";
@@ -59,7 +68,7 @@ import {
 import type { Incident } from "@/responder/types/responder";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
-import { updateDutyStatus } from "@/services/user.service";
+import { getProfile, updateDutyStatus } from "@/services/user.service";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -89,7 +98,7 @@ export default function ResponderIncidentsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useTabBarHeight();
-  const { user, token } = useAuth();
+  const { user, token, updateUser } = useAuth();
   const { photoUri } = useProfilePhoto();
   const {
     notifyHomeReady,
@@ -127,6 +136,16 @@ export default function ResponderIncidentsScreen() {
     barangayIds: new Set(),
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
+  // The admin-set unit + home barangay, re-read on every visit so an
+  // admin's change shows up without logging in again. Null until loaded --
+  // the list stays on All until then, never on a guessed barangay.
+  const [assignment, setAssignment] = useState<ResponderAssignment | null>(null);
+  // "<user id>:<barangay id | all>" of the assignment last seen. When it
+  // changes -- a fresh visit, an account switch, or the admin reassigning
+  // them -- any barangay chip picked earlier is cleared; never on a normal
+  // refresh, so an MDRRMO responder's own pick sticks.
+  const appliedDefaultRef = useRef<string | null>(null);
+  const userId = user?.id;
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
@@ -268,6 +287,35 @@ export default function ResponderIncidentsScreen() {
     }, [token, loadIncidents]),
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      let cancelled = false;
+      getProfile(token)
+        .then((profile) => {
+          if (cancelled) return;
+          const next: ResponderAssignment = {
+            unit: profile.unit ?? null,
+            assignedBarangay: profile.assignedBarangay ?? null,
+          };
+          setAssignment(next);
+          // A BDRRMO's barangay is applied by lockedBarangay below, not
+          // through the chip filter -- so a stale pick is only ever cleared.
+          const barangay = assignedBarangayFor(next);
+          const key = `${userId}:${barangay?.id ?? "all"}`;
+          if (appliedDefaultRef.current !== key) {
+            appliedDefaultRef.current = key;
+            setFilters((prev) => ({ ...prev, barangayIds: new Set() }));
+          }
+        })
+        // Couldn't load: stay on All (nothing hidden); the next visit retries.
+        .catch(() => {});
+      return () => {
+        cancelled = true;
+      };
+    }, [token, userId]),
+  );
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     loadAnnouncement();
@@ -285,18 +333,8 @@ export default function ResponderIncidentsScreen() {
     }
   };
 
-  const highUrgencyCount = incidents.filter((i) => i.urgency === "high").length;
-  // SOS-sourced incidents carry the "sos" category; everything else is a
-  // citizen report.
-  const sosCount = incidents.filter((i) => i.categoryId === "sos").length;
-  const reportCount = incidents.length - sosCount;
   const firstName = user?.name?.split(" ")[0] ?? "Responder";
 
-  const availableTypes = useMemo(
-    () =>
-      Array.from(new Set(incidents.map((incident) => incident.type))).sort(),
-    [incidents],
-  );
 
   // Counts come from the incidents this screen already has loaded (the same
   // authorized getIncidents() result the rest of the screen reads) -- never
@@ -325,6 +363,45 @@ export default function ResponderIncidentsScreen() {
   const selectedBarangayId =
     filters.barangayIds.size === 1 ? [...filters.barangayIds][0] : null;
 
+  const myBarangay = useMemo(() => assignedBarangayFor(assignment), [assignment]);
+  const barangayChips = availableBarangays;
+  const myAssignmentLabel = assignmentLabel(assignment);
+
+  // A BDRRMO responder with a valid barangay sees only that barangay here:
+  // no All / other-barangay chips, no search, one list sorted SOS-first.
+  // It's a focus view, not access control -- SOS pushes still reach every
+  // on-duty responder, the Live Map still shows all of Cordova, and MDRRMO
+  // (who see everything here) catch anything placed in the wrong barangay
+  // or with no location. Fail-open: MDRRMO, no / unknown barangay, or a
+  // profile that hasn't loaded (or failed) all get the full dashboard.
+  const lockedBarangay = myBarangay;
+  const scopeIncidents = useMemo(
+    () =>
+      lockedBarangay
+        ? incidents.filter((incident) => incidentBarangay(incident).id === lockedBarangay.id)
+        : incidents,
+    [incidents, lockedBarangay],
+  );
+
+  const highUrgencyCount = scopeIncidents.filter((i) => i.urgency === "high").length;
+  // SOS-sourced incidents carry the "sos" category; everything else is a
+  // citizen report.
+  const sosCount = scopeIncidents.filter((i) => i.categoryId === "sos").length;
+  const reportCount = scopeIncidents.length - sosCount;
+
+  const availableTypes = useMemo(
+    () =>
+      Array.from(new Set(scopeIncidents.map((incident) => incident.type))).sort(),
+    [scopeIncidents],
+  );
+  // Everything the barangay filter is hiding -- other barangays and
+  // incidents with no location -- so a narrowed list is never silent.
+  const outside = incidentsOutsideBarangay(incidents, selectedBarangayId);
+  const selectedBarangayName =
+    barangayChips.find((chip) => chip.id === selectedBarangayId)?.name ?? null;
+  const onlyBarangayFiltered =
+    filters.search.length === 0 && filters.urgencies.size === 0 && filters.types.size === 0;
+
   const handleSelectBarangay = (id: string | null) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFilters((prev) => ({
@@ -333,9 +410,19 @@ export default function ResponderIncidentsScreen() {
     }));
   };
 
+  // Locked: the scope already is the barangay, and there's no search box,
+  // so only the urgency / type chips apply.
   const filteredIncidents = useMemo(
-    () => filterIncidents(incidents, filters),
-    [incidents, filters],
+    () =>
+      filterIncidents(
+        scopeIncidents,
+        lockedBarangay ? { ...filters, search: "", barangayIds: new Set() } : filters,
+      ),
+    [scopeIncidents, filters, lockedBarangay],
+  );
+  const lockedList = useMemo(
+    () => (lockedBarangay ? sortForBarangay(filteredIncidents) : []),
+    [filteredIncidents, lockedBarangay],
   );
 
   const nearestAll = useMemo(
@@ -390,14 +477,56 @@ export default function ResponderIncidentsScreen() {
     setDuty(next);
 
     if (!token) return;
-    updateDutyStatus(token, next === "online").catch(() => {
-      setDuty(previous);
-      Alert.alert(
-        "Something went wrong",
-        "Couldn't update your duty status. Please try again.",
-      );
-    });
+    updateDutyStatus(token, next === "online")
+      // Keep the app's saved user in step with the server, so the logout
+      // notice and this pill (after the screen remounts) show the real
+      // duty status instead of the one from login.
+      .then(() => {
+        if (user) void updateUser({ ...user, isOnDuty: next === "online" });
+      })
+      .catch(() => {
+        setDuty(previous);
+        Alert.alert(
+          "Something went wrong",
+          "Couldn't update your duty status. Please try again.",
+        );
+      });
   };
+
+  // The announcement scrolls with the incident list (it used to sit in the
+  // fixed header, squeezing the list); when no list is on screen -- off
+  // duty, loading, or an empty state -- it shows above that state instead.
+  const announcementBanner = announcement ? (
+    <AdvisoryBanner
+      id={announcement.id}
+      priority={announcement.priority}
+      time={formatShortDateTime(announcement.createdAt)}
+      title={announcement.title}
+      message={announcement.content}
+    />
+  ) : null;
+  // A locked BDRRMO's one way to other barangays: the Live Map (no list).
+  const liveMapLink = (
+    <Pressable
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        router.push("/responder/live-map");
+      }}
+      style={({ pressed }) => [styles.liveMapLink, pressed && styles.liveMapLinkPressed]}
+      accessibilityRole="button"
+      accessibilityLabel="Other barangays, open the Live Map"
+    >
+      <Ionicons name="map-outline" size={16} color={COLORS.primary} />
+      <Text style={styles.liveMapLinkText}>Other barangays</Text>
+      <Text style={styles.liveMapLinkAction}>Live Map</Text>
+      <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+    </Pressable>
+  );
+  const showsList =
+    duty === "online" &&
+    hasLoadedOnce &&
+    incidents.length > 0 &&
+    filteredIncidents.length > 0;
 
   return (
     <View style={styles.screen}>
@@ -423,9 +552,21 @@ export default function ResponderIncidentsScreen() {
                   size={40}
                 />
               </Pressable>
-              <View>
-                <Text style={styles.headerGreeting}>Hi, {firstName}</Text>
-                <Text style={styles.headerTitle}>Responder</Text>
+              {/* Role as a small label, the responder's name as the title,
+                  then where they're assigned. */}
+              <View style={styles.headerTextCol}>
+                <Text style={styles.headerGreeting}>Responder</Text>
+                <Text style={styles.headerTitle} numberOfLines={1}>
+                  Hi, {firstName}
+                </Text>
+                {myAssignmentLabel ? (
+                  <View style={styles.assignmentRow}>
+                    <Ionicons name="location" size={12} color={COLORS.primary} />
+                    <Text style={styles.assignmentText} numberOfLines={1}>
+                      {myAssignmentLabel}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
 
@@ -454,58 +595,24 @@ export default function ResponderIncidentsScreen() {
             </View>
           </View>
 
-          {/* Right under the greeting, like the citizen Home's advisory. */}
-          {announcement ? (
-            <View style={styles.announcement}>
-              <AdvisoryBanner
-                id={announcement.id}
-                priority={announcement.priority}
-                time={formatShortDateTime(announcement.createdAt)}
-                title={announcement.title}
-                message={announcement.content}
-              />
-            </View>
-          ) : null}
-
           <QueuedAlertBadge
             style={{ marginHorizontal: SPACING.md, marginBottom: SPACING.sm }}
           />
 
           <View style={styles.statusRow}>
-            <Pressable
-              style={[
-                styles.dutyPill,
-                duty === "offline" && styles.dutyPillOffline,
-              ]}
-              onPress={handleToggleDuty}
-            >
-              <View
-                style={[
-                  styles.dutyDot,
-                  {
-                    backgroundColor:
-                      duty === "online" ? COLORS.success : COLORS.gray,
-                  },
-                ]}
-              />
-              <Text style={styles.dutyText}>
-                {duty === "online" ? "Online" : "Offline"}
-              </Text>
-            </Pressable>
+            <DutyToggle onDuty={duty === "online"} onToggle={handleToggleDuty} />
 
-            <Text style={styles.headerSubtitle}>
-              {incidents.length} nearby incident
-              {incidents.length === 1 ? "" : "s"}
-              {duty === "online" && lastUpdatedAt
-                ? ` · Updated ${formatRelativeTime(lastUpdatedAt).toLowerCase()}`
-                : ""}
-            </Text>
+            {duty === "online" && lastUpdatedAt ? (
+              <Text style={styles.headerSubtitle} numberOfLines={1}>
+                Updated {formatRelativeTime(lastUpdatedAt).toLowerCase()}
+              </Text>
+            ) : null}
           </View>
 
           {/* How many of the nearby incidents are SOS alerts vs citizen
               reports, at a glance -- next to the High Urgency filter. */}
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { borderLeftColor: COLORS.danger }]}>
+            <View style={styles.statCard}>
               <View style={styles.statTopRow}>
                 <View style={[styles.statIcon, { backgroundColor: `${COLORS.danger}26` }]}>
                   <Ionicons name="warning" size={14} color={COLORS.danger} />
@@ -516,7 +623,7 @@ export default function ResponderIncidentsScreen() {
                 SOS Alerts
               </Text>
             </View>
-            <View style={[styles.statCard, { borderLeftColor: COLORS.tide }]}>
+            <View style={styles.statCard}>
               <View style={styles.statTopRow}>
                 <View style={[styles.statIcon, { backgroundColor: `${COLORS.tide}26` }]}>
                   <Ionicons name="document-text" size={14} color={COLORS.tide} />
@@ -530,7 +637,6 @@ export default function ResponderIncidentsScreen() {
             <Pressable
               style={[
                 styles.statCard,
-                { borderLeftColor: COLORS.primary },
                 filters.urgencies.has("high") && styles.statCardActive,
               ]}
               onPress={handleToggleHighUrgency}
@@ -557,6 +663,10 @@ export default function ResponderIncidentsScreen() {
         </LinearGradient>
       </View>
 
+      {duty === "offline" && announcementBanner ? (
+        <View style={styles.announcementOutsideList}>{announcementBanner}</View>
+      ) : null}
+
       {duty === "offline" ? (
         <View style={styles.offlineState}>
           <RippleRings
@@ -569,10 +679,10 @@ export default function ResponderIncidentsScreen() {
           />
           <Ionicons name="moon-outline" size={32} color={COLORS.textTertiary} />
           <Text style={styles.offlineText}>
-            You&apos;re offline — go online to receive incidents.
+            You&apos;re off duty — go on duty to receive incidents.
           </Text>
           <RButton
-            label="Go Online"
+            label="Go On Duty"
             icon="radio-button-on-outline"
             variant="primary"
             onPress={handleToggleDuty}
@@ -581,20 +691,57 @@ export default function ResponderIncidentsScreen() {
         </View>
       ) : (
         <>
+          {/* Locked: the announcement takes the search bar's place. */}
+          {lockedBarangay && announcementBanner ? (
+            <View style={styles.announcementOutsideList}>{announcementBanner}</View>
+          ) : null}
+
           <IncidentFilterBar
             filters={filters}
             onFiltersChange={setFilters}
             availableTypes={availableTypes}
+            title={
+              lockedBarangay
+                ? `Active in ${lockedBarangay.name} (${filteredIncidents.length})`
+                : undefined
+            }
           />
 
-          {availableBarangays.length > 0 && (
+          {!lockedBarangay && barangayChips.length > 0 && (
             <BarangayChipSelector
-              barangays={availableBarangays}
+              barangays={barangayChips}
               totalCount={incidents.length}
               selectedBarangayId={selectedBarangayId}
               onSelect={handleSelectBarangay}
             />
           )}
+
+          {!lockedBarangay && outside.count > 0 && selectedBarangayName ? (
+            <Pressable
+              onPress={() => handleSelectBarangay(null)}
+              style={({ pressed }) => [styles.outsideStrip, pressed && styles.outsideStripPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`${outside.count} more incidents outside ${selectedBarangayName}, view all`}
+            >
+              <Ionicons
+                name={outside.sosCount > 0 ? "warning" : "layers-outline"}
+                size={16}
+                color={outside.sosCount > 0 ? COLORS.danger : COLORS.textSecondary}
+              />
+              <Text style={styles.outsideText} numberOfLines={1}>
+                {outside.count} more outside {selectedBarangayName}
+                {outside.sosCount > 0 ? (
+                  <Text style={styles.outsideSos}> · {outside.sosCount} SOS</Text>
+                ) : null}
+              </Text>
+              <Text style={styles.outsideAction}>View all</Text>
+              <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+            </Pressable>
+          ) : null}
+
+          {!lockedBarangay && !showsList && announcementBanner ? (
+            <View style={styles.announcementOutsideList}>{announcementBanner}</View>
+          ) : null}
 
           {!hasLoadedOnce ? (
             <View style={styles.noResultsState}>
@@ -618,7 +765,7 @@ export default function ResponderIncidentsScreen() {
                 style={styles.retryButton}
               />
             </View>
-          ) : incidents.length === 0 ? (
+          ) : scopeIncidents.length === 0 ? (
             <View style={styles.noResultsState}>
               <Ionicons
                 name="checkmark-circle-outline"
@@ -626,8 +773,11 @@ export default function ResponderIncidentsScreen() {
                 color={COLORS.textTertiary}
               />
               <Text style={styles.noResultsText}>
-                You&apos;re all caught up — no nearby incidents right now.
+                {lockedBarangay
+                  ? `You're all caught up — no incidents in ${lockedBarangay.name} right now.`
+                  : "You're all caught up — no nearby incidents right now."}
               </Text>
+              {lockedBarangay ? liveMapLink : null}
             </View>
           ) : filteredIncidents.length === 0 ? (
             <View style={styles.noResultsState}>
@@ -637,9 +787,38 @@ export default function ResponderIncidentsScreen() {
                 color={COLORS.textTertiary}
               />
               <Text style={styles.noResultsText}>
-                No incidents match your search or filters.
+                {lockedBarangay
+                  ? "No incidents match your filters."
+                  : selectedBarangayName && onlyBarangayFiltered
+                    ? `No incidents in ${selectedBarangayName} right now.`
+                    : "No incidents match your search or filters."}
               </Text>
             </View>
+          ) : lockedBarangay ? (
+            <FlatList
+              data={lockedList}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={[
+                styles.list,
+                { paddingBottom: tabBarHeight + SPACING.md },
+              ]}
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              renderItem={({ item }) => (
+                <IncidentCard
+                  incident={item}
+                  isNew={newIncidentIds.has(item.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/responder/[id]",
+                      params: { id: item.id },
+                    })
+                  }
+                />
+              )}
+              // An element, not an inline function (see ListHeaderComponent below).
+              ListFooterComponent={liveMapLink}
+            />
           ) : (
             <SectionList<Incident, { title: BarangayGroup }>
               sections={sections}
@@ -650,37 +829,43 @@ export default function ResponderIncidentsScreen() {
               ]}
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
+              // An element, not an inline function: a new function each render
+              // is a new component type, so the header (and the announcement
+              // inside it) would remount every render -- and the banner's tour
+              // onLayout re-renders this screen, which looped forever.
               ListHeaderComponent={
-                nearestIncidents.length > 0
-                  ? () => (
-                      <View style={styles.nearestSection}>
-                        <Text style={styles.nearestLabel}>Nearest to You</Text>
-                        {nearestIncidents.map((incident) => (
-                          <IncidentCard
-                            key={incident.id}
-                            incident={incident}
-                            isNew={newIncidentIds.has(incident.id)}
-                            onPress={() =>
-                              router.push({
-                                pathname: "/responder/[id]",
-                                params: { id: incident.id },
-                              })
-                            }
-                          />
-                        ))}
-                        {nearestAll.length > NEAREST_INCIDENTS_COUNT && (
-                          <SeeAllToggle
-                            expanded={nearestExpanded}
-                            remainingCount={nearestAll.length - NEAREST_INCIDENTS_COUNT}
-                            onPress={() => setNearestExpanded((prev) => !prev)}
-                          />
-                        )}
-                        {!selectedBarangayId && availableBarangays.length > 0 && (
-                          <Text style={styles.pickBarangayHint}>
-                            Tap a barangay above to see its incidents.
-                          </Text>
-                        )}
-                      </View>
+                nearestIncidents.length > 0 || announcementBanner
+                  ? (
+                      <>
+                        {announcementBanner ? (
+                          <View style={styles.announcementInList}>{announcementBanner}</View>
+                        ) : null}
+                        {nearestIncidents.length > 0 ? (
+                          <View style={styles.nearestSection}>
+                            <Text style={styles.nearestLabel}>Nearest to You</Text>
+                            {nearestIncidents.map((incident) => (
+                              <IncidentCard
+                                key={incident.id}
+                                incident={incident}
+                                isNew={newIncidentIds.has(incident.id)}
+                                onPress={() =>
+                                  router.push({
+                                    pathname: "/responder/[id]",
+                                    params: { id: incident.id },
+                                  })
+                                }
+                              />
+                            ))}
+                            {nearestAll.length > NEAREST_INCIDENTS_COUNT && (
+                              <SeeAllToggle
+                                expanded={nearestExpanded}
+                                remainingCount={nearestAll.length - NEAREST_INCIDENTS_COUNT}
+                                onPress={() => setNearestExpanded((prev) => !prev)}
+                              />
+                            )}
+                          </View>
+                        ) : null}
+                      </>
                     )
                   : undefined
               }
@@ -740,24 +925,100 @@ function createStyles(COLORS: ColorPalette) {
       paddingHorizontal: SPACING.md,
       marginBottom: SPACING.sm,
     },
+    // Takes the room left of the bell, so a long name truncates instead
+    // of pushing the bell off the row.
     headerLeft: {
+      flex: 1,
+      minWidth: 0,
       flexDirection: "row",
       alignItems: "center",
       gap: SPACING.sm,
+    },
+    headerTextCol: {
+      flex: 1,
+      minWidth: 0,
     },
     headerActions: {
       flexDirection: "row",
       alignItems: "center",
       gap: SPACING.sm,
     },
+    // Small uppercase role label, same treatment as "Nearest to You".
     headerGreeting: {
       fontSize: TYPOGRAPHY.small,
-      color: COLORS.textSecondary,
+      fontWeight: "700",
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      color: COLORS.textTertiary,
     },
     headerTitle: {
       fontFamily: FONT_FAMILY.display,
       fontSize: TYPOGRAPHY.heading,
       color: COLORS.text,
+    },
+    assignmentRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 3,
+      marginTop: 1,
+    },
+    assignmentText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "600",
+      color: COLORS.textSecondary,
+    },
+    liveMapLink: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: SPACING.xs,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      borderRadius: RADIUS.full,
+      alignSelf: "center",
+    },
+    liveMapLinkPressed: {
+      backgroundColor: COLORS.surface,
+    },
+    liveMapLinkText: {
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+    },
+    liveMapLinkAction: {
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "700",
+      color: COLORS.primary,
+    },
+    // Tappable "N more outside <barangay> · View all" row under the chips.
+    outsideStrip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+      marginHorizontal: SPACING.md,
+      marginBottom: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.sm,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      backgroundColor: COLORS.background,
+    },
+    outsideStripPressed: {
+      backgroundColor: COLORS.surface,
+    },
+    outsideText: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.textSecondary,
+    },
+    outsideSos: {
+      fontWeight: "700",
+      color: COLORS.danger,
+    },
+    outsideAction: {
+      fontSize: TYPOGRAPHY.caption,
+      fontWeight: "700",
+      color: COLORS.primary,
     },
     headerSubtitle: {
       fontSize: TYPOGRAPHY.caption,
@@ -798,40 +1059,18 @@ function createStyles(COLORS: ColorPalette) {
       paddingHorizontal: SPACING.md,
       marginBottom: SPACING.sm,
     },
-    dutyPill: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      backgroundColor: COLORS.primaryTint,
-      borderRadius: RADIUS.full,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      // Never shrink -- only the subtitle text next to it should give up width.
-      flexShrink: 0,
-    },
-    dutyPillOffline: {
-      backgroundColor: COLORS.background,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-    },
-    dutyDot: {
-      width: 8,
-      height: 8,
-      borderRadius: RADIUS.full,
-    },
-    dutyText: {
-      fontSize: TYPOGRAPHY.small,
-      fontWeight: "700",
-      color: COLORS.text,
-    },
     statsRow: {
       flexDirection: "row",
       gap: SPACING.sm,
       paddingHorizontal: SPACING.md,
     },
-    announcement: {
+    // The list already pads its sides; outside it the banner needs its own.
+    announcementInList: {
+      marginBottom: SPACING.md,
+    },
+    announcementOutsideList: {
       paddingHorizontal: SPACING.md,
-      marginBottom: SPACING.sm,
+      paddingTop: SPACING.md,
     },
     // Three across: icon + number on top, label underneath, so even
     // "High Urgency" fits on a narrow phone.
@@ -840,7 +1079,6 @@ function createStyles(COLORS: ColorPalette) {
       gap: 2,
       backgroundColor: COLORS.background,
       borderRadius: RADIUS.lg,
-      borderLeftWidth: 3,
       paddingVertical: SPACING.sm,
       paddingHorizontal: SPACING.sm,
     },
@@ -922,12 +1160,6 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textSecondary,
       letterSpacing: 0.2,
       textTransform: "uppercase",
-    },
-    pickBarangayHint: {
-      marginTop: SPACING.xs,
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.textTertiary,
-      textAlign: "center",
     },
   });
 }

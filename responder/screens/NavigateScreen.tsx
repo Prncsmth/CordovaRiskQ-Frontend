@@ -12,9 +12,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Pressable,
-  Share,
   StyleSheet,
   Text,
   View,
@@ -32,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/common/Dialog";
 import { darken } from "@/responder/components/shared/colorUtils";
+import { callResponderAction } from "@/utils/callResponder";
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
 import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
 import RButton from "@/responder/components/shared/RButton";
@@ -258,6 +259,8 @@ export default function NavigateScreen() {
   }
 
   const visual = getIncidentVisual(incident.type);
+  // The reporter's number, if the backend sent one (see ReporterContactCard).
+  const reporterCall = callResponderAction(incident.reporterContact?.mobile ?? null);
   const { incidentCoords } = incident;
 
   const handleLocate = () => {
@@ -265,10 +268,10 @@ export default function NavigateScreen() {
     mapRef.current?.flyTo(responderCoords.latitude, responderCoords.longitude, 16);
   };
 
-  const handleShare = () => {
-    Share.share({
-      message: `I'm on my way to ${incident.type} at ${incident.location} -- ETA ${durationMin} min.`,
-    }).catch(() => {});
+  const handleCallReporter = () => {
+    if (reporterCall.kind !== "call") return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Linking.openURL(reporterCall.telUrl);
   };
 
   const handleArrive = async () => {
@@ -397,13 +400,18 @@ export default function NavigateScreen() {
         </View>
 
         <View style={styles.sheetActions}>
-          <RButton
-            label="Share Trip"
-            icon="paper-plane-outline"
-            variant="secondary"
-            onPress={handleShare}
-            style={styles.sheetButton}
-          />
+          {/* Call the reporter without leaving the map -- only when the
+              backend sent their contact (responder on the incident) and it
+              has a dialable number; otherwise Arrive takes the full row. */}
+          {reporterCall.kind === "call" ? (
+            <RButton
+              label="Call Reporter"
+              icon="call"
+              variant="secondary"
+              onPress={handleCallReporter}
+              style={styles.sheetButton}
+            />
+          ) : null}
           <RButton
             label={isArriving ? "Arriving…" : "Arrive"}
             icon="checkmark"

@@ -11,6 +11,10 @@ export type UserProfile = {
   // True for any account that signs in with Google (Google-only, or an
   // email/password account later linked to it). Missing from an older backend.
   isGoogleAccount?: boolean;
+  // A responder's admin-set unit ("BDRRMO" | "MDRRMO") and home barangay.
+  // Missing from a backend that predates them.
+  unit?: string | null;
+  assignedBarangay?: string | null;
 };
 
 export async function getProfile(token: string): Promise<UserProfile> {

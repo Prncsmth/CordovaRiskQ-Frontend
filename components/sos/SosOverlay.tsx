@@ -14,6 +14,7 @@ import GeofenceBlockedModal, { type GeofenceModalVariant } from "@/components/co
 import GeofenceToast from "@/components/common/GeofenceToast";
 import RippleRings from "@/components/common/RippleRings";
 import SosBubble from "@/components/sos/SosBubble";
+import SosFailureModal from "@/components/sos/SosFailureModal";
 import { useAuth } from "@/context/AuthContext";
 import { useSos, type SosTrackingState } from "@/context/SosContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, type ColorPalette } from "@/theme";
@@ -68,9 +69,17 @@ export default function SosOverlay() {
   const blockedVariant: GeofenceModalVariant | null =
     blockedReason === "permission"
       ? "permission-required"
-      : blockedReason === "unavailable"
+      : blockedReason === "outside"
         ? "sos-unavailable"
         : null;
+  // No GPS / no connection / timeout: offer calls, not the geofence message.
+  const failureReason =
+    blockedReason === "no-location" ||
+    blockedReason === "send-failed" ||
+    blockedReason === "timed-out" ||
+    blockedReason === "not-dispatched"
+      ? blockedReason
+      : null;
 
   return (
     <>
@@ -122,6 +131,12 @@ export default function SosOverlay() {
       <GeofenceBlockedModal
         visible={blockedVariant !== null}
         variant={blockedVariant ?? "sos-unavailable"}
+        onDismiss={dismissBlocked}
+        onRetry={retryConfirm}
+      />
+
+      <SosFailureModal
+        reason={failureReason}
         onDismiss={dismissBlocked}
         onRetry={retryConfirm}
       />
