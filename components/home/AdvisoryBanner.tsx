@@ -37,14 +37,9 @@ export default function AdvisoryBanner({
 
   return (
     <Pressable
-      // Critical gets a red accent edge; Warning an amber one.
-      style={[
-        styles.card,
-        toSeverity(priority) !== "Information" && {
-          borderLeftWidth: 4,
-          borderLeftColor: severity.color,
-        },
-      ]}
+      // The card itself stays neutral; only the bullhorn and label carry
+      // the severity color.
+      style={styles.card}
       accessibilityRole="button"
       accessibilityLabel={`${severity.label}: ${title}`}
       ref={anchorRef}
