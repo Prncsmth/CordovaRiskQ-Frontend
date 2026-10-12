@@ -64,8 +64,9 @@ export interface Incident {
   // from their assigned unit and barangay (see the backend's
   // responderScope.ts). False = view only: no alert, no actions.
   canRespond: boolean;
-  // True when it's open to this responder only because nobody in its own
-  // barangay took it within 2 minutes (the backend's escalation).
+  // True when it's open to this responder as backup, not as their own
+  // barangay's: MDRRMO where no BDRRMO is on duty, or anyone once nobody
+  // took it within 2 minutes (the backend's responderScope.ts).
   escalated: boolean;
 }
 

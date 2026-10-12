@@ -80,13 +80,13 @@ export default function PendingView({
       {/* Outside this responder's scope (the backend's canRespond): view
           only, from the Live Map or a direct link -- no Accept/Decline, and
           the backend rejects them anyway. */}
-      {/* Outside their barangay but nobody there took it in 2 minutes --
-          say why they're being asked. */}
+      {/* Not their own barangay: it reached them as backup (MDRRMO, with no
+          on-duty BDRRMO there) or because nobody took it in 2 minutes. */}
       {incident.canRespond && incident.escalated ? (
         <View style={styles.escalatedNote}>
           <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
           <Text style={styles.escalatedText}>
-            No one in this barangay has responded for 2 minutes, so it&apos;s open to you.
+            No responder from this barangay is available yet, so it&apos;s open to you.
           </Text>
         </View>
       ) : null}
