@@ -80,10 +80,16 @@ export default function NotificationRow({
   item,
   onDelete,
   deleting = false,
+  onMarkRead,
+  marking = false,
 }: {
   item: AppNotification;
   onDelete?: () => void;
   deleting?: boolean;
+  // Responders only: an explicit "Mark as read" on an unread row. The row
+  // stays listed after; only its "New" state clears.
+  onMarkRead?: () => void;
+  marking?: boolean;
 }) {
   const router = useRouter();
   const COLORS = useThemeColors();
@@ -122,6 +128,28 @@ export default function NotificationRow({
       if (finished && onDelete) runOnJS(onDelete)();
     });
   }
+
+  // Responders' explicit "Mark as read" on an unread row (both layouts).
+  const markReadButton =
+    onMarkRead && !item.read ? (
+      <Pressable
+        onPress={() => {
+          if (!marking) onMarkRead();
+        }}
+        disabled={marking}
+        hitSlop={8}
+        style={styles.markReadButton}
+        accessibilityRole="button"
+        accessibilityLabel={`Mark ${item.title} as read`}
+      >
+        {marking ? (
+          <ActivityIndicator size="small" color={COLORS.primary} />
+        ) : (
+          <Ionicons name="checkmark-done" size={14} color={COLORS.primary} />
+        )}
+        <Text style={styles.markReadText}>{marking ? "Marking…" : "Mark as read"}</Text>
+      </Pressable>
+    ) : null;
 
   const pan = Gesture.Pan()
     .enabled(!!onDelete && !deleting)
@@ -199,6 +227,7 @@ export default function NotificationRow({
                   <Text style={styles.body} numberOfLines={2}>
                     {item.body}
                   </Text>
+                  {markReadButton}
                 </View>
                 <View style={[styles.typeBadge, { backgroundColor: color }]}>
                   <Ionicons name={icon} size={14} color={COLORS.white} />
@@ -216,6 +245,7 @@ export default function NotificationRow({
                     {item.body}
                   </Text>
                   <Text style={styles.meta}>{formatRelativeTime(item.createdAt)}</Text>
+                  {markReadButton}
                 </View>
 
                 {!item.read && (
@@ -300,6 +330,19 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
       marginTop: 2,
+    },
+    markReadButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      alignSelf: "flex-start",
+      marginTop: SPACING.xs,
+      paddingVertical: 2,
+    },
+    markReadText: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      color: COLORS.primary,
     },
     senderLogoCircle: {
       width: 30,

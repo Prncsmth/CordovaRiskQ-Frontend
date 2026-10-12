@@ -25,6 +25,7 @@ import {
 } from "@/components/common/Dialog";
 import { EmptyState } from "@/components/common/EmptyState";
 import NotificationRow from "@/components/notifications/NotificationRow";
+import { useAuth } from "@/context/AuthContext";
 import { useNotifications } from "@/context/NotificationContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import {
@@ -67,9 +68,11 @@ export default function NotificationsScreen({
     loadFailed,
     refresh,
     markAllRead,
+    markRead,
     deleteNotification: removeNotification,
     clearAll,
   } = useNotifications();
+  const { user } = useAuth();
   const tabBarHeight = useTabBarHeight();
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
@@ -80,21 +83,48 @@ export default function NotificationsScreen({
     "idle",
   );
 
-  // Matches the previous per-load behavior: opening this screen marks
-  // whatever's currently loaded as read. NotificationProvider already did
-  // the initial fetch app-wide (for the Home bell badge), so this only
-  // needs to mark it read, not fetch it again.
+  // Responders mark each one read themselves (it stays listed for 24
+  // hours); citizens keep the previous behavior, where opening this screen
+  // marks whatever's loaded as read.
+  const isResponder = user?.role === "responder";
+  const [markingIds, setMarkingIds] = useState<Set<string>>(new Set());
+
+  // Matches the previous per-load behavior for citizens. NotificationProvider
+  // already did the initial fetch app-wide (for the Home bell badge), so
+  // this only needs to mark it read, not fetch it again.
   useEffect(() => {
-    markAllRead();
+    if (!isResponder) markAllRead();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     refresh()
-      .then(() => markAllRead())
+      .then(() => {
+        if (!isResponder) markAllRead();
+      })
       .finally(() => setRefreshing(false));
-  }, [refresh, markAllRead]);
+  }, [refresh, markAllRead, isResponder]);
+
+  // One request per notification at a time -- a repeat tap is ignored.
+  const handleMarkRead = useCallback(
+    async (id: string) => {
+      if (markingIds.has(id)) return;
+      setMarkingIds((prev) => new Set(prev).add(id));
+      try {
+        await markRead(id);
+      } catch {
+        Alert.alert("Couldn't mark as read", "Please check your connection and try again.");
+      } finally {
+        setMarkingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [markingIds, markRead],
+  );
 
   // Only removes the row once the backend confirms the delete -- this route
   // doesn't exist yet (see deleteNotification's comment in
@@ -214,6 +244,8 @@ export default function NotificationsScreen({
                     item={item}
                     onDelete={() => handleDelete(item.id)}
                     deleting={deletingIds.has(item.id)}
+                    onMarkRead={isResponder ? () => handleMarkRead(item.id) : undefined}
+                    marking={markingIds.has(item.id)}
                   />
                 ))}
               </View>

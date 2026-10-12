@@ -13,3 +13,26 @@ export function addIncomingNotification(
   }
   return [incoming, ...existing];
 }
+
+// Responder notifications are an operational inbox: each one is listed for
+// 24 hours from when it was created (read or not), then drops out of the
+// list and the unread badge -- the backend applies the same cutoff on every
+// fetch; this keeps an already-loaded list honest while the app stays open.
+// Citizens keep their unexpiring list.
+export const RESPONDER_NOTIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+export function visibleNotifications(
+  list: AppNotification[],
+  role: string | undefined,
+  now = Date.now(),
+): AppNotification[] {
+  if (role !== "responder") return list;
+  return list.filter(
+    (n) => now - new Date(n.createdAt).getTime() < RESPONDER_NOTIFICATION_TTL_MS,
+  );
+}
+
+// Marks one notification read in an already-loaded list, keeping it listed.
+export function withNotificationRead(list: AppNotification[], id: string): AppNotification[] {
+  return list.map((n) => (n.id === id ? { ...n, read: true } : n));
+}

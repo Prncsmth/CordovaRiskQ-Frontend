@@ -27,6 +27,12 @@ export async function getNotifications(token: string): Promise<AppNotification[]
   return response.notifications;
 }
 
+// Marks one of the signed-in user's own notifications read (the backend
+// rejects anyone else's). It stays listed until it's 24 hours old.
+export async function markNotificationRead(token: string, id: string): Promise<void> {
+  await apiPatch(`/api/notifications/${id}/read`, {}, token);
+}
+
 export async function markAllNotificationsRead(token: string): Promise<void> {
   await apiPatch("/api/notifications/read-all", {}, token);
 }

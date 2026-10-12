@@ -19,9 +19,14 @@ import {
   deleteNotification as deleteNotificationRequest,
   getNotifications as getNotificationsRequest,
   markAllNotificationsRead,
+  markNotificationRead,
   type AppNotification,
 } from "@/services/notification.service";
-import { addIncomingNotification } from "@/utils/notifications";
+import {
+  addIncomingNotification,
+  visibleNotifications,
+  withNotificationRead,
+} from "@/utils/notifications";
 import {
   getNotifications as getNotificationsModule,
   notificationsUnavailable,
@@ -38,6 +43,9 @@ type NotificationContextValue = {
   latestAnnouncementEvent: AppNotification | null;
   refresh: () => Promise<void>;
   markAllRead: () => void;
+  // Marks one read once the backend confirms; it stays listed. Throws on
+  // failure so the caller can keep its button available.
+  markRead: (id: string) => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
   clearAll: () => Promise<void>;
 };
@@ -48,8 +56,20 @@ const NotificationContext = createContext<NotificationContextValue | undefined>(
 const CLEAR_ALL_BATCH_SIZE = 10;
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const { token, user } = useAuth();
+  const role = user?.role;
+  const [allNotifications, setNotifications] = useState<AppNotification[]>([]);
+  // Re-checked every minute so a responder's notification drops out (list
+  // and badge) once it's 24 hours old, even with the app left open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+  const notifications = useMemo(
+    () => visibleNotifications(allNotifications, role, now),
+    [allNotifications, role, now],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [latestAnnouncementEvent, setLatestAnnouncementEvent] = useState<AppNotification | null>(
@@ -122,6 +142,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     markAllNotificationsRead(token).catch(() => {});
   }, [token]);
 
+  const markRead = useCallback(
+    async (id: string) => {
+      if (!token) return;
+      await markNotificationRead(token, id);
+      setNotifications((prev) => withNotificationRead(prev, id));
+    },
+    [token],
+  );
+
   const deleteNotification = useCallback(
     async (id: string) => {
       if (!token) return;
@@ -166,6 +195,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       latestAnnouncementEvent,
       refresh,
       markAllRead,
+      markRead,
       deleteNotification,
       clearAll,
     }),
@@ -177,6 +207,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       latestAnnouncementEvent,
       refresh,
       markAllRead,
+      markRead,
       deleteNotification,
       clearAll,
     ],
