@@ -81,12 +81,14 @@ export default function ReportScreen() {
   // photo was uploaded. The ref holds the pending answer for
   // resolveReportPhoto; Cancel, back and leaving the screen all mean "no".
   const [photoFailedPrompt, setPhotoFailedPrompt] = useState(false);
+  const [photoFailedReason, setPhotoFailedReason] = useState("");
   const photoAnswerRef = useRef<((proceed: boolean) => void) | null>(null);
 
   const confirmSubmitWithoutPhoto = useCallback(
-    () =>
+    (reason: string) =>
       new Promise<boolean>((resolve) => {
         photoAnswerRef.current = resolve;
+        setPhotoFailedReason(reason);
         setPhotoFailedPrompt(true);
       }),
     [],
@@ -348,8 +350,9 @@ export default function ReportScreen() {
           <DialogIcon name="image-outline" color={COLORS.danger} />
           <DialogTitle>Photo upload failed</DialogTitle>
           <DialogMessage>
-            Your photo couldn&apos;t be uploaded. Submit the report without the
-            photo?
+            Your photo couldn&apos;t be uploaded
+            {photoFailedReason ? ` (${photoFailedReason.replace(/\.$/, "")})` : ""}. Submit the
+            report without the photo?
           </DialogMessage>
           <DialogActions>
             <DialogButton

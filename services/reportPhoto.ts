@@ -8,8 +8,9 @@
 export type ReportPhotoDeps<TPhoto extends { uri: string }> = {
   fileExists(uri: string): boolean;
   upload(photo: TPhoto): Promise<{ photoUrl: string }>;
-  // Resolves true for "Submit without photo", false for cancel.
-  confirmSubmitWithoutPhoto(): Promise<boolean>;
+  // Resolves true for "Submit without photo", false for cancel. `reason`
+  // says why the photo didn't go through, for the prompt to show.
+  confirmSubmitWithoutPhoto(reason: string): Promise<boolean>;
 };
 
 export type ReportPhotoOutcome =
@@ -24,15 +25,20 @@ export async function resolveReportPhoto<TPhoto extends { uri: string }>(
 
   // A photo that's gone from the device (e.g. a cleared cache) fails the
   // same way as a failed upload.
+  let reason = "The photo is no longer on this phone.";
   if (deps.fileExists(photo.uri)) {
     try {
       const { photoUrl } = await deps.upload(photo);
       return { proceed: true, photoUrl };
-    } catch {
+    } catch (error) {
       // Fall through to the confirmation below.
+      reason =
+        error instanceof Error && error.message
+          ? error.message
+          : "Check your internet connection and try again.";
     }
   }
 
-  const submitWithoutPhoto = await deps.confirmSubmitWithoutPhoto();
+  const submitWithoutPhoto = await deps.confirmSubmitWithoutPhoto(reason);
   return submitWithoutPhoto ? { proceed: true } : { proceed: false };
 }

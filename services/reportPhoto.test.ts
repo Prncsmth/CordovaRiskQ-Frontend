@@ -37,6 +37,8 @@ describe("resolveReportPhoto", () => {
     const outcome = await resolveReportPhoto(photo, d);
 
     expect(d.confirmSubmitWithoutPhoto).toHaveBeenCalledTimes(1);
+    // The prompt is told why, so the user (and we) can see what went wrong.
+    expect(d.confirmSubmitWithoutPhoto).toHaveBeenCalledWith("404");
     expect(outcome).toEqual({ proceed: true });
     expect(outcome).not.toHaveProperty("photoUrl"); // never pretends it was attached
   });

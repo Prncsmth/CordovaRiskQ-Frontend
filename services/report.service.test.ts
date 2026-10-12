@@ -135,6 +135,33 @@ describe("uploadReportPhoto", () => {
     ).rejects.toThrow();
   });
 
+  it("sends the shrunk photo as an expo-file-system File, not a { uri } object", async () => {
+    // expo/fetch (SDK 57's global fetch) rejects React Native's { uri, name,
+    // type } parts with "Unsupported FormDataPart implementation".
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ success: true, photoUrl: "https://cdn.example.com/photo.jpg" }),
+    });
+    // @ts-ignore - global.fetch type
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const append = jest.spyOn(FormData.prototype, "append");
+
+    try {
+      await uploadReportPhoto("token123", "file:///exists.jpg", "photo.jpg");
+
+      expect(File).toHaveBeenCalledWith("file:///small.jpg");
+      expect(append).toHaveBeenCalledTimes(1);
+      const [field, value] = append.mock.calls[0];
+      expect(field).toBe("photo");
+      // The File instance itself (from the mocked constructor), never a
+      // plain { uri, name, type } descriptor.
+      expect(value).toBe(File.mock.results[File.mock.results.length - 1].value);
+      expect(value).not.toHaveProperty("uri");
+    } finally {
+      append.mockRestore();
+    }
+  });
+
   it("fails a response with no photoUrl instead of attaching nothing", async () => {
     // @ts-ignore - global.fetch type
     global.fetch = jest.fn().mockResolvedValue({

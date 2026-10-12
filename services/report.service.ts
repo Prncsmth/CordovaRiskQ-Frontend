@@ -22,18 +22,16 @@ export function photoFileExists(uri: string): boolean {
   }
 }
 
-export function guessPhotoMimeType(fileName: string): string {
-  const ext = fileName.split(".").pop()?.toLowerCase();
-  switch (ext) {
-    case "png":
-      return "image/png";
-    case "heic":
-      return "image/heic";
-    case "webp":
-      return "image/webp";
-    default:
-      return "image/jpeg";
-  }
+// The multipart body for a photo upload (field "photo"). The photo goes in
+// as an expo-file-system File -- SDK 57's global fetch (expo/fetch) reads
+// its bytes, and its name and MIME type (from the extension) become the
+// part's filename and content-type. The old React Native style
+// { uri, name, type } object is rejected by expo/fetch with "Unsupported
+// FormDataPart implementation", which is what made every upload fail.
+export function photoFormData(uri: string): FormData {
+  const formData = new FormData();
+  formData.append("photo", new File(uri) as unknown as Blob);
+  return formData;
 }
 
 // A phone camera photo is 3-6 MB; shrunk to at most 1280 px on its long
@@ -118,17 +116,22 @@ export async function uploadReportPhoto(
   fileName: string,
 ): Promise<{ photoUrl: string }> {
   const photo = await shrinkReportPhoto(uri, fileName);
-  const formData = new FormData();
-  formData.append("photo", {
-    uri: photo.uri,
-    name: photo.fileName,
-    type: guessPhotoMimeType(photo.fileName),
-  } as unknown as Blob);
-
-  const response = await postPhotoWithTimeout(`${API_BASE_URL}/api/incidents/photo`, token, formData);
+  const response = await postPhotoWithTimeout(
+    `${API_BASE_URL}/api/incidents/photo`,
+    token,
+    photoFormData(photo.uri),
+  );
 
   if (!response.ok) {
-    throw new Error(`Photo upload failed with status ${response.status}`);
+    // The server's own reason (e.g. "Photo must be 5 MB or smaller") when
+    // it sent one.
+    let message: string | undefined;
+    try {
+      message = ((await response.json()) as { message?: string }).message;
+    } catch {
+      // not JSON
+    }
+    throw new Error(message ?? `Photo upload failed with status ${response.status}`);
   }
 
   const data = (await response.json()) as { success?: boolean; photoUrl?: string };

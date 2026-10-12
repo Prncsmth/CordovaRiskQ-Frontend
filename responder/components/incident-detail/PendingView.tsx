@@ -1,9 +1,12 @@
 // components/responder/incident-detail/PendingView.tsx
 // Phase 1 of the incident-detail flow: a new incident offer, shown before
-// the responder accepts or declines.
+// the responder accepts or declines. The details scroll; Accept/Decline sit
+// in a fixed footer, so a photo or a long description can never push them
+// off the screen.
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import RippleRings from "@/components/common/RippleRings";
 import { getIncidentVisual } from "@/responder/components/shared/incidentVisual";
@@ -40,100 +43,127 @@ export default function PendingView({
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const insets = useSafeAreaInsets();
   const visual = getIncidentVisual(incident.type);
   const details = incidentDetailsText(incident);
 
   return (
-    <View style={styles.centeredBody}>
-      <View style={styles.pulseWrap}>
-        <RippleRings
-          size={120}
-          ringCount={2}
-          animated
-          color={`${visual.color}33`}
-          style={styles.pulseRings}
-        />
-        <GradientIconCircle
-          color={visual.color}
-          size={88}
-          iconSize={34}
-          icon={visual.icon}
-          COLORS={COLORS}
-        />
-      </View>
-      <Text style={styles.incidentType}>{incident.type}</Text>
-      <Text style={styles.incidentLocation}>{incident.location}</Text>
-      {isRejoin && (
-        <Text style={styles.rejoinNote}>You previously left this incident.</Text>
-      )}
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.pulseWrap}>
+          <RippleRings
+            size={100}
+            ringCount={2}
+            animated
+            color={`${visual.color}33`}
+            style={styles.pulseRings}
+          />
+          <GradientIconCircle
+            color={visual.color}
+            size={72}
+            iconSize={30}
+            icon={visual.icon}
+            COLORS={COLORS}
+          />
+        </View>
+        <Text style={styles.incidentType}>{incident.type}</Text>
+        <Text style={styles.incidentLocation}>{incident.location}</Text>
+        {isRejoin && (
+          <Text style={styles.rejoinNote}>You previously left this incident.</Text>
+        )}
 
-      <View style={styles.detailsCard}>
-        <Text style={styles.detailsLabel}>What happened</Text>
-        <Text style={[styles.detailsText, !details.provided && styles.detailsMuted]}>
-          {details.text}
-        </Text>
-        <IncidentPhoto uri={incident.photoUrl} style={styles.photo} />
-      </View>
+        {/* What decides "can I take this?" first: how far, how urgent. */}
+        <View style={styles.metaRow}>
+          <View style={styles.metaBox}>
+            <Text style={styles.metaLabel}>Distance</Text>
+            <Text style={styles.metaValue}>
+              {incident.distanceKm != null ? `${incident.distanceKm.toFixed(1)} km` : "Unknown"}
+            </Text>
+          </View>
+          <View style={styles.metaBox}>
+            <Text style={styles.metaLabel}>Urgency</Text>
+            <UrgencyBadge urgency={incident.urgency} />
+          </View>
+        </View>
 
-      <View style={styles.metaRow}>
-        <View style={styles.metaBox}>
-          <Text style={styles.metaLabel}>Distance</Text>
-          <Text style={styles.metaValue}>
-            {incident.distanceKm != null ? `${incident.distanceKm.toFixed(1)} km` : "Unknown"}
+        {/* Not their own barangay: it reached them as backup (MDRRMO, with no
+            on-duty BDRRMO there) or because nobody took it in 2 minutes. */}
+        {incident.canRespond && incident.escalated ? (
+          <View style={styles.escalatedNote}>
+            <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
+            <Text style={styles.escalatedText}>
+              No responder from this barangay is available yet, so it&apos;s open to you.
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.detailsCard}>
+          <Text style={styles.detailsLabel}>What happened</Text>
+          <Text style={[styles.detailsText, !details.provided && styles.detailsMuted]}>
+            {details.text}
           </Text>
+          <IncidentPhoto uri={incident.photoUrl} style={styles.photo} />
         </View>
-        <View style={styles.metaBox}>
-          <Text style={styles.metaLabel}>Urgency</Text>
-          <UrgencyBadge urgency={incident.urgency} />
-        </View>
+      </ScrollView>
+
+      {/* Fixed footer, always reachable. Outside this responder's scope (the
+          backend's canRespond): view only, from the Live Map or a direct
+          link -- no Accept/Decline, and the backend rejects them anyway. */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.sm }]}>
+        {incident.canRespond ? (
+          <View style={styles.pendingActions}>
+            {!isRejoin && (
+              <RButton
+                label="Decline"
+                onPress={onDecline}
+                variant="secondary"
+                style={styles.actionButton}
+              />
+            )}
+            <RButton
+              label={isRejoin ? "Rejoin" : "Accept"}
+              onPress={onAccept}
+              variant="primary"
+              style={styles.actionButton}
+            />
+          </View>
+        ) : (
+          <View style={styles.viewOnly}>
+            <Ionicons name="eye-outline" size={18} color={COLORS.textSecondary} />
+            <Text style={styles.viewOnlyText}>
+              View only — this incident is outside your assigned barangay.
+            </Text>
+          </View>
+        )}
       </View>
-
-      {/* Outside this responder's scope (the backend's canRespond): view
-          only, from the Live Map or a direct link -- no Accept/Decline, and
-          the backend rejects them anyway. */}
-      {/* Not their own barangay: it reached them as backup (MDRRMO, with no
-          on-duty BDRRMO there) or because nobody took it in 2 minutes. */}
-      {incident.canRespond && incident.escalated ? (
-        <View style={styles.escalatedNote}>
-          <Ionicons name="alert-circle" size={18} color={COLORS.warning} />
-          <Text style={styles.escalatedText}>
-            No responder from this barangay is available yet, so it&apos;s open to you.
-          </Text>
-        </View>
-      ) : null}
-
-      {incident.canRespond ? (
-        <View style={styles.pendingActions}>
-          <RButton label={isRejoin ? "Rejoin" : "Accept"} onPress={onAccept} variant="primary" />
-          {!isRejoin && (
-            <RButton label="Decline" onPress={onDecline} variant="secondary" />
-          )}
-        </View>
-      ) : (
-        <View style={styles.viewOnly}>
-          <Ionicons name="eye-outline" size={18} color={COLORS.textSecondary} />
-          <Text style={styles.viewOnlyText}>
-            View only — this incident is outside your assigned barangay.
-          </Text>
-        </View>
-      )}
     </View>
   );
 }
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
-    centeredBody: {
+    root: {
+      flex: 1,
+    },
+    scroll: {
+      flex: 1,
+    },
+    scrollContent: {
       alignItems: "center",
       paddingHorizontal: SPACING.lg,
-      paddingTop: SPACING.lg,
+      paddingTop: SPACING.sm,
+      paddingBottom: SPACING.lg,
     },
     pulseWrap: {
-      width: 120,
-      height: 120,
+      width: 100,
+      height: 100,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: SPACING.md,
+      marginBottom: SPACING.sm,
     },
     pulseRings: {
       position: "absolute",
@@ -149,6 +179,7 @@ function createStyles(COLORS: ColorPalette) {
     incidentLocation: {
       fontSize: TYPOGRAPHY.body,
       color: COLORS.textSecondary,
+      textAlign: "center",
       marginTop: 4,
       marginBottom: SPACING.lg,
     },
@@ -157,14 +188,54 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textTertiary,
       marginBottom: SPACING.lg,
     },
-    photo: {
-      marginTop: SPACING.md,
+    // What decides "can I take this?" -- two equal cards, full width.
+    metaRow: {
+      width: "100%",
+      flexDirection: "row",
+      gap: SPACING.sm,
+      marginBottom: SPACING.md,
+    },
+    metaBox: {
+      flex: 1,
+      alignItems: "center",
+      gap: 4,
+      backgroundColor: COLORS.surface,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      paddingVertical: SPACING.sm + 2,
+      paddingHorizontal: SPACING.md,
+    },
+    metaLabel: {
+      fontSize: TYPOGRAPHY.small,
+      color: COLORS.textTertiary,
+      fontWeight: "600",
+    },
+    metaValue: {
+      fontSize: TYPOGRAPHY.body,
+      color: COLORS.text,
+      fontWeight: "700",
+    },
+    escalatedNote: {
+      width: "100%",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+      borderRadius: RADIUS.lg,
+      backgroundColor: COLORS.warningBg,
+    },
+    escalatedText: {
+      flex: 1,
+      fontSize: TYPOGRAPHY.caption,
+      color: COLORS.text,
+      lineHeight: 19,
     },
     detailsCard: {
       width: "100%",
       gap: 4,
       padding: SPACING.md,
-      marginBottom: SPACING.md,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
       borderColor: COLORS.borderMuted,
@@ -186,48 +257,24 @@ function createStyles(COLORS: ColorPalette) {
       color: COLORS.textSecondary,
       fontStyle: "italic",
     },
-    metaRow: {
-      flexDirection: "row",
-      gap: SPACING.sm,
-      marginBottom: SPACING.xl,
+    photo: {
+      marginTop: SPACING.md,
     },
-    metaBox: {
-      alignItems: "center",
-      gap: 4,
-      backgroundColor: COLORS.surface,
-      borderRadius: RADIUS.lg,
-      paddingVertical: SPACING.sm + 2,
+    footer: {
       paddingHorizontal: SPACING.lg,
-      minWidth: 108,
+      paddingTop: SPACING.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: COLORS.borderMuted,
+      backgroundColor: COLORS.surface,
     },
-    metaLabel: {
-      fontSize: TYPOGRAPHY.small,
-      color: COLORS.textTertiary,
-      fontWeight: "600",
-    },
-    metaValue: {
-      fontSize: TYPOGRAPHY.body,
-      color: COLORS.text,
-      fontWeight: "700",
-    },
+    // Decline | Accept side by side; RButton keeps its own bottom margin.
     pendingActions: {
-      width: "100%",
-    },
-    escalatedNote: {
-      width: "100%",
       flexDirection: "row",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: SPACING.sm,
-      padding: SPACING.md,
-      marginBottom: SPACING.md,
-      borderRadius: RADIUS.lg,
-      backgroundColor: COLORS.warningBg,
     },
-    escalatedText: {
+    actionButton: {
       flex: 1,
-      fontSize: TYPOGRAPHY.caption,
-      color: COLORS.text,
-      lineHeight: 19,
     },
     viewOnly: {
       width: "100%",
@@ -235,6 +282,7 @@ function createStyles(COLORS: ColorPalette) {
       alignItems: "center",
       gap: SPACING.sm,
       padding: SPACING.md,
+      marginBottom: SPACING.sm,
       borderRadius: RADIUS.lg,
       borderWidth: 1,
       borderColor: COLORS.borderMuted,

@@ -1,5 +1,5 @@
 import { API_BASE_URL, apiDelete, apiGet, apiPatch, apiPost, apiPut } from "./api";
-import { guessPhotoMimeType, postPhotoWithTimeout, shrinkReportPhoto } from "./report.service";
+import { photoFormData, postPhotoWithTimeout, shrinkReportPhoto } from "./report.service";
 
 export type UserProfile = {
   id: string;
@@ -79,14 +79,11 @@ const AVATAR_MAX_EDGE_PX = 512;
 // failure, so the caller can tell the user it didn't save.
 export async function uploadAvatar(token: string, uri: string): Promise<string> {
   const photo = await shrinkReportPhoto(uri, "avatar.jpg", AVATAR_MAX_EDGE_PX);
-  const formData = new FormData();
-  formData.append("photo", {
-    uri: photo.uri,
-    name: photo.fileName,
-    type: guessPhotoMimeType(photo.fileName),
-  } as unknown as Blob);
-
-  const response = await postPhotoWithTimeout(`${API_BASE_URL}/api/users/me/avatar`, token, formData);
+  const response = await postPhotoWithTimeout(
+    `${API_BASE_URL}/api/users/me/avatar`,
+    token,
+    photoFormData(photo.uri),
+  );
   const data = (await response.json().catch(() => null)) as
     | { success?: boolean; avatarUrl?: string; message?: string }
     | null;
