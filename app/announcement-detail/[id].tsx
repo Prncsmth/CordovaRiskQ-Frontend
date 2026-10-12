@@ -24,6 +24,7 @@ import BackButton from "@/components/common/BackButton";
 import InfoRow from "@/components/report-detail/InfoRow";
 import { useAuth } from "@/context/AuthContext";
 import { getAnnouncementById, type Announcement } from "@/services/advisory.service";
+import { severityStyle, toSeverity } from "@/utils/announcementSeverity";
 import { formatDate, formatTime } from "@/utils/formatter";
 import {
   FONT_FAMILY,
@@ -113,7 +114,7 @@ export default function AnnouncementDetailScreen() {
     );
   }
 
-  const isUrgent = announcement.priority === "Urgent";
+  const severity = severityStyle(toSeverity(announcement.priority), COLORS);
 
   return (
     <ScrollView
@@ -139,15 +140,16 @@ export default function AnnouncementDetailScreen() {
       ) : null}
 
       <View style={styles.metaRow}>
-        <View style={[styles.badge, isUrgent && styles.badgeUrgent]}>
-          <Ionicons
-            name={isUrgent ? "alert-circle" : "megaphone-outline"}
-            size={13}
-            color={isUrgent ? COLORS.primary : COLORS.tide}
-          />
-          <Text style={[styles.badgeText, isUrgent && styles.badgeTextUrgent]}>
-            {isUrgent ? "Urgent" : "Announcement"}
-          </Text>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: severity.tint },
+            severity.prominent && { borderWidth: 1, borderColor: severity.color },
+          ]}
+          accessibilityLabel={`Severity: ${severity.label}`}
+        >
+          <Ionicons name={severity.icon} size={13} color={severity.color} />
+          <Text style={[styles.badgeText, { color: severity.color }]}>{severity.label}</Text>
         </View>
       </View>
 
@@ -158,7 +160,7 @@ export default function AnnouncementDetailScreen() {
           <Ionicons
             name="megaphone-outline"
             size={30}
-            color={isUrgent ? COLORS.primary : COLORS.tide}
+            color={severity.color}
           />
         </View>
         <View style={styles.bylineText}>
@@ -262,21 +264,13 @@ function createStyles(COLORS: ColorPalette) {
       flexDirection: "row",
       alignItems: "center",
       gap: 5,
-      backgroundColor: COLORS.tideTint,
       borderRadius: RADIUS.full,
       paddingHorizontal: SPACING.sm + 2,
       paddingVertical: 4,
     },
-    badgeUrgent: {
-      backgroundColor: COLORS.primaryTint,
-    },
     badgeText: {
       fontSize: 12,
       fontWeight: "700",
-      color: COLORS.tide,
-    },
-    badgeTextUrgent: {
-      color: COLORS.primary,
     },
     title: {
       fontFamily: FONT_FAMILY.display,

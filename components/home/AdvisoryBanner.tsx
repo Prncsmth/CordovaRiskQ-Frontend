@@ -5,10 +5,12 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTour } from "@/context/TourContext";
 import { useThemeColors, FONT_FAMILY, RADIUS, SHADOW, SPACING, type ColorPalette } from "@/theme";
+import { severityStyle, toSeverity } from "@/utils/announcementSeverity";
 
 type AdvisoryBannerProps = {
   id: string;
-  priority: "Normal" | "Urgent";
+  // The backend's severity (see utils/announcementSeverity.ts).
+  priority: string;
   time: string;
   title: string;
   message: string;
@@ -26,7 +28,7 @@ export default function AdvisoryBanner({
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { registerTarget, unregisterTarget, notifyTargetLayout } = useTour();
   const anchorRef = useRef<View>(null);
-  const isUrgent = priority === "Urgent";
+  const severity = severityStyle(toSeverity(priority), COLORS);
 
   useEffect(() => {
     registerTarget("alerts", anchorRef);
@@ -35,30 +37,36 @@ export default function AdvisoryBanner({
 
   return (
     <Pressable
-      style={styles.card}
+      // Critical gets a red accent edge; Warning an amber one.
+      style={[
+        styles.card,
+        toSeverity(priority) !== "Information" && {
+          borderLeftWidth: 4,
+          borderLeftColor: severity.color,
+        },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`${severity.label}: ${title}`}
       ref={anchorRef}
       collapsable={false}
       onLayout={() => notifyTargetLayout()}
       onPress={() => router.push({ pathname: "/announcement-detail/[id]", params: { id } })}
     >
       <View style={styles.iconCircle}>
-        <Ionicons
-          name="megaphone-outline"
-          size={34}
-          color={isUrgent ? COLORS.primary : COLORS.tide}
-        />
+        {/* Always the announcement bullhorn; only its color follows the
+            severity (blue info, amber warning, red critical). */}
+        <Ionicons name="megaphone-outline" size={34} color={severity.color} />
       </View>
       <View style={styles.textCol}>
         <View style={styles.metaRow}>
-          <Text style={[styles.label, isUrgent && styles.labelUrgent]}>
-            {isUrgent ? "Urgent" : "Announcement"}
-          </Text>
+          <Text style={[styles.label, { color: severity.color }]}>{severity.label}</Text>
           <Text style={styles.separator}>•</Text>
           <Text style={styles.dateText} numberOfLines={1}>
             {time}
           </Text>
         </View>
-        <Text style={styles.title} numberOfLines={1}>
+        {/* A critical alert's title gets room for a second line. */}
+        <Text style={styles.title} numberOfLines={severity.prominent ? 2 : 1}>
           {title}
         </Text>
         <Text style={styles.message} numberOfLines={1}>
@@ -104,10 +112,6 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: 12,
       lineHeight: 16,
       fontWeight: "700",
-      color: COLORS.tide,
-    },
-    labelUrgent: {
-      color: COLORS.primary,
     },
     separator: {
       fontSize: 8,

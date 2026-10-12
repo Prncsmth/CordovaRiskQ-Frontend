@@ -5,7 +5,9 @@ export type Announcement = {
   id: string;
   title: string;
   content: string;
-  priority: "Normal" | "Urgent";
+  // Severity: Information | Warning | Critical (an older backend sends
+  // Normal | Urgent). Read it through utils/announcementSeverity.ts.
+  priority: string;
   createdAt: string;
   // Not every backend row carries these -- author comes from the
   // createdBy relation (GET /api/announcements/:id only, not /active), and
