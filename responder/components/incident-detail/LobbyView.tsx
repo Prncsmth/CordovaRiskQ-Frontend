@@ -22,6 +22,7 @@ import type { Incident } from "@/responder/types/responder";
 import ActionRow from "./ActionRow";
 import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
+import { incidentDetailsText } from "./incidentDetailsText";
 import ReporterContactCard from "./ReporterContactCard";
 
 export type LobbyTab = "lobby" | "details";
@@ -132,6 +133,7 @@ export default function LobbyView({
         <ScrollView>
           <DetailRow label="Incident ID" value={incident.id} />
           <DetailRow label="Type" value={incident.type} />
+          <DetailRow label="What happened" value={incidentDetailsText(incident).text} multiline />
           <DetailRow label="Location" value={incident.location} />
           <DetailRow label="Urgency" value={incident.urgency} />
           <DetailRow

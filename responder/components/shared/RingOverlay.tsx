@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/common/Dialog";
 import { useResponderAlert } from "@/context/ResponderAlertContext";
+import { incidentDetailsText } from "@/responder/components/incident-detail/incidentDetailsText";
 import type { Urgency } from "@/responder/types/responder";
 import { SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 import { formatRelativeTime } from "@/utils/formatter";
@@ -33,6 +34,9 @@ export default function RingOverlay() {
   const { pendingIncident, accept, decline } = useResponderAlert();
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
+  const alertDetails = pendingIncident
+    ? incidentDetailsText(pendingIncident)
+    : { text: "", provided: false };
 
   return (
     <Modal transparent visible={!!pendingIncident} animationType="fade">
@@ -44,6 +48,13 @@ export default function RingOverlay() {
           />
           <DialogTitle>New {pendingIncident.type}</DialogTitle>
           <DialogMessage>{pendingIncident.location}</DialogMessage>
+          {/* What happened, so the responder knows before accepting. */}
+          <Text
+            style={[styles.details, !alertDetails.provided && styles.detailsMuted]}
+            numberOfLines={3}
+          >
+            {alertDetails.text}
+          </Text>
           <Text style={styles.time}>{formatRelativeTime(pendingIncident.createdAt)}</Text>
           <DialogActions>
             <DialogButton label="Decline" variant="secondary" onPress={decline} />
@@ -62,6 +73,18 @@ export default function RingOverlay() {
 
 function createStyles(COLORS: ColorPalette) {
   return StyleSheet.create({
+    details: {
+      alignSelf: "stretch",
+      marginTop: SPACING.sm,
+      fontSize: TYPOGRAPHY.caption,
+      lineHeight: 19,
+      color: COLORS.text,
+      textAlign: "center",
+    },
+    detailsMuted: {
+      color: COLORS.textSecondary,
+      fontStyle: "italic",
+    },
     time: {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,

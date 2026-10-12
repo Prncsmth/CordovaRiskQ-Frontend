@@ -12,6 +12,7 @@ export default function DetailRow({
   value,
   icon,
   last,
+  multiline = false,
 }: {
   label: string;
   value: string;
@@ -21,6 +22,9 @@ export default function DetailRow({
   // Drops the bottom divider on the last row of a card so it doesn't sit
   // flush against the card's own bottom edge.
   last?: boolean;
+  // Shows the whole value (e.g. the reporter's description) instead of
+  // clipping it at two lines.
+  multiline?: boolean;
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -32,7 +36,7 @@ export default function DetailRow({
         ) : null}
         <Text style={styles.detailLabel}>{label}:</Text>
       </View>
-      <Text style={styles.detailValue} numberOfLines={2}>
+      <Text style={styles.detailValue} numberOfLines={multiline ? undefined : 2}>
         {value}
       </Text>
     </View>

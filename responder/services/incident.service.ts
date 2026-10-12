@@ -15,6 +15,7 @@ type IncidentApiRow = {
   id: string;
   category: string;
   locationLabel: string;
+  details?: string | null;
   latitude: number | null;
   longitude: number | null;
   urgency: "high" | "medium" | "low";
@@ -42,6 +43,7 @@ export function toIncident(row: IncidentApiRow, responderLocation?: Coordinates)
     type: CATEGORY_LABELS[row.category] ?? row.category,
     categoryId: row.category,
     location: row.locationLabel,
+    details: row.details?.trim() || null,
     urgency: row.urgency,
     distanceKm:
       incidentCoords && responderLocation

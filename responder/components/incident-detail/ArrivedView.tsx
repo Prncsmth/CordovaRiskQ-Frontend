@@ -24,6 +24,7 @@ import { formatRelativeTime } from "@/utils/formatter";
 
 import DetailRow from "./DetailRow";
 import GradientIconCircle from "./GradientIconCircle";
+import { incidentDetailsText } from "./incidentDetailsText";
 import ReporterContactCard from "./ReporterContactCard";
 
 function capitalize(value: string): string {
@@ -94,6 +95,12 @@ export default function ArrivedView({
             icon="location-outline"
             label="Location"
             value={incident.location}
+          />
+          <DetailRow
+            icon="document-text-outline"
+            label="What happened"
+            value={incidentDetailsText(incident).text}
+            multiline
           />
           <DetailRow
             icon="time-outline"

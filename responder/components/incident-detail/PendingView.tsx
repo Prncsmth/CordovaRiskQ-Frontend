@@ -20,6 +20,7 @@ import {
 import type { Incident } from "@/responder/types/responder";
 
 import GradientIconCircle from "./GradientIconCircle";
+import { incidentDetailsText } from "./incidentDetailsText";
 
 export default function PendingView({
   incident,
@@ -39,6 +40,7 @@ export default function PendingView({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
+  const details = incidentDetailsText(incident);
 
   return (
     <View style={styles.centeredBody}>
@@ -63,6 +65,13 @@ export default function PendingView({
       {isRejoin && (
         <Text style={styles.rejoinNote}>You previously left this incident.</Text>
       )}
+
+      <View style={styles.detailsCard}>
+        <Text style={styles.detailsLabel}>What happened</Text>
+        <Text style={[styles.detailsText, !details.provided && styles.detailsMuted]}>
+          {details.text}
+        </Text>
+      </View>
 
       <View style={styles.metaRow}>
         <View style={styles.metaBox}>
@@ -145,6 +154,32 @@ function createStyles(COLORS: ColorPalette) {
       fontSize: TYPOGRAPHY.small,
       color: COLORS.textTertiary,
       marginBottom: SPACING.lg,
+    },
+    detailsCard: {
+      width: "100%",
+      gap: 4,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: COLORS.borderMuted,
+      backgroundColor: COLORS.surface,
+    },
+    detailsLabel: {
+      fontSize: TYPOGRAPHY.small,
+      fontWeight: "700",
+      letterSpacing: 0.4,
+      textTransform: "uppercase",
+      color: COLORS.textTertiary,
+    },
+    detailsText: {
+      fontSize: TYPOGRAPHY.body,
+      lineHeight: 22,
+      color: COLORS.text,
+    },
+    detailsMuted: {
+      color: COLORS.textSecondary,
+      fontStyle: "italic",
     },
     metaRow: {
       flexDirection: "row",

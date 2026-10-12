@@ -47,6 +47,9 @@ export interface Incident {
   // used by the responder Live Map's incident markers).
   categoryId: string;
   location: string;
+  // What the citizen wrote about it; null when they wrote nothing (an SOS
+  // usually has none). Read through incidentDetailsText.ts.
+  details: string | null;
   urgency: Urgency;
   distanceKm?: number;
   status: IncidentStatus;
