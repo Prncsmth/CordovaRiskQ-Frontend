@@ -106,7 +106,6 @@ function PhoneNumberContent() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.eyebrow}>One last thing</Text>
       <Text style={styles.title}>What&apos;s your number?</Text>
       <Text style={styles.subtitle}>
         We&apos;ll use this to send emergency and incident alerts.
@@ -176,19 +175,12 @@ function createStyles(COLORS: ColorPalette) {
       paddingHorizontal: SPACING.lg,
     },
 
-    eyebrow: {
-      fontSize: 12,
-      fontWeight: "700",
-      letterSpacing: 1,
-      color: COLORS.primary,
-      textTransform: "uppercase",
-    },
-
+    // Same top gap as the Terms screen's title, the step after this one.
     title: {
       fontFamily: FONT_FAMILY.display,
       fontSize: 26,
       color: COLORS.text,
-      marginTop: SPACING.xs,
+      marginTop: SPACING.md,
     },
 
     subtitle: {
