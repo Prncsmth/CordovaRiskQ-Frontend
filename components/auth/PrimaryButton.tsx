@@ -18,7 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-import { useThemeColors, SPACING, RADIUS, TYPOGRAPHY, type ColorPalette } from "../../theme";
+import { FONT_FAMILY, useThemeColors, SPACING, RADIUS, TYPOGRAPHY, type ColorPalette } from "../../theme";
 
 interface PrimaryButtonProps extends Omit<PressableProps, "style"> {
   title: string;
@@ -30,6 +30,12 @@ interface PrimaryButtonProps extends Omit<PressableProps, "style"> {
   colors?: readonly [string, string];
   // Optional icon shown after the title (e.g. an arrow on a "Continue" CTA).
   trailingIcon?: keyof typeof Ionicons.glyphMap;
+  // Optional icon shown before the title (e.g. "add" on New Report).
+  leadingIcon?: keyof typeof Ionicons.glyphMap;
+  // A full pill shape (the Home SOS button's silhouette) instead of the
+  // rounded rectangle, same red gradient -- for the report actions (New
+  // Report, Submit Report). Off by default: every other button is unchanged.
+  pill?: boolean;
 }
 
 export default function PrimaryButton({
@@ -42,6 +48,8 @@ export default function PrimaryButton({
   onPressOut,
   colors,
   trailingIcon,
+  leadingIcon,
+  pill = false,
   ...props
 }: PrimaryButtonProps) {
   const COLORS = useThemeColors();
@@ -54,11 +62,23 @@ export default function PrimaryButton({
     transform: [{ scale: scale.value }],
   }));
 
+  const renderContent = () =>
+    loading ? (
+      <ActivityIndicator color={COLORS.white} />
+    ) : (
+      <View style={styles.content}>
+        {leadingIcon ? <Ionicons name={leadingIcon} size={22} color={COLORS.white} /> : null}
+        <Text style={[styles.text, pill && styles.textPill]}>{title}</Text>
+        {trailingIcon ? <Ionicons name={trailingIcon} size={18} color={COLORS.white} /> : null}
+      </View>
+    );
+
   return (
     <Animated.View style={animatedStyle}>
       <Pressable
         style={[
           styles.wrap,
+          pill && styles.wrapPill,
           { shadowColor },
           (disabled || loading) && styles.disabled,
           style,
@@ -84,7 +104,7 @@ export default function PrimaryButton({
           colors={gradientColors}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.button}
+          style={[styles.button, pill && styles.buttonPill]}
         >
           <LinearGradient
             colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
@@ -92,16 +112,7 @@ export default function PrimaryButton({
             end={{ x: 0.5, y: 1 }}
             style={styles.sheen}
           />
-          {loading ? (
-            <ActivityIndicator color={COLORS.white} />
-          ) : (
-            <View style={styles.content}>
-              <Text style={styles.text}>{title}</Text>
-              {trailingIcon ? (
-                <Ionicons name={trailingIcon} size={18} color={COLORS.white} />
-              ) : null}
-            </View>
-          )}
+          {renderContent()}
         </LinearGradient>
       </Pressable>
     </Animated.View>
@@ -127,6 +138,20 @@ function createStyles(COLORS: ColorPalette) {
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // Pill silhouette like components/sos/SOSButton.tsx; colors unchanged.
+  wrapPill: {
+    borderRadius: RADIUS.full,
+  },
+
+  buttonPill: {
+    height: 54,
+    borderRadius: RADIUS.full,
+  },
+
+  textPill: {
+    fontFamily: FONT_FAMILY.display,
   },
 
   sheen: {

@@ -99,6 +99,10 @@ export default function IncidentDetailScreen() {
   // The failure counterpart: the backend didn't accept the resolve, so the
   // incident is unchanged and the dialog offers Try Again.
   const [showResolveFailed, setShowResolveFailed] = useState(false);
+  // The Leave Incident dialog: asking, request in flight, or it failed.
+  const [leaveDialog, setLeaveDialog] = useState<"confirm" | "leaving" | "failed" | null>(null);
+  // Guards a double tap on Leave while the request is in flight.
+  const isLeavingRef = useRef(false);
   // Ignores a second slide while the first resolve request is still running.
   const isResolvingRef = useRef(false);
   // Fetched once and reused for the rest of this screen's lifetime, matching
@@ -361,30 +365,24 @@ export default function IncidentDetailScreen() {
     }
   };
 
-  const handleLeave = () => {
-    Alert.alert(
-      "Leave incident?",
-      "You'll stop helping with this incident. Other responders can still assist.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Leave",
-          style: "destructive",
-          onPress: async () => {
-            if (!token) return;
-            try {
-              await updateMyResponderStatus(token, incident.id, "left");
-              router.back();
-            } catch (err) {
-              Alert.alert(
-                "Couldn't leave incident",
-                err instanceof Error ? err.message : "Please try again.",
-              );
-            }
-          },
-        },
-      ],
-    );
+  // Leave goes through the app's own Dialog (same look as the resolve
+  // dialogs below) rather than the platform's plain Alert: confirm ->
+  // leaving -> back out, or an app-styled failure with Try Again.
+  const handleLeave = () => setLeaveDialog("confirm");
+
+  const confirmLeave = async () => {
+    if (!token || isLeavingRef.current) return;
+    isLeavingRef.current = true;
+    setLeaveDialog("leaving");
+    try {
+      await updateMyResponderStatus(token, incident.id, "left");
+      setLeaveDialog(null);
+      router.back();
+    } catch {
+      setLeaveDialog("failed");
+    } finally {
+      isLeavingRef.current = false;
+    }
   };
 
   // The slide gesture on ArrivedView's SlideToResolve is itself the
@@ -596,6 +594,58 @@ export default function IncidentDetailScreen() {
               onPress={retryResolve}
             />
           </DialogActions>
+        </Dialog>
+      </Modal>
+
+      {/* Leave Incident -- confirm, then (only on failure) an error with
+          Try Again. Hidden if the incident closes meanwhile; the closed
+          notice above takes over then. */}
+      <Modal
+        transparent
+        visible={leaveDialog !== null && closedNotice === null}
+        animationType="fade"
+        onRequestClose={() => {
+          if (leaveDialog !== "leaving") setLeaveDialog(null);
+        }}
+      >
+        <Dialog>
+          {leaveDialog === "failed" ? (
+            <>
+              <DialogIcon name="alert-circle" color={COLORS.danger} />
+              <DialogTitle>Couldn&apos;t leave incident</DialogTitle>
+              <DialogMessage>
+                You&apos;re still on this incident. Check your connection, then try again.
+              </DialogMessage>
+              <DialogActions>
+                <DialogButton label="Cancel" variant="secondary" onPress={() => setLeaveDialog(null)} />
+                <DialogButton label="Try Again" variant="primary" onPress={confirmLeave} />
+              </DialogActions>
+            </>
+          ) : (
+            <>
+              <DialogIcon name="exit-outline" color={COLORS.danger} />
+              <DialogTitle>Leave this incident?</DialogTitle>
+              <DialogMessage>
+                You&apos;ll stop responding and stop sharing your location for this incident. Other
+                responders can still assist.
+              </DialogMessage>
+              <DialogActions>
+                <DialogButton
+                  label="Stay"
+                  variant="secondary"
+                  onPress={() => {
+                    if (leaveDialog !== "leaving") setLeaveDialog(null);
+                  }}
+                />
+                <DialogButton
+                  label={leaveDialog === "leaving" ? "Leaving…" : "Leave"}
+                  variant="primary"
+                  color={COLORS.danger}
+                  onPress={confirmLeave}
+                />
+              </DialogActions>
+            </>
+          )}
         </Dialog>
       </Modal>
     </View>

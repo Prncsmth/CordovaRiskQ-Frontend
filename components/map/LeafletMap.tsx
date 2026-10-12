@@ -214,18 +214,50 @@ function buildHtml(options: {
     });
   }
 
+  // Same look as the native ResponderMarker: RiskQ-red circle, white vehicle
+  // or walking symbol (inline SVG -- the Ionicons font isn't available in
+  // this WebView), small RiskQ logo badge, larger with a halo when selected.
+  var CAR_PATH = 'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z';
+  var WALK_PATH = 'M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7';
+
+  function responderIcon(color, movement, selected) {
+    var size = selected ? 42 : 34;
+    var glyph = selected ? 22 : 18;
+    var halo = selected
+      ? '<div style="position:absolute;top:0;left:0;width:56px;height:56px;border-radius:50%;background:' + color + ';opacity:0.22;"></div>'
+      : '';
+    return L.divIcon({
+      className: '',
+      html: '<div style="position:relative;width:56px;height:56px;">' + halo +
+        '<div style="position:absolute;top:50%;left:50%;width:' + size + 'px;height:' + size + 'px;margin:-' + (size / 2) + 'px 0 0 -' + (size / 2) + 'px;border-radius:50%;background:' + color +
+        ';border:' + (selected ? 3 : 2) + 'px solid #fff;box-sizing:border-box;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);">' +
+        '<svg width="' + glyph + '" height="' + glyph + '" viewBox="0 0 24 24"><path fill="#fff" d="' + (movement === 'walking' ? WALK_PATH : CAR_PATH) + '"/></svg>' +
+        '</div>' +
+        '<div style="position:absolute;right:6px;bottom:6px;width:18px;height:18px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.3);">' +
+        '<img src="' + RISKQ_LOGO + '" style="width:14px;height:14px;" /></div>' +
+        '</div>',
+      iconSize: [56, 56],
+      iconAnchor: [28, 28]
+    });
+  }
+
   window.rqSetMarkers = function (json) {
     var markers = JSON.parse(json);
     markersLayer.clearLayers();
     markers.forEach(function (m) {
       var icon = m.icon === 'logo' ? logoIcon()
         : m.icon === 'label' ? labelIcon(m.label || '', m.color)
+        : m.icon === 'responder' ? responderIcon(m.color || '#C8102E', m.movement, m.selected)
         : pinIcon(m.color || '#2563eb', m.pulse);
-      var marker = L.marker([m.latitude, m.longitude], { icon: icon });
+      var marker = L.marker([m.latitude, m.longitude], {
+        icon: icon,
+        zIndexOffset: m.icon === 'responder' && m.selected ? 1000 : 0
+      });
       // "label" markers' text is already always-visible in the pill itself
       // -- a tap-to-reveal popup would be redundant (and would eat the tap
-      // that's supposed to select the route instead).
-      if (m.label && m.icon !== 'label') marker.bindPopup(m.label);
+      // that's supposed to select the route instead). A responder's name
+      // stays off the map entirely (it's in the screen's responder chips).
+      if (m.label && m.icon !== 'label' && m.icon !== 'responder') marker.bindPopup(m.label);
       marker.on('click', function (e) {
         L.DomEvent.stopPropagation(e);
         post({ type: 'markerPress', id: m.id });

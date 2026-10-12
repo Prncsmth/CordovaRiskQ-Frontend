@@ -5,7 +5,7 @@
 // Both engines implement the same MapEngineProps/MapHandle contract (see
 // types.ts), so callers never need to know which one is mounted.
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import React, { forwardRef } from "react";
+import React, { forwardRef, memo } from "react";
 
 import LeafletMap from "./LeafletMap";
 import MapboxMap from "./MapboxMap";
@@ -18,7 +18,10 @@ const AppMap = forwardRef<MapHandle, MapEngineProps>(function AppMap(props, ref)
   return <Engine {...props} ref={ref} />;
 });
 
-export default AppMap;
+// Memoized: a screen that re-renders for something unrelated to the map (a
+// 1 s "Updated Xs ago" clock, say) doesn't re-render the whole map, as long
+// as it passes stable markers/polylines/callbacks.
+export default memo(AppMap);
 
 export type {
   MapEngineProps,

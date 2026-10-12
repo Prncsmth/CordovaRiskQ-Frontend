@@ -244,9 +244,11 @@ function RootLayoutNav() {
       />
       <Stack.Screen
         name="change-password/index"
+        // A full-screen form with its own Cancel/Save nav bar, sliding up
+        // like an iOS modal (it used to be a transparent bottom sheet).
         options={{
-          presentation: "transparentModal",
-          animation: "fade",
+          presentation: "modal",
+          animation: "slide_from_bottom",
         }}
       />
     </Stack>

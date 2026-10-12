@@ -5,14 +5,15 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Avatar } from "@/components/common/Avatar";
 import { useProfilePhoto } from "@/context/ProfilePhotoContext";
-import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import { FONT_FAMILY, RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 type ProfileHeaderProps = {
   name: string;
+  email?: string | null;
   onPress: () => void;
 };
 
-export default function ProfileHeader({ name, onPress }: ProfileHeaderProps) {
+export default function ProfileHeader({ name, email, onPress }: ProfileHeaderProps) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const { photoUri } = useProfilePhoto();
@@ -28,8 +29,14 @@ export default function ProfileHeader({ name, onPress }: ProfileHeaderProps) {
     >
       <Avatar name={name} photoUri={photoUri} />
       <View style={styles.textCol}>
-        <Text style={styles.welcome}>Welcome</Text>
-        <Text style={styles.name}>{name}</Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {name}
+        </Text>
+        {email ? (
+          <Text style={styles.email} numberOfLines={1}>
+            {email}
+          </Text>
+        ) : null}
       </View>
       <Ionicons name="chevron-forward" size={20} color={COLORS.textFaint} />
     </Pressable>
@@ -54,18 +61,16 @@ function createStyles(COLORS: ColorPalette) {
   },
   textCol: {
     flex: 1,
-  },
-  welcome: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
-    color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
+    minWidth: 0,
   },
   name: {
-    fontSize: TYPOGRAPHY.subtitle,
-    fontWeight: "800",
+    fontFamily: FONT_FAMILY.displaySemibold,
+    fontSize: TYPOGRAPHY.body,
     color: COLORS.text,
+  },
+  email: {
+    fontSize: TYPOGRAPHY.small,
+    color: COLORS.textSecondary,
     marginTop: 2,
   },
   });

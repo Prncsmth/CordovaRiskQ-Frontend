@@ -10,16 +10,32 @@ import { RADIUS, SHADOW_LG, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalet
 
 const AUTO_DISMISS_MS = 2500;
 
+// "danger" (default) is the original red warning, e.g. a tap outside
+// Cordova. "success" is green with a checkmark, for good news such as an
+// incident being resolved -- a red warning look read as something wrong.
+export type ToastTone = "danger" | "success";
+
+export function toastAppearance(
+  tone: ToastTone,
+  COLORS: Pick<ColorPalette, "danger" | "success">,
+): { backgroundColor: string; icon: keyof typeof Ionicons.glyphMap } {
+  return tone === "success"
+    ? { backgroundColor: COLORS.success, icon: "checkmark-circle" }
+    : { backgroundColor: COLORS.danger, icon: "warning" };
+}
+
 export default function GeofenceToast({
   visible,
   message,
   onDismiss,
   style,
+  tone = "danger",
 }: {
   visible: boolean;
   message: string;
   onDismiss: () => void;
   style?: StyleProp<ViewStyle>;
+  tone?: ToastTone;
 }) {
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
@@ -36,10 +52,12 @@ export default function GeofenceToast({
 
   if (!visible) return null;
 
+  const appearance = toastAppearance(tone, COLORS);
+
   return (
     <View style={[styles.container, style]} pointerEvents="none">
-      <View style={styles.pill}>
-        <Ionicons name="warning" size={16} color={COLORS.white} />
+      <View style={[styles.pill, { backgroundColor: appearance.backgroundColor }]}>
+        <Ionicons name={appearance.icon} size={16} color={COLORS.white} />
         <Text style={styles.text}>{message}</Text>
       </View>
     </View>

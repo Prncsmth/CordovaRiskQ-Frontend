@@ -5,8 +5,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useIsFocused, useRouter } from "expo-router";
+import React, { useMemo, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -15,8 +15,7 @@ import { getIncidentVisual } from "@/responder/components/shared/incidentVisual"
 import LiveIncidentMap from "@/responder/components/shared/LiveIncidentMap";
 import RButton from "@/responder/components/shared/RButton";
 import { useIncidentRoute } from "@/hooks/useIncidentRoute";
-import type { Coordinates } from "@/services/location.service";
-import { getCurrentLocation } from "@/services/location.service";
+import { useLiveCoordinates } from "@/hooks/useLiveCoordinates";
 import {
   FONT_FAMILY,
   RADIUS,
@@ -44,18 +43,25 @@ export default function OnTheWayView({
   const COLORS = useThemeColors();
   const styles = useMemo(() => createStyles(COLORS), [COLORS]);
   const visual = getIncidentVisual(incident.type);
-  const [responderCoords, setResponderCoords] = useState<Coordinates | undefined>();
+  // Follows the responder from the shared live GPS stream (it used to be
+  // read once on mount); the route re-requests only every ~30 m / 10 s
+  // (see useIncidentRoute).
+  const { coords: responderCoords } = useLiveCoordinates();
   const mapRef = useRef<MapHandle>(null);
+  // While the full-screen Navigate map is open on top, this screen is
+  // blurred and that map already keeps the route fresh -- pause this one's
+  // route requests so the two don't double the Directions API calls. It
+  // catches up as soon as the responder comes back here.
+  const isFocused = useIsFocused();
   const { route, midpoint, durationMin, distanceKm } = useIncidentRoute(
     responderCoords,
     incident.incidentCoords,
     incident.etaMinutes,
     incident.distanceKm,
+    "driving",
+    undefined,
+    isFocused,
   );
-
-  useEffect(() => {
-    getCurrentLocation().then(setResponderCoords).catch(() => {});
-  }, []);
 
   if (!incident.incidentCoords || !responderCoords || !midpoint) {
     return (
@@ -180,10 +186,12 @@ export default function OnTheWayView({
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             onLeave();
           }}
-          style={styles.leaveLink}
-          hitSlop={8}
+          style={({ pressed }) => [styles.leaveButton, pressed && styles.leaveButtonPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Leave incident"
         >
-          <Text style={styles.leaveLinkText}>Leave Incident</Text>
+          <Ionicons name="exit-outline" size={18} color={COLORS.danger} />
+          <Text style={styles.leaveButtonText}>Leave Incident</Text>
         </Pressable>
       </View>
     </View>
@@ -304,15 +312,26 @@ function createStyles(COLORS: ColorPalette) {
       marginTop: SPACING.lg,
       marginBottom: 0,
     },
-    leaveLink: {
-      alignSelf: "center",
-      marginTop: SPACING.xs,
-      paddingVertical: SPACING.sm,
-      paddingHorizontal: SPACING.lg,
+    // Secondary to Navigate: a quiet outline button in the danger tint,
+    // same red-on-tint language as the Lobby's "Leave Incident" row.
+    leaveButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: SPACING.xs,
+      height: 46,
+      marginTop: SPACING.sm,
+      borderRadius: RADIUS.md,
+      borderWidth: 1,
+      borderColor: `${COLORS.danger}40`,
+      backgroundColor: `${COLORS.danger}0D`,
     },
-    leaveLinkText: {
+    leaveButtonPressed: {
+      backgroundColor: `${COLORS.danger}1F`,
+    },
+    leaveButtonText: {
       fontSize: TYPOGRAPHY.caption,
-      fontWeight: "600",
+      fontWeight: "700",
       color: COLORS.danger,
     },
   });

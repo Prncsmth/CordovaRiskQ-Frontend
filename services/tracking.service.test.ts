@@ -42,6 +42,30 @@ describe("getResponderTracking", () => {
     expect(result.snapshot.responders[1].location).toBeNull(); // no location yet
   });
 
+  it("reads the primary responder's contact (only the primary's -- the list has none)", async () => {
+    mockApiGet.mockResolvedValue({
+      success: true,
+      tracking: { ...juan, mobile: "09171234567", unit: "MDRRMO", responders: [juan, pedro] },
+    });
+
+    const result = await getResponderTracking("jwt", "inc-1");
+
+    if (result.state !== "ok") throw new Error("expected ok");
+    expect(result.snapshot.primaryMobile).toBe("09171234567");
+    expect(result.snapshot.primaryUnit).toBe("MDRRMO");
+    expect(result.snapshot.responders[1]).not.toHaveProperty("mobile");
+  });
+
+  it("has no contact on an older backend, without failing", async () => {
+    mockApiGet.mockResolvedValue({ success: true, tracking: { ...juan, responders: [juan] } });
+
+    const result = await getResponderTracking("jwt", "inc-1");
+
+    if (result.state !== "ok") throw new Error("expected ok");
+    expect(result.snapshot.primaryMobile).toBeNull();
+    expect(result.snapshot.primaryUnit).toBeNull();
+  });
+
   it("treats an older backend's single responder as a list of one", async () => {
     mockApiGet.mockResolvedValue({ success: true, tracking: juan });
 

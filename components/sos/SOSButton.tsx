@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useMemo, useState } from "react";
 import { LayoutChangeEvent, Pressable, StyleSheet, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -75,6 +76,20 @@ export function SOSButton({ onPress }: { onPress?: () => void }) {
         accessibilityLabel="Send SOS emergency alert"
         accessibilityHint="Opens the SOS confirmation. You can also slide the handle to the right."
       >
+        {/* Same red gradient + top sheen as PrimaryButton (New Report,
+            Submit Report), so the app's main red actions match. */}
+        <LinearGradient
+          colors={[COLORS.primary, COLORS.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={[COLORS.sheenOverlay, "rgba(255,255,255,0)"]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.sheen}
+        />
         <Animated.View style={[styles.fill, fillStyle]} />
 
         <Animated.Text style={[styles.label, labelStyle]}>
@@ -106,6 +121,13 @@ function createStyles(COLORS: ColorPalette) {
       padding: TRACK_PADDING,
       justifyContent: "center",
       overflow: "hidden",
+    },
+    sheen: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: "50%",
     },
     fill: {
       position: "absolute",

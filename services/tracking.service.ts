@@ -27,6 +27,11 @@ export type ResponderTrack = {
 // currently helping -- first-accepted first -- for "Track Responders".
 export type TrackingSnapshot = ResponderTrack & {
   responders: ResponderTrack[];
+  // The PRIMARY responder's contact (the flat fields above): the only
+  // number the single Call Responder button may dial. Null when none is
+  // saved, or on a backend from before this field. Never shown as text.
+  primaryMobile: string | null;
+  primaryUnit: string | null;
 };
 
 export type TrackingResult =
@@ -51,6 +56,9 @@ type ResponderTrackApiRow = {
 type TrackingApiRow = ResponderTrackApiRow & {
   // Absent on a backend from before multi-responder tracking.
   responders?: ResponderTrackApiRow[];
+  // The primary responder's contact -- absent on an older backend.
+  mobile?: string | null;
+  unit?: string | null;
 };
 
 function toResponderTrack(row: ResponderTrackApiRow): ResponderTrack {
@@ -88,6 +96,8 @@ export async function getResponderTracking(
           row.responders && row.responders.length > 0
             ? row.responders.map(toResponderTrack)
             : [primary],
+        primaryMobile: row.mobile ?? null,
+        primaryUnit: row.unit ?? null,
       },
     };
   } catch (err) {

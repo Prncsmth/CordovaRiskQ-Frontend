@@ -6,11 +6,19 @@ import React, {
     useRef,
     useState,
 } from "react";
-import { Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import PrimaryButton from "@/components/auth/PrimaryButton";
 import BackButton from "@/components/common/BackButton";
+import {
+    Dialog,
+    DialogActions,
+    DialogButton,
+    DialogIcon,
+    DialogMessage,
+    DialogTitle,
+} from "@/components/common/Dialog";
 import GeofenceBlockedModal from "@/components/common/GeofenceBlockedModal";
 import { canMarkUrgent, type CategoryId } from "@/components/report/categories";
 import CategoryGrid from "@/components/report/CategoryGrid";
@@ -38,22 +46,6 @@ import {
     type ColorPalette,
 } from "@/theme";
 import { isInsideCordova } from "@/utils/geofence";
-
-// Asked when the photo couldn't be attached. Says plainly that the report
-// would go without it -- nothing claims the photo was uploaded.
-function confirmSubmitWithoutPhoto(): Promise<boolean> {
-  return new Promise((resolve) => {
-    Alert.alert(
-      "Photo upload failed",
-      "Your photo couldn't be uploaded. Submit the report without the photo?",
-      [
-        { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-        { text: "Submit without photo", onPress: () => resolve(true) },
-      ],
-      { cancelable: true, onDismiss: () => resolve(false) },
-    );
-  });
-}
 
 const FALLBACK_COORDS = CORDOVA_BARANGAYS.find((b) => b.id === "poblacion")!;
 const FALLBACK_LOCATION = {
@@ -84,6 +76,36 @@ export default function ReportScreen() {
   const detailsTargetRef = useRef<View>(null);
   const submitTargetRef = useRef<View>(null);
   const submitInFlightRef = useRef(false);
+  // Asked when the photo couldn't be attached, in the app's own dialog.
+  // Says plainly that the report would go without it -- nothing claims the
+  // photo was uploaded. The ref holds the pending answer for
+  // resolveReportPhoto; Cancel, back and leaving the screen all mean "no".
+  const [photoFailedPrompt, setPhotoFailedPrompt] = useState(false);
+  const photoAnswerRef = useRef<((proceed: boolean) => void) | null>(null);
+
+  const confirmSubmitWithoutPhoto = useCallback(
+    () =>
+      new Promise<boolean>((resolve) => {
+        photoAnswerRef.current = resolve;
+        setPhotoFailedPrompt(true);
+      }),
+    [],
+  );
+
+  const answerPhotoPrompt = (proceed: boolean) => {
+    setPhotoFailedPrompt(false);
+    const answer = photoAnswerRef.current;
+    photoAnswerRef.current = null;
+    answer?.(proceed);
+  };
+
+  useEffect(
+    () => () => {
+      photoAnswerRef.current?.(false);
+      photoAnswerRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!user?.id) return;
@@ -258,6 +280,7 @@ export default function ReportScreen() {
             address={activeLocation.address}
             latitude={activeLocation.latitude}
             longitude={activeLocation.longitude}
+            source={pinnedLocation ? "pinned" : "gps"}
           />
         </View>
         <View ref={detailsTargetRef} collapsable={false} style={styles.section}>
@@ -287,6 +310,7 @@ export default function ReportScreen() {
           )}
           <PrimaryButton
             title="Submit Report"
+            pill
             onPress={handleSubmit}
             disabled={!canSubmit || submitPhase !== "idle"}
             loading={submitPhase !== "idle"}
@@ -314,6 +338,33 @@ export default function ReportScreen() {
           handleSubmit();
         }}
       />
+      <Modal
+        transparent
+        visible={photoFailedPrompt}
+        animationType="fade"
+        onRequestClose={() => answerPhotoPrompt(false)}
+      >
+        <Dialog>
+          <DialogIcon name="image-outline" color={COLORS.danger} />
+          <DialogTitle>Photo upload failed</DialogTitle>
+          <DialogMessage>
+            Your photo couldn&apos;t be uploaded. Submit the report without the
+            photo?
+          </DialogMessage>
+          <DialogActions>
+            <DialogButton
+              label="Cancel"
+              variant="secondary"
+              onPress={() => answerPhotoPrompt(false)}
+            />
+            <DialogButton
+              label="Submit Anyway"
+              variant="primary"
+              onPress={() => answerPhotoPrompt(true)}
+            />
+          </DialogActions>
+        </Dialog>
+      </Modal>
     </View>
   );
 }

@@ -168,23 +168,19 @@ export default function ContactsScreen() {
         <Text style={styles.headerTitle}>Emergency Hotlines</Text>
       </View>
 
-      <View style={styles.heroCard}>
-        <Ionicons name="call" size={22} color={COLORS.tide} style={styles.heroIcon} />
-        <View style={styles.heroCopy}>
-          <Text style={styles.heroTitle}>One tap connects you to help</Text>
-          <Text style={styles.heroSubtitle}>
-            Official Cordova responders, ready when you need them.
-          </Text>
-        </View>
-      </View>
+      <Text style={styles.intro}>
+        Official Cordova hotlines. Tap one to call -- calls use your regular load, not mobile
+        data.
+      </Text>
 
-      <View style={styles.sectionHeading}>
-        <Text style={styles.sectionTitle}>Official Cordova Hotlines</Text>
-        <View style={styles.available}>
-          <View style={styles.availableDot} />
-          <Text style={styles.availableText}>Available</Text>
+      {/* Offline: the list below is the built-in copy, not the live one --
+          say so, so nobody wonders why a recently changed number is old. */}
+      {loadFailed && (
+        <View style={styles.offlineNote}>
+          <Ionicons name="cloud-offline-outline" size={16} color={COLORS.textSecondary} />
+          <Text style={styles.offlineText}>You&apos;re offline -- showing saved hotlines.</Text>
         </View>
-      </View>
+      )}
 
       {isLoading ? (
         <View style={styles.loading}>
@@ -232,7 +228,7 @@ function createStyles(COLORS: ColorPalette) {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: -10,
+    minHeight: 40,
   },
   backButton: {
     position: "absolute",
@@ -240,72 +236,39 @@ function createStyles(COLORS: ColorPalette) {
   },
   headerTitle: {
     fontFamily: FONT_FAMILY.displaySemibold,
-    fontSize: TYPOGRAPHY.subtitle,
+    fontSize: TYPOGRAPHY.body,
     color: COLORS.text,
   },
-  heroCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: SPACING.sm,
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    padding: SPACING.md,
-  },
-  // No circle background -- a fixed width keeps it aligned with the copy
-  // beside it, matching the plain-icon treatment used elsewhere.
-  heroIcon: {
-    width: 30,
-    textAlign: "center",
-  },
-  heroCopy: { flex: 1, gap: 2 },
-  heroTitle: {
-    color: COLORS.text,
+  intro: {
+    color: COLORS.textSecondary,
     fontSize: TYPOGRAPHY.caption,
-    fontWeight: "800",
+    lineHeight: 21,
   },
-  heroSubtitle: {
-    color: COLORS.textSecondary,
-    fontSize: TYPOGRAPHY.small,
-    lineHeight: 18,
-  },
-  sectionHeading: {
+  offlineNote: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: SPACING.sm,
+    gap: SPACING.xs,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
   },
-  sectionTitle: {
-    fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
+  offlineText: {
+    flex: 1,
     color: COLORS.textSecondary,
-    textTransform: "uppercase",
-    letterSpacing: 0.6,
-  },
-  available: { flexDirection: "row", alignItems: "center", gap: 5 },
-  availableDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: COLORS.success,
-  },
-  availableText: {
-    color: COLORS.success,
     fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
   },
-  categoryList: { gap: SPACING.lg },
-  categoryBlock: { gap: SPACING.xs + 2 },
+  categoryList: { gap: SPACING.md },
+  categoryBlock: { gap: SPACING.xs },
   categoryHeading: {
     flexDirection: "row",
     alignItems: "center",
     paddingLeft: 2,
   },
   categoryLabel: {
-    fontSize: TYPOGRAPHY.caption,
-    fontWeight: "800",
-    color: COLORS.gray,
+    fontSize: TYPOGRAPHY.small,
+    fontWeight: "600",
+    color: COLORS.textSecondary,
   },
   card: {
     backgroundColor: COLORS.background,

@@ -112,7 +112,6 @@ export default function UserProfileScreen() {
     }
   }
 
-  const fullName = `${firstName} ${lastName}`.trim();
 
   return (
     <KeyboardAvoidingView
@@ -143,32 +142,26 @@ export default function UserProfileScreen() {
           </View>
         ) : (
           <>
-            <View style={styles.avatarCard}>
-              <ProfileAvatarEdit />
-              {fullName ? (
-                <View style={styles.identity}>
-                  <Text style={styles.identityName}>{fullName}</Text>
-                  {email ? <Text style={styles.identityEmail}>{email}</Text> : null}
-                </View>
-              ) : null}
-            </View>
+            <ProfileAvatarEdit />
 
             <View style={styles.fieldsSection}>
-              <Text style={styles.sectionLabel}>Personal Information</Text>
+              <Text style={styles.sectionLabel}>Personal information</Text>
               <View style={styles.fieldsCard}>
                 <View style={styles.nameRow}>
                   <ProfileFieldInput
-                    label="First Name"
-                    icon="person-outline"
+                    label="First name"
                     value={firstName}
                     onChangeText={setFirstName}
+                    autoCapitalize="words"
+                    autoComplete="given-name"
                     containerStyle={styles.nameField}
                   />
                   <ProfileFieldInput
-                    label="Last Name"
-                    icon="person-outline"
+                    label="Last name"
                     value={lastName}
                     onChangeText={setLastName}
+                    autoCapitalize="words"
+                    autoComplete="family-name"
                     containerStyle={styles.nameField}
                   />
                 </View>
@@ -177,25 +170,38 @@ export default function UserProfileScreen() {
                     rejects a change too). */}
                 <ProfileFieldInput
                   label="Email"
-                  icon="mail-outline"
                   value={email}
                   onChangeText={() => {}}
                   readOnly
+                  hint="Your login email can't be changed."
                 />
                 <ProfileFieldInput
-                  label="Mobile"
-                  icon="call-outline"
+                  label="Mobile number"
                   value={mobile}
                   onChangeText={setMobile}
                   keyboardType="phone-pad"
+                  placeholder="09XX XXX XXXX"
+                  hint="Responders use this to reach you about your reports."
                 />
               </View>
             </View>
-
-            <PrimaryButton title="Save" onPress={handleSave} disabled={isSaving} />
           </>
         )}
       </ScrollView>
+
+      {/* Pinned to the bottom, outside the scrolling form, so the form has
+          room to breathe and Save is always within thumb reach. */}
+      {!isLoading && !loadError ? (
+        <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
+          <PrimaryButton
+            title="Save Changes"
+            pill
+            onPress={handleSave}
+            loading={isSaving}
+            style={styles.footerButton}
+          />
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -247,38 +253,24 @@ function createStyles(COLORS: ColorPalette) {
     color: COLORS.white,
     fontWeight: "700",
   },
-  avatarCard: {
-    alignItems: "center",
-    gap: SPACING.sm,
-    backgroundColor: COLORS.background,
-    borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.borderMuted,
-    paddingVertical: SPACING.lg,
+  footer: {
     paddingHorizontal: SPACING.md,
-    ...SHADOW,
+    paddingTop: SPACING.md,
+    backgroundColor: COLORS.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: COLORS.borderMuted,
   },
-  identity: {
-    alignItems: "center",
-    gap: 2,
-  },
-  identityName: {
-    fontFamily: FONT_FAMILY.displaySemibold,
-    fontSize: TYPOGRAPHY.subtitle,
-    color: COLORS.text,
-  },
-  identityEmail: {
-    fontSize: TYPOGRAPHY.small,
-    color: COLORS.textSecondary,
+  footerButton: {
+    marginTop: 0,
   },
   fieldsSection: {
-    gap: SPACING.sm,
+    gap: SPACING.xs,
   },
   sectionLabel: {
     fontSize: TYPOGRAPHY.small,
-    fontWeight: "700",
+    fontWeight: "600",
     color: COLORS.textSecondary,
-    marginLeft: SPACING.xs,
+    marginLeft: 2,
   },
   fieldsCard: {
     gap: SPACING.md,

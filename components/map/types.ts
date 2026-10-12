@@ -18,7 +18,15 @@ export type MapMarker = {
   // always-visible text pill instead of a pin at all -- used for a route
   // alternative's duration, tappable via onMarkerPress like any other
   // marker to make that route the active one.
-  icon?: "logo" | "label";
+  //
+  // "responder" is a responder on the citizen's Track Responders map: a
+  // RiskQ-red circle with a white vehicle or walking symbol (`movement`) and
+  // a small RiskQ logo badge -- no name on the map. It glides to each new
+  // position instead of jumping, and `selected` makes it larger with a halo.
+  // `label`, if given, is only its accessibility label.
+  icon?: "logo" | "label" | "responder";
+  movement?: "vehicle" | "walking";
+  selected?: boolean;
   // Adds a looping glow/pulse ring in the marker's own color -- for a live
   // incident (SOS or a citizen report) on a responder's map, so it reads as
   // "active right now" and draws the eye, the same radar-ping language

@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import * as authStorage from "./authStorage";
 import { setUnauthorizedHandler } from "@/services/api";
+import { unregisterPushNotifications } from "@/services/push.service";
 import { hasSeenWelcomeOnStartup, WELCOME_SEEN_KEY } from "@/utils/loggedOutStart";
 import {
   completeOnboardingStep,
@@ -161,6 +162,8 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+const LOGOUT_PUSH_TIMEOUT_MS = 4000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>(INITIAL_AUTH_STATE);
@@ -329,7 +332,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           signedUpWithGoogle: pending?.signedUpWithGoogle ?? false,
         });
       },
-      logout: clearSession,
+      // Clears this phone's push token on the server before dropping the
+      // session -- otherwise the backend keeps sending this account's
+      // report updates / incident alerts to a phone nobody is signed in on.
+      // Best-effort and capped, so logging out offline isn't held up.
+      logout: async () => {
+        const current = authState.token;
+        if (current) {
+          await Promise.race([
+            unregisterPushNotifications(current).catch(() => {}),
+            new Promise<void>((resolve) => setTimeout(resolve, LOGOUT_PUSH_TIMEOUT_MS)),
+          ]);
+        }
+        await clearSession();
+      },
       hasSeenWelcome,
       markWelcomeSeen,
       replaceToken: async (newToken: string) => {
