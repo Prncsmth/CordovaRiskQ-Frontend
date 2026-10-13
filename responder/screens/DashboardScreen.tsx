@@ -66,6 +66,7 @@ import {
   getActiveResponderAnnouncement,
   type Announcement,
 } from "@/services/advisory.service";
+import { useSequencedFetch } from "@/hooks/useSequencedFetch";
 import type { Incident } from "@/responder/types/responder";
 import type { Coordinates } from "@/services/location.service";
 import { getCurrentLocation } from "@/services/location.service";
@@ -153,19 +154,27 @@ export default function ResponderIncidentsScreen() {
   // Same live, socket-backed source as the citizen Home bell (HomeHeader)
   // -- not a per-screen poll -- so the dot updates the instant a
   // notification arrives or is read, identically for both roles.
-  const { hasUnread, latestAnnouncementEvent } = useNotifications();
+  const { hasUnread, latestAnnouncementEvent, latestAnnouncementDeletedEvent } = useNotifications();
   // Same Announcement Card as the citizen Home, fed by the responder endpoint
   // (All Users + Responders Only). Kept on screen while offline too --
   // announcements aren't tied to duty status.
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  // Shared by every trigger below (focus, a live create event, a live
+  // delete event) so a stale response from one can't overwrite a newer
+  // one's result -- see useSequencedFetch/sequencedRunner for why that's
+  // needed: a delete-then-publish in quick succession fires two of these
+  // close together with no guaranteed resolution order.
+  const runAnnouncementFetch = useSequencedFetch<Announcement | null>();
 
   const loadAnnouncement = useCallback(() => {
     if (!token) return;
-    getActiveResponderAnnouncement(token)
-      .then(setAnnouncement)
+    runAnnouncementFetch(
+      () => getActiveResponderAnnouncement(token),
+      setAnnouncement,
       // Best-effort, like the citizen Home: keep the current card on failure.
-      .catch(() => {});
-  }, [token]);
+      () => {},
+    );
+  }, [token, runAnnouncementFetch]);
 
   useFocusEffect(loadAnnouncement);
 
@@ -174,6 +183,11 @@ export default function ResponderIncidentsScreen() {
   useEffect(() => {
     if (latestAnnouncementEvent) loadAnnouncement();
   }, [latestAnnouncementEvent, loadAnnouncement]);
+  // Same for a live "announcement:deleted" broadcast -- re-query rather
+  // than optimistically clearing by id, same reasoning as the citizen Home.
+  useEffect(() => {
+    if (latestAnnouncementDeletedEvent) loadAnnouncement();
+  }, [latestAnnouncementDeletedEvent, loadAnnouncement]);
   // Which barangay sections/the Nearest to You header are currently showing
   // every incident instead of just the collapsed preview -- toggled per
   // section by its own "See All" button, independent of the others.

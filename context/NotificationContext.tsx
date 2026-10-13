@@ -15,7 +15,10 @@ import React, {
 
 import { useAuth } from "@/context/AuthContext";
 import { ringAlarmFor } from "@/hooks/useEmergencyAlarm";
-import { connectToNotificationSocket } from "@/services/notificationSocket.service";
+import {
+  connectToNotificationSocket,
+  type AnnouncementDeletedEvent,
+} from "@/services/notificationSocket.service";
 import {
   deleteNotification as deleteNotificationRequest,
   getNotifications as getNotificationsRequest,
@@ -42,6 +45,10 @@ type NotificationContextValue = {
   // initial historical fetch) -- Home watches this to refresh its
   // Announcement Card the instant one is published, without polling.
   latestAnnouncementEvent: AppNotification | null;
+  // Set only by a live "announcement:deleted" broadcast -- Home and the
+  // responder dashboard watch this to re-check (and clear, if it was the
+  // one showing) the Announcement Card the instant an admin deletes one.
+  latestAnnouncementDeletedEvent: AnnouncementDeletedEvent | null;
   refresh: () => Promise<void>;
   markAllRead: () => void;
   // Marks one read once the backend confirms; it stays listed. Throws on
@@ -78,6 +85,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [latestAnnouncementEvent, setLatestAnnouncementEvent] = useState<AppNotification | null>(
     null,
   );
+  const [latestAnnouncementDeletedEvent, setLatestAnnouncementDeletedEvent] =
+    useState<AnnouncementDeletedEvent | null>(null);
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -136,6 +145,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       // Reconnecting means the socket was down for some stretch of time --
       // refetch once to catch anything created while disconnected.
       () => refresh(),
+      (event) => setLatestAnnouncementDeletedEvent(event),
     );
 
     return disconnect;
@@ -198,6 +208,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       loadFailed,
       hasUnread,
       latestAnnouncementEvent,
+      latestAnnouncementDeletedEvent,
       refresh,
       markAllRead,
       markRead,
@@ -210,6 +221,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       loadFailed,
       hasUnread,
       latestAnnouncementEvent,
+      latestAnnouncementDeletedEvent,
       refresh,
       markAllRead,
       markRead,
