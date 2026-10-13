@@ -34,6 +34,7 @@ import { getTideStatus, type TideStatus } from "@/services/tide.service";
 import { SPACING, useThemeColors, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
 import { formatShortDateTime, formatTime } from "@/utils/formatter";
+import { useSequencedFetch } from "@/hooks/useSequencedFetch";
 
 const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
 
@@ -85,7 +86,12 @@ export default function HomeScreen() {
   const sosAnchorRef = useRef<View>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const firstName = user?.name?.trim().split(/\s+/)[0] || "there";
-  const { hasUnread, latestAnnouncementEvent, refresh: refreshNotifications } = useNotifications();
+  const {
+    hasUnread,
+    latestAnnouncementEvent,
+    latestAnnouncementDeletedEvent,
+    refresh: refreshNotifications,
+  } = useNotifications();
   const { centers } = useEvacuationCenters();
   // Reused by the live-announcement refresh effect below so it can re-query
   // the same barangay loadHomeData last resolved, without needing a fresh
@@ -95,6 +101,19 @@ export default function HomeScreen() {
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  // Shared by every trigger that can refresh the Announcement Card below
+  // (mount/pull-to-refresh via loadHomeData, a live create event, a live
+  // delete event) so a stale response from one can't overwrite a newer
+  // one's result -- see useSequencedFetch/sequencedRunner for why that's
+  // needed: a delete-then-publish in quick succession fires two of these
+  // close together with no guaranteed resolution order.
+  const runAnnouncementFetch = useSequencedFetch<Announcement | null>();
+  const loadAnnouncement = useCallback(
+    (barangayName?: string) => {
+      runAnnouncementFetch(() => getActiveAnnouncement(barangayName), setAnnouncement, () => {});
+    },
+    [runAnnouncementFetch],
+  );
   const [refreshing, setRefreshing] = useState(false);
   const now = useSyncExternalStore(subscribeToClockTick, getClockSnapshot);
   // Slide-in only, no fade: the screen used to start at opacity 0 and fade
@@ -161,14 +180,12 @@ export default function HomeScreen() {
         }
         barangayNameRef.current = barangayName;
 
-        getActiveAnnouncement(barangayName)
-          .then(setAnnouncement)
-          .catch(() => {});
+        loadAnnouncement(barangayName);
       })
       .catch(() => {});
 
     return Promise.all([tidePromise, restPromise]);
-  }, []);
+  }, [loadAnnouncement]);
 
   // Derived from the app-wide EvacuationCenterProvider, so an admin's live
   // status/facilities edit updates this card the instant it happens, the
@@ -195,10 +212,18 @@ export default function HomeScreen() {
   // instant an admin publishes one, without polling or a manual refresh.
   useEffect(() => {
     if (!latestAnnouncementEvent) return;
-    getActiveAnnouncement(barangayNameRef.current)
-      .then(setAnnouncement)
-      .catch(() => {});
-  }, [latestAnnouncementEvent]);
+    loadAnnouncement(barangayNameRef.current);
+  }, [latestAnnouncementEvent, loadAnnouncement]);
+
+  // Mirrors the effect above for a live "announcement:deleted" broadcast --
+  // re-queries rather than optimistically clearing by id, since the backend
+  // (not this screen) is the source of truth for what's current now; if the
+  // deleted one wasn't what this screen was showing, the re-fetch is a
+  // harmless no-op.
+  useEffect(() => {
+    if (!latestAnnouncementDeletedEvent) return;
+    loadAnnouncement(barangayNameRef.current);
+  }, [latestAnnouncementDeletedEvent, loadAnnouncement]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
