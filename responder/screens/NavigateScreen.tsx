@@ -87,7 +87,16 @@ export default function NavigateScreen() {
   // The route re-requests from the responder's live position only every
   // ~30 m / 10 s (see useIncidentRoute), so it shortens as they drive
   // without a Directions call on every GPS fix.
-  const { routes, selectedRouteIndex, selectRoute, midpoint, durationMin, distanceKm } = useIncidentRoute(
+  const {
+    routes,
+    selectedRouteIndex,
+    selectRoute,
+    midpoint,
+    durationMin,
+    distanceKm,
+    modeLoading,
+    previousModeRoute,
+  } = useIncidentRoute(
     responderCoords,
     incident?.incidentCoords,
     incident?.etaMinutes,
@@ -188,8 +197,9 @@ export default function NavigateScreen() {
   // set for the current travel mode arrives -- not on every position or
   // route refresh, which would keep yanking the camera back mid-drive.
   // `routesAtSwitch` is whatever route set was showing when the mode was
-  // (first) set -- the previous mode's routes linger until the new fetch
-  // lands, and those mustn't count as "this mode's routes arrived".
+  // (first) set, so only a set that arrives afterwards counts as "this
+  // mode's routes arrived". (`routes` is empty during a switch now -- the
+  // previous mode's route is drawn separately, dimmed, via previousModeRoute.)
   const fitStageRef = useRef<{ mode: TravelProfile; routesAtSwitch: Route[]; fittedRoutes: boolean } | null>(
     null,
   );
@@ -304,6 +314,7 @@ export default function NavigateScreen() {
         color={visual.color}
         routes={routes}
         selectedRouteIndex={selectedRouteIndex}
+        previousModeRoute={previousModeRoute}
         onSelectRoute={selectRoute}
         onReady={() => setMapReady(true)}
       />
@@ -350,19 +361,22 @@ export default function NavigateScreen() {
       <View style={[styles.statsBar, { top: statsBarTop }]}>
         <View style={styles.statsCol}>
           <Text style={styles.statsLabel}>Trip Time</Text>
-          <Text style={styles.statsValue}>{durationMin} min</Text>
+          {/* While the newly picked mode's route loads, no figures are quoted:
+              the dimmed route on the map is the previous mode's, and the
+              fallback estimate isn't this mode's either. */}
+          <Text style={styles.statsValue}>{modeLoading ? "—" : `${durationMin} min`}</Text>
         </View>
         <View style={styles.statsDivider} />
         <View style={styles.statsCol}>
           <Text style={styles.statsLabel}>Distance</Text>
           <Text style={styles.statsValue}>
-            {distanceKm != null ? `${distanceKm.toFixed(1)} km` : "—"}
+            {!modeLoading && distanceKm != null ? `${distanceKm.toFixed(1)} km` : "—"}
           </Text>
         </View>
         <View style={styles.statsDivider} />
         <View style={styles.statsCol}>
           <Text style={styles.statsLabel}>Arriving</Text>
-          <Text style={styles.statsValue}>{formatArrivalTime(durationMin)}</Text>
+          <Text style={styles.statsValue}>{modeLoading ? "—" : formatArrivalTime(durationMin)}</Text>
         </View>
       </View>
 
@@ -392,9 +406,11 @@ export default function NavigateScreen() {
               {incident.type}
             </Text>
             <Text style={styles.infoSubtitle} numberOfLines={1}>
-              {distanceKm != null
-                ? `${distanceKm.toFixed(1)} km remaining · about ${durationMin} min`
-                : `About ${durationMin} min away`}
+              {modeLoading
+                ? `Loading ${mode} route…`
+                : distanceKm != null
+                  ? `${distanceKm.toFixed(1)} km remaining · about ${durationMin} min`
+                  : `About ${durationMin} min away`}
             </Text>
           </View>
         </View>

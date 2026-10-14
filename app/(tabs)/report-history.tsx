@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -16,6 +16,7 @@ import PrimaryButton from "@/components/auth/PrimaryButton";
 import { EmptyState } from "@/components/common/EmptyState";
 import ReportHistoryCard from "@/components/report-history/ReportHistoryCard";
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import {
   deleteReport,
@@ -23,6 +24,7 @@ import {
   type ReportHistoryItem,
 } from "@/services/report.service";
 import { FONT_FAMILY, RADIUS, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import { latestIncidentStatusAt } from "@/utils/notifications";
 
 export default function ReportHistoryScreen() {
   const insets = useSafeAreaInsets();
@@ -37,23 +39,39 @@ export default function ReportHistoryScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
+  // Numbers every history request so only the newest one's answer is kept --
+  // live status updates can fire two reloads seconds apart (accepted, then
+  // en route), and an older response landing last would otherwise put the
+  // stale status back on screen.
+  const latestRequestRef = useRef(0);
+
   const loadReports = useCallback(() => {
     if (!token) return;
 
+    const request = ++latestRequestRef.current;
     setLoadFailed(false);
     getReportHistory(token)
-      .then((history) => setReports(history))
-      .catch(() => setLoadFailed(true))
+      .then((history) => {
+        if (request === latestRequestRef.current) setReports(history);
+      })
+      .catch(() => {
+        if (request === latestRequestRef.current) setLoadFailed(true);
+      })
       .finally(() => setLoaded(true));
   }, [token]);
 
   const handleRefresh = useCallback(() => {
     if (!token) return;
+    const request = ++latestRequestRef.current;
     setRefreshing(true);
     setLoadFailed(false);
     getReportHistory(token)
-      .then((history) => setReports(history))
-      .catch(() => setLoadFailed(true))
+      .then((history) => {
+        if (request === latestRequestRef.current) setReports(history);
+      })
+      .catch(() => {
+        if (request === latestRequestRef.current) setLoadFailed(true);
+      })
       .finally(() => setRefreshing(false));
   }, [token]);
 
@@ -94,6 +112,30 @@ export default function ReportHistoryScreen() {
       loadReports();
     }, [loadReports]),
   );
+
+  // Live status: the backend sends this citizen an "incident_status"
+  // notification over the app's one shared notification socket
+  // (NotificationContext) whenever a report's status changes -- e.g. a
+  // responder accepts it. Reload once each time a newer one shows up, so the
+  // card doesn't sit on "Pending" until the tab is reopened. The baseline is
+  // taken after the notification list's initial load, so opening the app
+  // doesn't trigger an extra reload; a reconnect refetch that brings in a
+  // missed newer update does.
+  const { notifications, isLoading: notificationsLoading } = useNotifications();
+  const latestStatusAt = latestIncidentStatusAt(notifications);
+  const seenStatusAt = useRef<number | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (notificationsLoading) return;
+    const seen = seenStatusAt.current;
+    if (seen === undefined) {
+      seenStatusAt.current = latestStatusAt;
+      return;
+    }
+    if (latestStatusAt === null || (seen !== null && latestStatusAt <= seen)) return;
+    seenStatusAt.current = latestStatusAt;
+    loadReports();
+  }, [latestStatusAt, notificationsLoading, loadReports]);
 
   return (
     <ScrollView

@@ -19,6 +19,7 @@ import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
 import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { useThemeColors } from "@/theme";
+import { LEAFLET_PIN_ICON_ANCHOR } from "./markerAnchors";
 import type { MapEngineProps, MapFitPadding, MapHandle, MapLatLng } from "./types";
 
 function normalizePadding(padding: MapFitPadding | undefined, fallback: number) {
@@ -180,8 +181,11 @@ function buildHtml(options: {
         '<div style="position:absolute;top:0;left:0;width:28px;height:28px;border-radius:50% 50% 50% 0;background:' + color + ';transform:rotate(-45deg);box-shadow:0 2px 6px rgba(0,0,0,0.35);"></div>' +
         '</div>',
       iconSize: [28, 28],
-      iconAnchor: [14, 28],
-      popupAnchor: [0, -28]
+      // The rotated square's sharp corner -- the pin's tip -- is ~34px down,
+      // not at the box's 28px bottom edge, so anchor there (see
+      // markerAnchors.ts). The popup still opens at the top of the pin.
+      iconAnchor: [${LEAFLET_PIN_ICON_ANCHOR[0]}, ${LEAFLET_PIN_ICON_ANCHOR[1]}],
+      popupAnchor: [0, -${LEAFLET_PIN_ICON_ANCHOR[1]}]
     });
   }
 

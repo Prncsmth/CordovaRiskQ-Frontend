@@ -20,7 +20,7 @@
 import { useCallback, useState } from "react";
 
 import { useRouteOrigin } from "@/hooks/useRouteOrigin";
-import { useRoutes } from "@/hooks/useRoutes";
+import { useRoutesWithStatus } from "@/hooks/useRoutes";
 import type { Route, TravelProfile } from "@/services/directions.service";
 import type { Coordinates } from "@/services/location.service";
 
@@ -48,11 +48,18 @@ export function useIncidentRoute(
   midpoint: Coordinates | undefined;
   durationMin: number;
   distanceKm: number | undefined;
+  // True while a newly selected travel mode's route is loading and the
+  // previous mode's road route is still on hand (previousModeRoute). A
+  // screen with a mode toggle shows that route dimmed and quotes no ETA:
+  // durationMin/distanceKm are only the fallback estimates meanwhile, not
+  // figures for the selected mode.
+  modeLoading: boolean;
+  previousModeRoute: Route | null;
 } {
   // useRouteOrigin keeps its last origin while given no position, so the
   // route below simply isn't re-requested while routing is paused.
   const routeOrigin = useRouteOrigin(routingEnabled ? responderCoords : undefined, originKey);
-  const routes = useRoutes(routeOrigin, incidentCoords, profile);
+  const { routes, previousModeRoutes } = useRoutesWithStatus(routeOrigin, incidentCoords, profile);
   // The pick is remembered together with the travel mode it was made in.
   // Switching mode makes it meaningless -- land back on the primary/fastest
   // route. A plain refresh (the responder moved on) keeps the chosen
@@ -73,6 +80,9 @@ export function useIncidentRoute(
         }
       : undefined;
 
+  const previousModeRoute = routes.length === 0 ? (previousModeRoutes[0] ?? null) : null;
+  const modeLoading = previousModeRoute !== null;
+
   const durationMin = route?.durationMin ?? fallbackEtaMinutes ?? 6;
   const distanceKm = route?.distanceKm ?? fallbackDistanceKm;
 
@@ -84,5 +94,7 @@ export function useIncidentRoute(
     midpoint,
     durationMin,
     distanceKm,
+    modeLoading,
+    previousModeRoute,
   };
 }

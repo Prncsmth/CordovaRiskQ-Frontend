@@ -17,7 +17,7 @@ import type { StyleProp, ViewStyle } from "react-native";
 import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import type { Route } from "@/services/directions.service";
 import type { Coordinates } from "@/services/location.service";
-import { buildRouteVisuals, routeIndexFromMarkerId } from "@/utils/routeVisuals";
+import { buildRouteVisuals, buildStaleRouteVisuals, routeIndexFromMarkerId } from "@/utils/routeVisuals";
 import { useThemeColors } from "@/theme";
 
 const LiveIncidentMap = forwardRef<
@@ -30,6 +30,10 @@ const LiveIncidentMap = forwardRef<
     color: string;
     routes: Route[];
     selectedRouteIndex: number;
+    // The previous travel mode's road route while the selected mode's is
+    // loading (useIncidentRoute's previousModeRoute) -- drawn dimmed in
+    // place of the straight-line fallback. Only used while `routes` is empty.
+    previousModeRoute?: Route | null;
     onSelectRoute?: (index: number) => void;
     onReady?: () => void;
   }
@@ -42,6 +46,7 @@ const LiveIncidentMap = forwardRef<
     color,
     routes,
     selectedRouteIndex,
+    previousModeRoute,
     onSelectRoute,
     onReady,
   },
@@ -49,10 +54,10 @@ const LiveIncidentMap = forwardRef<
 ) {
   const COLORS = useThemeColors();
 
-  const { polylines, labelMarkers } = buildRouteVisuals(routes, selectedRouteIndex, COLORS.secondary, [
-    responderCoords,
-    incidentCoords,
-  ]);
+  const { polylines, labelMarkers } =
+    routes.length === 0 && previousModeRoute
+      ? buildStaleRouteVisuals(previousModeRoute)
+      : buildRouteVisuals(routes, selectedRouteIndex, COLORS.secondary, [responderCoords, incidentCoords]);
 
   return (
     <AppMap
