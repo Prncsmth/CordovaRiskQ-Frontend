@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Alert, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import PhotoSourceSheet, { type PhotoSource } from "@/components/common/PhotoSourceSheet";
 import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
 
 export type SelectedPhoto = {
@@ -82,30 +83,30 @@ export default function PhotoPicker({ photo, onSelect, onRemove }: PhotoPickerPr
     transform: [{ scale: scale.value }],
   }));
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+
   function openPickerSheet() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("Add Photo", undefined, [
-      {
-        text: "Take Photo",
-        onPress: async () => {
-          const picked = await pickFromCamera();
-          if (picked) onSelect(picked);
-        },
-      },
-      {
-        text: "Choose from Gallery",
-        onPress: async () => {
-          const picked = await pickFromGallery();
-          if (picked) onSelect(picked);
-        },
-      },
-      { text: "Cancel", style: "cancel" },
-    ]);
+    setSheetOpen(true);
   }
+
+  async function handleSource(source: PhotoSource) {
+    const picked = source === "camera" ? await pickFromCamera() : await pickFromGallery();
+    if (picked) onSelect(picked);
+  }
+
+  const sheet = (
+    <PhotoSourceSheet
+      visible={sheetOpen}
+      onClose={() => setSheetOpen(false)}
+      onSelect={handleSource}
+    />
+  );
 
   if (photo) {
     return (
       <View style={styles.previewWrap}>
+        {sheet}
         <Image source={{ uri: photo.uri }} style={styles.previewThumb} />
         <View style={styles.previewInfo}>
           <Text style={styles.previewFileName} numberOfLines={1}>
@@ -146,6 +147,7 @@ export default function PhotoPicker({ photo, onSelect, onRemove }: PhotoPickerPr
 
   return (
     <Animated.View style={animatedStyle}>
+      {sheet}
       <Pressable
         style={styles.emptyBox}
         onPress={openPickerSheet}

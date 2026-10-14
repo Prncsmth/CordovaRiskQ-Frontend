@@ -3,6 +3,9 @@ import {
   UPLOAD_INTERVAL_MS,
   easeInOutCubic,
   interpolateCoordinate,
+  LIVE_MARKER_MAX_ACCURACY_METERS,
+  LIVE_MARKER_MIN_MOVE_METERS,
+  nextLiveMarkerPosition,
   routeOriginDecision,
   movementThresholdMeters,
   uploadDecision,
@@ -95,5 +98,60 @@ describe("marker glide", () => {
     const half = interpolateCoordinate(BASE, to, 0.5);
     expect(half.latitude).toBeCloseTo(10.255);
     expect(half.longitude).toBeCloseTo(123.955);
+  });
+});
+
+describe("nextLiveMarkerPosition", () => {
+  const north = (meters: number) => ({ latitude: BASE.latitude + meters * METER_LAT, longitude: BASE.longitude });
+
+  it("takes the first valid fix", () => {
+    expect(nextLiveMarkerPosition(undefined, { ...BASE, accuracy: 5 })).toEqual(BASE);
+  });
+
+  it("moves for a small real movement (a few meters), not just big jumps", () => {
+    const next = nextLiveMarkerPosition(BASE, { ...north(LIVE_MARKER_MIN_MOVE_METERS + 1), accuracy: 4 });
+    expect(next).toEqual(north(LIVE_MARKER_MIN_MOVE_METERS + 1));
+  });
+
+  it("keeps the same object for sub-threshold jitter, so the marker doesn't re-render", () => {
+    const prev = { ...BASE };
+    expect(nextLiveMarkerPosition(prev, { ...north(LIVE_MARKER_MIN_MOVE_METERS / 2), accuracy: 4 })).toBe(prev);
+  });
+
+  it("follows a moving vehicle fix after fix", () => {
+    let pos = nextLiveMarkerPosition(undefined, { ...BASE, accuracy: 5 });
+    for (const meters of [10, 25, 45, 70]) {
+      pos = nextLiveMarkerPosition(pos, { ...north(meters), accuracy: 5 });
+      expect(pos).toEqual(north(meters));
+    }
+  });
+
+  it("ignores a fix too inaccurate to place the marker", () => {
+    const prev = { ...BASE };
+    expect(
+      nextLiveMarkerPosition(prev, { ...north(200), accuracy: LIVE_MARKER_MAX_ACCURACY_METERS + 1 }),
+    ).toBe(prev);
+  });
+
+  it("honors a larger caller-chosen step (e.g. 5 m for route maps)", () => {
+    const prev = { ...BASE };
+    expect(nextLiveMarkerPosition(prev, { ...north(3), accuracy: 4 }, 5)).toBe(prev);
+    expect(nextLiveMarkerPosition(prev, { ...north(6), accuracy: 4 }, 5)).toEqual(north(6));
+  });
+
+  it("accepts a fix with unknown accuracy", () => {
+    expect(nextLiveMarkerPosition(BASE, { ...north(10), accuracy: null })).toEqual(north(10));
+  });
+
+  it.each([
+    ["NaN latitude", { latitude: Number.NaN, longitude: 123.95 }],
+    ["infinite longitude", { latitude: 10.25, longitude: Number.POSITIVE_INFINITY }],
+    ["out-of-range latitude", { latitude: 91, longitude: 123.95 }],
+    ["out-of-range longitude", { latitude: 10.25, longitude: 181 }],
+    ["0,0 null island", { latitude: 0, longitude: 0 }],
+  ])("ignores an invalid fix (%s)", (_label, fix) => {
+    const prev = { ...BASE };
+    expect(nextLiveMarkerPosition(prev, { ...fix, accuracy: 5 })).toBe(prev);
+    expect(nextLiveMarkerPosition(undefined, { ...fix, accuracy: 5 })).toBeUndefined();
   });
 });

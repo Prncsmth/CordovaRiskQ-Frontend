@@ -29,6 +29,7 @@ import IncidentMapLegend from "@/responder/components/shared/IncidentMapLegend";
 import NearestIncidentButton from "@/responder/components/shared/NearestIncidentButton";
 import { getIncidents } from "@/responder/services/incident.service";
 import type { Incident } from "@/responder/types/responder";
+import { subscribeToLiveLocation } from "@/services/liveLocationWatcher";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import {
   FONT_FAMILY,
@@ -39,6 +40,7 @@ import {
   useThemeColors,
   type ColorPalette,
 } from "@/theme";
+import { nextLiveMarkerPosition } from "@/utils/liveTracking";
 
 // Same 12s cadence DashboardScreen's own incident poll uses -- keeping the
 // two screens in sync rather than inventing a different refresh rate.
@@ -87,11 +89,14 @@ export default function LiveMapScreen() {
       // A plain closure variable, not React state -- read fresh by every
       // poll() call below (including from the interval) without needing to
       // be a dependency, the same pattern DashboardScreen's own poll loop
-      // uses. One GPS fix per focus session is enough (refreshed again on
-      // refocus), not re-fetched every 12s tick.
+      // uses. Kept current by the live GPS stream below, so each 12s poll's
+      // incident distances are measured from where the responder is now.
       let responderLocation: Coordinates | undefined;
+      let polledOnce = false;
+      let gotStreamFix = false;
 
       async function poll() {
+        polledOnce = true;
         try {
           await loadIncidents(responderLocation);
           if (!cancelled) setLoadError(false);
@@ -103,11 +108,37 @@ export default function LiveMapScreen() {
         }
       }
 
+      // Moves the responder's own marker as they travel -- it used to take
+      // one GPS fix per focus and then sit still. See nextLiveMarkerPosition
+      // for what a fix must pass (valid, accurate enough, moved >= 2 m).
+      function acceptFix(fix: Coordinates & { accuracy?: number | null }) {
+        if (cancelled) return;
+        const next = nextLiveMarkerPosition(responderLocation, fix);
+        if (next === responderLocation) return;
+        responderLocation = next;
+        setResponderCoords(next);
+        // The first position also kicks off the first incidents load, so
+        // distances are known from the start (as before).
+        if (!polledOnce) poll();
+      }
+
+      // Seed with one fix so the marker shows as fast as before, unless the
+      // live stream has already delivered something fresher.
       getCurrentLocation().then((fix) => {
         if (cancelled) return;
-        responderLocation = fix;
-        setResponderCoords(fix);
-        poll();
+        if (fix && !gotStreamFix) acceptFix(fix);
+        // No location (e.g. permission denied): still load incidents.
+        if (!polledOnce) poll();
+      });
+
+      // The shared continuous GPS stream -- the same native watcher the
+      // live-location upload and the navigation screens already use, so
+      // this adds no second watcher. Only while this tab is focused:
+      // leaving it unsubscribes, and the watcher stops once nothing else
+      // (e.g. an active incident's location upload) is still listening.
+      const unsubscribe = subscribeToLiveLocation((fix) => {
+        gotStreamFix = true;
+        acceptFix(fix);
       });
 
       const interval = setInterval(poll, POLL_INTERVAL_MS);
@@ -115,6 +146,7 @@ export default function LiveMapScreen() {
       return () => {
         cancelled = true;
         clearInterval(interval);
+        unsubscribe();
       };
     }, [token, loadIncidents]),
   );

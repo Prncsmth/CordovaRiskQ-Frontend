@@ -1,6 +1,7 @@
 import {
   RESPONDER_NOTIFICATION_TTL_MS,
   addIncomingNotification,
+  latestIncidentStatusAt,
   visibleNotifications,
   withNotificationRead,
 } from "./notifications";
@@ -81,5 +82,36 @@ describe("withNotificationRead", () => {
     ]);
     // Same createdAt, so its 24-hour expiry doesn't move.
     expect(next[0].createdAt).toBe(list[0].createdAt);
+  });
+});
+
+describe("latestIncidentStatusAt", () => {
+  it("is null when there are no incident status notifications", () => {
+    expect(latestIncidentStatusAt([])).toBeNull();
+    expect(latestIncidentStatusAt([makeNotification({ type: "announcement" })])).toBeNull();
+  });
+
+  it("returns the newest incident_status createdAt, ignoring other types", () => {
+    const list = [
+      makeNotification({ id: "a", type: "announcement", createdAt: "2026-01-05T00:00:00.000Z" }),
+      makeNotification({ id: "b", type: "incident_status", createdAt: "2026-01-02T00:00:00.000Z" }),
+      makeNotification({ id: "c", type: "incident_status", createdAt: "2026-01-03T00:00:00.000Z" }),
+    ];
+
+    expect(latestIncidentStatusAt(list)).toBe(Date.parse("2026-01-03T00:00:00.000Z"));
+  });
+
+  it("moves forward when a newer status update arrives over the socket", () => {
+    const before = [makeNotification({ id: "b", type: "incident_status", createdAt: "2026-01-02T00:00:00.000Z" })];
+    const after = addIncomingNotification(
+      before,
+      makeNotification({ id: "c", type: "incident_status", createdAt: "2026-01-03T00:00:00.000Z" }),
+    );
+
+    expect(latestIncidentStatusAt(after)!).toBeGreaterThan(latestIncidentStatusAt(before)!);
+  });
+
+  it("ignores an unparseable createdAt", () => {
+    expect(latestIncidentStatusAt([makeNotification({ type: "incident_status", createdAt: "nope" })])).toBeNull();
   });
 });

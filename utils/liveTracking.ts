@@ -57,6 +57,44 @@ export function uploadDecision(
   return now - lastSentAt >= CHECK_IN_INTERVAL_MS ? "check-in" : "skip";
 }
 
+// ---- On-screen live position marker ---------------------------------------
+
+// A marker for this device's own position follows the continuous GPS stream
+// (services/liveLocationWatcher.ts, itself already filtered to ~2 m by the
+// OS): it moves once a fix is this far from where it's drawn, so small real
+// movements show up, while sub-meter jitter doesn't re-render it.
+export const LIVE_MARKER_MIN_MOVE_METERS = 2;
+// A fix vaguer than this can't place the marker meaningfully -- it's
+// skipped (the last good position stays) rather than making the marker jump.
+export const LIVE_MARKER_MAX_ACCURACY_METERS = 50;
+
+export function isValidCoordinate({ latitude, longitude }: Coordinates): boolean {
+  return (
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude) &&
+    Math.abs(latitude) <= 90 &&
+    Math.abs(longitude) <= 180 &&
+    // 0,0 is a "no fix" default, never a real position here.
+    !(latitude === 0 && longitude === 0)
+  );
+}
+
+// Where the marker should be after this fix: the same `previous` object
+// (so React skips a re-render) unless the fix is valid, accurate enough,
+// and LIVE_MARKER_MIN_MOVE_METERS away -- never an invented in-between point.
+export function nextLiveMarkerPosition(
+  previous: Coordinates | undefined,
+  fix: Coordinates & { accuracy?: number | null },
+  // A caller that only needs coarser updates (e.g. a route origin) can ask
+  // for a larger step; the validity and accuracy checks are the same.
+  minMoveMeters: number = LIVE_MARKER_MIN_MOVE_METERS,
+): Coordinates | undefined {
+  if (!isValidCoordinate(fix)) return previous;
+  if (fix.accuracy != null && fix.accuracy > LIVE_MARKER_MAX_ACCURACY_METERS) return previous;
+  if (previous && distanceMeters(previous, fix) < minMoveMeters) return previous;
+  return { latitude: fix.latitude, longitude: fix.longitude };
+}
+
 // ---- Route recalculation --------------------------------------------------
 
 // A route is re-requested once its origin has moved at least this far AND

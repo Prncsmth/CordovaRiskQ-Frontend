@@ -38,6 +38,12 @@ import PlaceholderThumb from "@/components/common/PlaceholderThumb";
 import { CORDOVA_BOUNDS } from "@/constants/cordovaBarangays";
 import cordovaBoundary from "@/constants/cordovaBoundary.geojson.json";
 import { RADIUS, SHADOW, SPACING, TYPOGRAPHY, useThemeColors, type ColorPalette } from "@/theme";
+import {
+  FLAT_PIN_ICON_SIZE,
+  FLAT_PIN_PADDING,
+  FLAT_PIN_TIP_ANCHOR,
+  FLAT_PIN_WRAP_SIZE,
+} from "./markerAnchors";
 import ResponderMarker from "./ResponderMarker";
 import type { MapEngineProps, MapFitPadding, MapHandle, MapLatLng } from "./types";
 
@@ -414,7 +420,14 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
               </Pressable>
             </MarkerView>
           ) : (
-            <MarkerView key={marker.id} coordinate={[marker.longitude, marker.latitude]}>
+            <MarkerView
+              key={marker.id}
+              coordinate={[marker.longitude, marker.latitude]}
+              // A flat pin is a "location" glyph whose tip -- not its middle
+              // -- must sit on the coordinate (markerAnchors.ts). The round
+              // pin below is a circle, so its default center anchor is right.
+              anchor={marker.flat ? FLAT_PIN_TIP_ANCHOR : undefined}
+            >
               <View style={marker.flat ? styles.flatPinWrap : styles.pinMarkerWrap}>
                 {/* Same radar-ping pulse as the logo/user-location markers
                     above, in the marker's own color -- a live incident, or
@@ -435,7 +448,7 @@ const MapboxMap = forwardRef<MapHandle, MapEngineProps>(function MapboxMap(
                   >
                     <Ionicons
                       name="location"
-                      size={26}
+                      size={FLAT_PIN_ICON_SIZE}
                       color={marker.color ?? COLORS.primary}
                     />
                   </Pressable>
@@ -535,12 +548,14 @@ function createStyles(COLORS: ColorPalette) {
     // No circular background -- just enough padding for a decent hit
     // target. Brightness/pop comes from the pulse ring (flatPulseRing)
     // when marker.pulse is set, not a border on the icon itself.
+    // Sizes shared with FLAT_PIN_TIP_ANCHOR's derivation (markerAnchors.ts)
+    // -- change them there, not here, or the tip drifts off the coordinate.
     flatPin: {
-      padding: 6,
+      padding: FLAT_PIN_PADDING,
     },
     flatPinWrap: {
-      width: 46,
-      height: 46,
+      width: FLAT_PIN_WRAP_SIZE,
+      height: FLAT_PIN_WRAP_SIZE,
       alignItems: "center",
       justifyContent: "center",
     },

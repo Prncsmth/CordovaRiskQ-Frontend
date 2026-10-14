@@ -37,9 +37,13 @@ export default function AdvisoryBanner({
 
   return (
     <Pressable
-      // The card itself stays neutral; only the bullhorn and label carry
-      // the severity color.
-      style={styles.card}
+      // The whole card takes the severity's color: its light tint as the
+      // fill and a soft edge of the color itself (blue info, amber
+      // warning, red critical), matching the bullhorn and label.
+      style={[
+        styles.card,
+        { backgroundColor: severity.tint, borderColor: `${severity.color}40` },
+      ]}
       accessibilityRole="button"
       accessibilityLabel={`${severity.label}: ${title}`}
       ref={anchorRef}
@@ -68,7 +72,7 @@ export default function AdvisoryBanner({
           {message}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color={COLORS.textTertiary} />
+      <Ionicons name="chevron-forward" size={18} color={severity.color} />
     </Pressable>
   );
 }

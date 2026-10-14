@@ -1,6 +1,7 @@
 // hooks/useLiveCoordinates.ts
-// This device's live position for the responder's own route maps
-// (OnTheWayView, NavigateScreen), which used to read the location once on
+// This device's live position for the route maps (the responder's
+// OnTheWayView/NavigateScreen and the citizen's evacuation route,
+// app/evacuation-detail/navigate.tsx), which used to read the location once on
 // mount and never again -- so the responder's own marker and route stayed
 // where they started. Reads from the shared continuous GPS stream
 // (services/liveLocationWatcher.ts), so it adds no second native watcher
@@ -14,7 +15,7 @@ import { useEffect, useState } from "react";
 
 import { subscribeToLiveLocation } from "@/services/liveLocationWatcher";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
-import { distanceMeters } from "@/utils/liveTracking";
+import { nextLiveMarkerPosition } from "@/utils/liveTracking";
 
 const MIN_MOVE_METERS = 5;
 
@@ -31,12 +32,11 @@ export function useLiveCoordinates(): {
     let cancelled = false;
     let gotStreamFix = false;
 
-    const accept = (next: Coordinates) => {
-      setCoords((prev) =>
-        prev && distanceMeters(prev, next) < MIN_MOVE_METERS
-          ? prev
-          : { latitude: next.latitude, longitude: next.longitude },
-      );
+    // Invalid positions (NaN, out of range, 0,0) and fixes too vague to use
+    // are skipped -- the last good position stays -- so a bad GPS reading
+    // can never become a marker position or a route origin.
+    const accept = (next: Coordinates & { accuracy?: number | null }) => {
+      setCoords((prev) => nextLiveMarkerPosition(prev, next, MIN_MOVE_METERS));
       setResolved(true);
     };
 

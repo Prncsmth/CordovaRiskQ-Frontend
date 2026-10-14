@@ -33,6 +33,17 @@ const DIMMED_ROUTE_COLOR = "#64748B";
 const ALTERNATE_ROUTE_WEIGHT = 6;
 const ROUTE_MARKER_ID_PREFIX = "route-";
 
+// A route that belongs to the PREVIOUS travel mode, shown only while the
+// newly selected mode's route loads: dimmed and dashed like an inactive
+// alternative, and with no duration pill -- its time is the old mode's, so
+// it must not read as the route (or ETA) for the mode now selected.
+export function buildStaleRouteVisuals(route: Route): { polylines: MapPolyline[]; labelMarkers: MapMarker[] } {
+  return {
+    polylines: [{ points: route.coordinates, color: DIMMED_ROUTE_COLOR, dashed: true, weight: ALTERNATE_ROUTE_WEIGHT }],
+    labelMarkers: [],
+  };
+}
+
 export function buildRouteVisuals(
   routes: Route[],
   selectedRouteIndex: number,

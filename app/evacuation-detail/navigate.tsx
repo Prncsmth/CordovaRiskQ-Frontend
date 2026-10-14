@@ -5,6 +5,15 @@
 // falling back to a straight line while loading or on failure), with a
 // walking/driving toggle and route alternatives when Mapbox returns more
 // than one. This is a quick in-app glance, not turn-by-turn navigation.
+//
+// The citizen's position is live (hooks/useLiveCoordinates.ts), and the
+// route follows them as they travel: it's re-requested from where they are
+// once they're ~30 m from where the current route starts and 10 s have
+// passed (hooks/useRouteOrigin.ts) -- not on every GPS update. Straying off
+// the route is covered by the same rule: the route passes through its own
+// starting point, so being more than ~30 m off it means having moved more
+// than ~30 m from that point. A failed recalculation keeps the last route
+// and says so (hooks/useRoutes.ts).
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -17,9 +26,11 @@ import AppMap, { type MapHandle } from "@/components/map/AppMap";
 import TravelModeToggle from "@/components/common/TravelModeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { getEvacuationCenterById, type EvacuationCenter } from "@/services/evacuation.service";
-import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import type { TravelProfile } from "@/services/directions.service";
-import { useRoutes } from "@/hooks/useRoutes";
+import { useLiveCoordinates } from "@/hooks/useLiveCoordinates";
+import { useRouteOrigin } from "@/hooks/useRouteOrigin";
+import { useRoutesWithStatus } from "@/hooks/useRoutes";
+import { routeTargetKey } from "@/utils/routeRequests";
 import { buildRouteVisuals, routeIndexFromMarkerId } from "@/utils/routeVisuals";
 import {
     FONT_FAMILY,
@@ -50,7 +61,7 @@ export default function EvacuationNavigateScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [center, setCenter] = useState<EvacuationCenter | undefined>(undefined);
-  const [citizenCoords, setCitizenCoords] = useState<Coordinates | undefined>();
+  const { coords: citizenCoords, resolved: locationResolved } = useLiveCoordinates();
   const [isLoading, setIsLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const COLORS = useThemeColors();
@@ -58,16 +69,26 @@ export default function EvacuationNavigateScreen() {
   const mapRef = useRef<MapHandle>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mode, setMode] = useState<TravelProfile>("walking");
-  const centerCoords = center ? { latitude: center.latitude, longitude: center.longitude } : undefined;
-  const routes = useRoutes(citizenCoords, centerCoords, mode);
-  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+  const centerLat = center?.latitude;
+  const centerLng = center?.longitude;
+  const centerCoords = useMemo(
+    () =>
+      centerLat !== undefined && centerLng !== undefined
+        ? { latitude: centerLat, longitude: centerLng }
+        : undefined,
+    [centerLat, centerLng],
+  );
+  // The destination is always this screen's center (the route id); only the
+  // starting point moves with the citizen.
+  const routeOrigin = useRouteOrigin(citizenCoords, id);
+  const { routes, status: routeStatus } = useRoutesWithStatus(routeOrigin, centerCoords, mode);
 
-  // A fresh route set (mode switched, or a new fetch resolved) makes
-  // whatever was selected in the old set meaningless -- land back on the
-  // fastest route rather than an index that might not exist in the new one.
-  useEffect(() => {
-    setSelectedRouteIndex(0);
-  }, [routes]);
+  // The picked alternative survives a recalculation (clamped if the new set
+  // has fewer routes); switching travel mode goes back to the fastest one.
+  // Same choice-per-mode pattern as hooks/useIncidentRoute.ts.
+  const [choice, setChoice] = useState<{ mode: TravelProfile; index: number }>({ mode, index: 0 });
+  const chosenIndex = choice.mode === mode ? choice.index : 0;
+  const selectedRouteIndex = chosenIndex < routes.length ? chosenIndex : 0;
 
   const route = routes[selectedRouteIndex] ?? null;
 
@@ -75,16 +96,12 @@ export default function EvacuationNavigateScreen() {
     if (!id || !token) return;
     setIsLoading(true);
     setLoadFailed(false);
-    // getCurrentLocation never rejects (resolves undefined when location is
-    // unavailable), so Promise.all only rejects on a real
-    // getEvacuationCenterById failure -- that's the only case the loadFailed
-    // fallback below is for, kept distinct from "location unavailable"
-    // (same split already used on the responder Navigate screen).
-    Promise.all([getEvacuationCenterById(token, id), getCurrentLocation()])
-      .then(([centerData, coords]) => {
-        setCenter(centerData);
-        setCitizenCoords(coords);
-      })
+    // Only the center is fetched here -- the citizen's position comes from
+    // the live location stream (useLiveCoordinates). A failure here is
+    // therefore a real getEvacuationCenterById failure, kept distinct from
+    // "location unavailable" (same split as the responder Navigate screen).
+    getEvacuationCenterById(token, id)
+      .then((centerData) => setCenter(centerData))
       .catch(() => setLoadFailed(true))
       .finally(() => setIsLoading(false));
   }, [id, token]);
@@ -124,13 +141,26 @@ export default function EvacuationNavigateScreen() {
   // the map itself is already "ready"), so the very first fit only has the
   // two endpoints to work with; this effect re-fits once real route
   // geometry lands.
+  //
+  // Fitted once with the two endpoints and once more when the trip's first
+  // route lands -- per destination+mode -- not on every live GPS update or
+  // recalculated route, which would keep yanking the camera while the
+  // citizen is moving or panning around.
+  const fittedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!mapReady || !citizenCoords || !centerCoords) return;
+    const target = routeTargetKey(centerCoords, mode);
+    const stage = routes.length > 0 ? `${target}|routes` : `${target}|endpoints`;
+    if (fittedRef.current === stage) return;
+    // Already fitted to this trip's real route: a later failure (routes
+    // gone) mustn't zoom back out to the bare endpoints.
+    if (routes.length === 0 && fittedRef.current === `${target}|routes`) return;
+    fittedRef.current = stage;
     const allPoints = [citizenCoords, centerCoords, ...routes.flatMap((route) => route.coordinates)];
     mapRef.current?.fitToPoints(allPoints, mapFitPadding);
-  }, [mapReady, citizenCoords, centerCoords, routes, mapFitPadding]);
+  }, [mapReady, citizenCoords, centerCoords, routes, mode, mapFitPadding]);
 
-  if (isLoading) {
+  if (isLoading || !locationResolved) {
     return (
       <View style={styles.fallbackScreen}>
         <Stack.Screen
@@ -211,7 +241,7 @@ export default function EvacuationNavigateScreen() {
         polylines={polylines}
         onMarkerPress={(id) => {
           const index = routeIndexFromMarkerId(id);
-          if (index !== null) setSelectedRouteIndex(index);
+          if (index !== null) setChoice({ mode, index });
         }}
         onReady={() => setMapReady(true)}
       />
@@ -273,6 +303,20 @@ export default function EvacuationNavigateScreen() {
           </Text>
         </View>
       </View>
+
+      {/* A failed (re)calculation is said out loud: either the shown route
+          is the last one found, or there's no road route and the line is
+          only a straight direction guide -- never presented as current. */}
+      {routeStatus === "failed" && (
+        <View style={[styles.routeNotice, { top: statsBarTop + 56 }]}>
+          <Ionicons name="alert-circle" size={14} color={COLORS.textSecondary} />
+          <Text style={styles.routeNoticeText}>
+            {routes.length > 0
+              ? "Couldn't update the route. Showing the last route found."
+              : "Road route unavailable. The line only shows the direction."}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -374,6 +418,26 @@ function createStyles(COLORS: ColorPalette) {
     fontSize: TYPOGRAPHY.caption,
     color: COLORS.tide,
     marginTop: 3,
+  },
+  routeNotice: {
+    position: "absolute",
+    left: SPACING.md,
+    right: SPACING.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: SPACING.xs,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.xs,
+    backgroundColor: COLORS.background,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.borderMuted,
+    ...SHADOW,
+  },
+  routeNoticeText: {
+    flex: 1,
+    fontSize: TYPOGRAPHY.caption,
+    color: COLORS.textSecondary,
   },
   fallbackScreen: {
     flex: 1,
