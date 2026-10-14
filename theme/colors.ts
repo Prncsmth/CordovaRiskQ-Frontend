@@ -35,6 +35,7 @@ export type ColorPalette = {
   warning: string;
   warningBg: string;
   danger: string;
+  dangerBg: string;
 
   google: string;
 
@@ -94,6 +95,7 @@ export const LIGHT_COLORS: ColorPalette = {
   warning: "#B45309",
   warningBg: "#FEF3E2",
   danger: "#DC2626",
+  dangerBg: "#FDE8E8",
 
   google: "#DB4437",
 
@@ -143,6 +145,7 @@ export const DARK_COLORS: ColorPalette = {
   warning: "#FBBF24",
   warningBg: "#33260A",
   danger: "#F87171",
+  dangerBg: "#3A1515",
 
   google: "#DB4437",
 

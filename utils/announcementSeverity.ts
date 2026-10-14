@@ -34,7 +34,7 @@ export function severityStyle(severity: AnnouncementSeverity, COLORS: ColorPalet
         label: "CRITICAL ALERT",
         icon: "alert-circle",
         color: COLORS.danger,
-        tint: `${COLORS.danger}1A`,
+        tint: COLORS.dangerBg,
         prominent: true,
       };
     case "Warning":
