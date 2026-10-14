@@ -1,4 +1,4 @@
-import { reverseGeocode } from "./geocoding.service";
+import { reverseGeocode, reverseGeocodeLocality } from "./geocoding.service";
 
 describe("reverseGeocode", () => {
   // @ts-ignore - global.fetch type
@@ -75,5 +75,80 @@ describe("reverseGeocode", () => {
     const result = await reverseGeocode({ latitude: 10.249, longitude: 123.9396 });
 
     expect(result).toBeNull();
+  });
+});
+
+describe("reverseGeocodeLocality", () => {
+  // @ts-ignore - global.fetch type
+  const originalFetch = global.fetch;
+  const originalToken = process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+  afterEach(() => {
+    // @ts-ignore - global.fetch type
+    global.fetch = originalFetch;
+    process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN = originalToken;
+  });
+
+  it("returns the barangay, city or municipality, and province from reverse geocoding", async () => {
+    process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN = "test-token";
+    // @ts-ignore - global.fetch type
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        features: [
+          { text: "Banilad", place_type: ["neighborhood"] },
+          { text: "Cebu City", place_type: ["place"] },
+          { text: "Cebu", place_type: ["region"] },
+        ],
+      }),
+    }) as unknown as typeof fetch;
+
+    await expect(reverseGeocodeLocality({ latitude: 10.35, longitude: 123.91 })).resolves.toEqual({
+      barangay: "Banilad",
+      locality: "Cebu City",
+      region: "Cebu",
+    });
+    // @ts-ignore - global.fetch type
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("?types=neighborhood,locality,place,region&language=en"),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it("uses a neighborhood in the context when Mapbox omits a separate feature", async () => {
+    process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN = "test-token";
+    // @ts-ignore - global.fetch type
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        features: [
+          {
+            text: "Cebu City",
+            place_type: ["place"],
+            context: [
+              { id: "neighborhood.banilad", text: "Banilad" },
+              { id: "region.abc", text: "Cebu" },
+            ],
+          },
+        ],
+      }),
+    }) as unknown as typeof fetch;
+
+    await expect(reverseGeocodeLocality({ latitude: 10.35, longitude: 123.91 })).resolves.toEqual({
+      barangay: "Banilad",
+      locality: "Cebu City",
+      region: "Cebu",
+    });
+  });
+
+  it("returns null when locality cannot be resolved", async () => {
+    process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN = "test-token";
+    // @ts-ignore - global.fetch type
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ features: [] }),
+    }) as unknown as typeof fetch;
+
+    await expect(reverseGeocodeLocality({ latitude: 10.35, longitude: 123.91 })).resolves.toBeNull();
   });
 });

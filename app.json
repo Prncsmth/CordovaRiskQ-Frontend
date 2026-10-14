@@ -39,7 +39,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Cordova RiskQ to use your location to show nearby evacuation centers on the map."
+          "locationWhenInUsePermission": "Allow Cordova RiskQ to use your location to show your current area and nearby evacuation centers."
         }
       ],
       [

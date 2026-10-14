@@ -28,6 +28,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { useSos } from "@/context/SosContext";
 import { useTabBarHeight } from "@/context/TabBarHeightContext";
 import { useTour } from "@/context/TourContext";
+import { useHomeLocation } from "@/hooks/useHomeLocation";
 import { getActiveAnnouncement, type Announcement } from "@/services/advisory.service";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
 import { getTideStatus, type TideStatus } from "@/services/tide.service";
@@ -35,8 +36,6 @@ import { SPACING, useThemeColors, type ColorPalette } from "@/theme";
 import { haversineDistanceKm } from "@/utils/distance";
 import { formatShortDateTime, formatTime } from "@/utils/formatter";
 import { useSequencedFetch } from "@/hooks/useSequencedFetch";
-
-const FALLBACK_LOCATION = "Barangay Poblacion, Cordova";
 
 const FLOOD_MESSAGE: Record<TideStatus["floodRiskLevel"], string> = {
   normal: "No flood risk detected in your area",
@@ -99,7 +98,7 @@ export default function HomeScreen() {
   const barangayNameRef = useRef<string | undefined>(undefined);
   const [fix, setFix] = useState<Coordinates | undefined>(undefined);
   const [tideStatus, setTideStatus] = useState<TideStatus | null>(null);
-  const [location, setLocation] = useState<string | null>(null);
+  const homeLocation = useHomeLocation();
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   // Shared by every trigger that can refresh the Announcement Card below
   // (mount/pull-to-refresh via loadHomeData, a live create event, a live
@@ -176,7 +175,6 @@ export default function HomeScreen() {
         if (currentFix) {
           const nearestBarangay = getNearestBarangay(currentFix.latitude, currentFix.longitude);
           barangayName = nearestBarangay.name;
-          setLocation(`Barangay ${nearestBarangay.name}, Cordova`);
         }
         barangayNameRef.current = barangayName;
 
@@ -261,7 +259,7 @@ export default function HomeScreen() {
       }
     >
       <HomeHeader hasUnread={hasUnread} />
-      <GreetingBlock name={firstName} location={location ?? FALLBACK_LOCATION} />
+      <GreetingBlock name={firstName} location={homeLocation} />
 
       {announcement ? (
         <AdvisoryBanner
