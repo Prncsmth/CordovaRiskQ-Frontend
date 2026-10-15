@@ -20,7 +20,10 @@ export default function AuthLayout() {
         <Stack.Screen name="register" />
         <Stack.Screen name="verify-email" />
         <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="reset-code" />
         <Stack.Screen name="reset-password" />
+        {/* No swipe back into the used-up reset steps. */}
+        <Stack.Screen name="password-reset-success" options={{ gestureEnabled: false }} />
       </Stack>
     </ThemeProvider>
   );

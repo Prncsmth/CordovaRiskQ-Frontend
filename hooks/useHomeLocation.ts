@@ -2,24 +2,12 @@ import { useEffect, useState } from "react";
 
 import { subscribeToLiveLocation, type LiveFix } from "@/services/liveLocationWatcher";
 import { getCurrentLocation, type Coordinates } from "@/services/location.service";
-import { reverseGeocodeLocality } from "@/services/geocoding.service";
+import { formatHomeLocationLabel, reverseGeocodeLocality } from "@/services/geocoding.service";
 import { distanceMeters, isValidCoordinate } from "@/utils/liveTracking";
 
 const MAX_FIX_ACCURACY_METERS = 50;
 const MIN_REVERSE_GEOCODE_MOVEMENT_METERS = 100;
 const MIN_REVERSE_GEOCODE_INTERVAL_MS = 15_000;
-
-function formatLocality(
-  locality: { barangay?: string; locality?: string; region?: string } | null,
-): string | null {
-  if (!locality) return null;
-  const parts = [
-    locality.barangay ? `Barangay ${locality.barangay}` : undefined,
-    locality.locality,
-    locality.region,
-  ].filter((part): part is string => Boolean(part));
-  return parts.length > 0 ? parts.join(", ") : null;
-}
 
 export function useHomeLocation(): string {
   const [label, setLabel] = useState("Finding your location…");
@@ -49,7 +37,7 @@ export function useHomeLocation(): string {
       const thisRequest = ++requestId;
       void reverseGeocodeLocality(coords).then((result) => {
         if (cancelled || thisRequest !== requestId) return;
-        const nextLabel = formatLocality(result);
+        const nextLabel = formatHomeLocationLabel(result);
         if (nextLabel) setLabel(nextLabel);
         else if (!resolvedInitialLocation) setLabel("Location unavailable");
         resolvedInitialLocation = true;

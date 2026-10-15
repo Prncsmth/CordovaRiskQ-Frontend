@@ -12,10 +12,13 @@ import {
   requestResetCode,
   resendResetCode,
   submitPasswordReset,
+  submitResetCode,
   validateForgotPasswordEmail,
   validatePasswordReset,
+  validateResetCode,
   type RequestResetDeps,
   type SubmitResetDeps,
+  type VerifyCodeDeps,
 } from "./passwordResetFlow";
 
 function apiError(message: string, status: number) {
@@ -98,6 +101,62 @@ describe("requestResetCode", () => {
         .mockRejectedValue(apiError("Too many verification code requests. Please try again in a few minutes.", 429)),
     });
     await expect(requestResetCode("juana@yahoo.com", deps)).rejects.toMatchObject({ status: 429 });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reset-code.tsx logic
+// ---------------------------------------------------------------------------
+
+describe("validateResetCode", () => {
+  it("accepts a 6-digit code, ignoring surrounding spaces", () => {
+    expect(validateResetCode(" 048213 ")).toBeNull();
+  });
+
+  it("requires a code", () => {
+    expect(validateResetCode("  ")).toBe("Please enter the 6-digit code.");
+  });
+
+  it("requires exactly 6 digits", () => {
+    for (const code of ["12345", "1234567", "12a456"]) {
+      expect(validateResetCode(code)).toBe("Enter the 6-digit code.");
+    }
+  });
+});
+
+describe("submitResetCode", () => {
+  function makeVerifyDeps(overrides: Partial<VerifyCodeDeps> = {}): VerifyCodeDeps {
+    return {
+      verifyResetCode: jest
+        .fn()
+        .mockResolvedValue({ message: "Code verified. You can now set a new password." }),
+      ...overrides,
+    };
+  }
+
+  it("does not call the backend for an invalid code", async () => {
+    const deps = makeVerifyDeps();
+
+    const result = await submitResetCode("juana@yahoo.com", "123", deps);
+
+    expect(result).toEqual({ status: "invalid-input", message: "Enter the 6-digit code." });
+    expect(deps.verifyResetCode).not.toHaveBeenCalled();
+  });
+
+  it("checks the trimmed code with the backend and hands it on to the next step", async () => {
+    const deps = makeVerifyDeps();
+
+    const result = await submitResetCode("juana@yahoo.com", " 048213 ", deps);
+
+    expect(deps.verifyResetCode).toHaveBeenCalledWith("juana@yahoo.com", "048213");
+    expect(result).toEqual({ status: "verified", code: "048213" });
+  });
+
+  it("propagates the backend's generic invalid-code error", async () => {
+    const failure = apiError("Invalid or expired code. Request a new one.", 400);
+    const deps = makeVerifyDeps({ verifyResetCode: jest.fn().mockRejectedValue(failure) });
+
+    await expect(submitResetCode("juana@yahoo.com", "048213", deps)).rejects.toBe(failure);
   });
 });
 

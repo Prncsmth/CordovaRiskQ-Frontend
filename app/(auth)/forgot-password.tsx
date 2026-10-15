@@ -26,7 +26,7 @@ import {
 
 // Step 1 of password reset: ask the backend to email a 6-digit code. Its
 // answer is the same whether or not the email has an account, so the app
-// always continues to reset-password.tsx (see services/passwordResetFlow.ts).
+// always continues to reset-code.tsx (see services/passwordResetFlow.ts).
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -51,7 +51,7 @@ export default function ForgotPasswordScreen() {
       const result = await requestResetCode(email, { requestPasswordReset });
       // Only what the next screen displays -- never a code or password.
       router.push({
-        pathname: "/reset-password",
+        pathname: "/reset-code",
         params: { email: result.email, cooldown: String(result.resendCooldownSeconds) },
       });
     } catch (err) {

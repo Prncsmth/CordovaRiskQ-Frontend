@@ -4,12 +4,15 @@
 // dependencies are injected so this is unit-tested directly, and the screens
 // only hold UI state.
 //
-// Flow: forgot-password.tsx sends the email to /auth/forgot-password. The
-// backend answers the same way whether or not an account exists (no account
-// enumeration), so the app always moves on to the reset screen. There the
-// user enters the 6-digit code plus a new password, which is sent to
-// /auth/reset-password. Success does NOT log the user in -- they go back to
-// Login and sign in with the new password.
+// Flow, one screen per step:
+//   1. forgot-password.tsx sends the email to /auth/forgot-password. The
+//      backend answers the same way whether or not an account exists (no
+//      account enumeration), so the app always moves on.
+//   2. reset-code.tsx checks the 6-digit code with /auth/verify-reset-code.
+//   3. reset-password.tsx sends the code again with the new password to
+//      /auth/reset-password.
+//   4. password-reset-success.tsx confirms it. Success does NOT log the user
+//      in -- they go back to Login and sign in with the new password.
 import { isPasswordValid, PASSWORD_REQUIREMENTS_MESSAGE } from "@/utils/passwordPolicy";
 
 import { OTP_LENGTH, RESEND_COOLDOWN_SECONDS } from "./registrationFlow";
@@ -52,6 +55,38 @@ export async function resendResetCode(
   if (state.cooldownRemaining > 0 || state.inFlight) return null;
   const { resendCooldownSeconds } = await deps.requestPasswordReset(email);
   return resendCooldownSeconds || RESEND_COOLDOWN_SECONDS;
+}
+
+// Returns the message to show, or null when the code looks right. The
+// backend is the one that knows whether it is the right code.
+export function validateResetCode(code: string): string | null {
+  if (!code.trim()) return "Please enter the 6-digit code.";
+  if (!OTP_PATTERN.test(code.trim())) return "Enter the 6-digit code.";
+  return null;
+}
+
+export type VerifyCodeDeps = {
+  verifyResetCode(email: string, code: string): Promise<{ message: string }>;
+};
+
+export type VerifyCodeResult =
+  | { status: "invalid-input"; message: string }
+  | { status: "verified"; code: string };
+
+// The "Enter code" step. On success the code is handed on to the new
+// password step, which sends it again: the backend only uses the code up
+// when the password is actually reset.
+export async function submitResetCode(
+  email: string,
+  rawCode: string,
+  deps: VerifyCodeDeps,
+): Promise<VerifyCodeResult> {
+  const validationError = validateResetCode(rawCode);
+  if (validationError) return { status: "invalid-input", message: validationError };
+
+  const code = rawCode.trim();
+  await deps.verifyResetCode(email, code);
+  return { status: "verified", code };
 }
 
 export type PasswordResetInput = {

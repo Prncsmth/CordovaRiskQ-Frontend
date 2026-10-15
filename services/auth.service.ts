@@ -76,6 +76,13 @@ export async function requestPasswordReset(
   return { message: result.message, resendCooldownSeconds: result.resendCooldownSeconds };
 }
 
+// Checks the 6-digit code without using it up (the "Enter code" step);
+// resetPassword sends it again with the new password.
+export async function verifyResetCode(email: string, code: string): Promise<{ message: string }> {
+  const result = await apiPost<{ message: string }>("/api/auth/verify-reset-code", { email, code });
+  return { message: result.message };
+}
+
 // Sets the new password if the 6-digit code is valid. Does not log in --
 // the user signs in with the new password afterwards.
 export async function resetPassword(
