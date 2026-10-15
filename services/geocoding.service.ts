@@ -17,8 +17,8 @@ type GeocodingResponse = {
 
 export type ReverseGeocodedLocality = {
   barangay?: string;
-  locality?: string;
-  region?: string;
+  municipality?: string;
+  province?: string;
 };
 
 // Never throws -- any failure (missing token, network, timeout, malformed/
@@ -54,8 +54,9 @@ export async function reverseGeocode(coords: Coordinates): Promise<string | null
 
 // Resolve the administrative area around a live GPS fix for the home
 // greeting. Mapbox v5 can return neighborhood/locality/place features in one
-// reverse lookup; in the Philippines a barangay is commonly mapped as a
-// neighborhood, while a city or municipality is a place/locality.
+// reverse lookup. In the Philippines a barangay is mapped as a neighborhood
+// or a locality (inside Cordova it is a locality), the city or municipality
+// is the place, and the province is the region.
 export async function reverseGeocodeLocality(
   coords: Coordinates,
 ): Promise<ReverseGeocodedLocality | null> {
@@ -86,18 +87,37 @@ export async function reverseGeocodeLocality(
       .flatMap((feature) => feature.context ?? [])
       .find((item) => item.id?.startsWith(`${type}.`) && item.text)?.text;
 
-  const neighborhood = byType("neighborhood")?.text ?? namedContext("neighborhood");
-  const locality =
+  const barangay =
+    byType("neighborhood")?.text ??
+    namedContext("neighborhood") ??
     byType("locality")?.text ??
-    namedContext("locality") ??
-    byType("place")?.text ??
-    namedContext("place");
-  const region = byType("region")?.text ?? namedContext("region");
+    namedContext("locality");
+  // A highly urbanized city (Lapu-Lapu, Mandaue, Cebu City) is its own
+  // province-level unit, so Mapbox tags it both "region" and "place", and
+  // often without the word "City" ("Lapu-Lapu"). Name it as a city and don't
+  // repeat it as the province.
+  const placeFeature = byType("place");
+  const isCity = placeFeature?.place_type?.includes("region") ?? false;
+  const placeName = placeFeature?.text ?? namedContext("place");
+  const municipality = placeName && isCity && !/\bcity$/i.test(placeName) ? `${placeName} City` : placeName;
+  const province = isCity ? undefined : byType("region")?.text ?? namedContext("region");
 
-  if (!neighborhood && !locality && !region) return null;
+  if (!barangay && !municipality && !province) return null;
   return {
-    barangay: neighborhood?.replace(/^barangay\s+/i, "").trim() || undefined,
-    locality,
-    region,
+    barangay: barangay?.replace(/^barangay\s+/i, "").trim() || undefined,
+    municipality,
+    province,
   };
+}
+
+// The home greeting's location line: "Barangay Day-as, Cordova". The
+// province is only shown when the barangay or municipality is missing.
+export function formatHomeLocationLabel(locality: ReverseGeocodedLocality | null): string | null {
+  if (!locality) return null;
+  const barangay = locality.barangay ? `Barangay ${locality.barangay}` : undefined;
+  const parts = barangay && locality.municipality
+    ? [barangay, locality.municipality]
+    : [barangay ?? locality.municipality, locality.province];
+  const label = parts.filter((part): part is string => Boolean(part)).join(", ");
+  return label || null;
 }
