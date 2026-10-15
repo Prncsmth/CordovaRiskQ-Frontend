@@ -45,6 +45,10 @@ export const unstable_settings = {
   anchor: "(tabs)",
 };
 
+// A screen that throws while rendering shows expo-router's error screen with
+// a Retry button instead of a blank screen in a release build.
+export { ErrorBoundary } from "expo-router";
+
 // Benign, dev-only noise from expo-router's own internal cold-start/reload
 // initial-URL resolution racing React's render lifecycle -- confirmed by
 // reading expo-router/build/fork/useLinking.native.js directly: the
